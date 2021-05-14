@@ -1,0 +1,1616 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="icon"type="image/png"href="favicon.png">
+        <title>Larry and Wendy's Home Page</title>
+        <style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+    background-color: rgb(0, 0, 0);
+    background-image: url("NewStars.png");
+}
+
+/* unvisited link */
+a:link {
+  color: white;
+  text-decoration: none;
+}
+
+/* visited link */
+a:visited {
+  color: white;
+  text-decoration: none;
+}
+
+/* mouse over link */
+a:hover {
+  color: red;
+  text-decoration: none;
+}
+
+/* selected link */
+a:active {
+  color: white;
+  text-decoration: none;
+}
+.myButton {
+	box-shadow: 3px 4px 0px 0px #899599;
+	background:linear-gradient(to bottom, #ededed 5%, #bab1ba 100%);
+	background-color:#ededed;
+	border-radius:15px;
+	border:1px solid #d6bcd6;
+	display:inline-block;
+	cursor:pointer;
+	color:#9e3a47;
+	font-family:Arial;
+	font-size:10px;
+	padding:5px 15px;
+	text-decoration:none;
+	text-shadow:0px 1px 0px #0f1dc0;
+}
+.myButton:hover {
+	background:linear-gradient(to bottom, #bab1ba 5%, #ededed 100%);
+	background-color:#bab1ba;
+}
+.myButton:active {
+	position:relative;
+	top:1px;
+}
+
+.grid-container {
+    text-align: center;
+    display: grid;
+    grid-template-columns: auto auto auto auto auto auto auto auto auto auto;
+    grid-template-rows: auto auto auto auto auto auto auto auto auto auto auto auto auto auto auto auto auto auto auto auto;
+    grid-template-areas:
+      "title title title title title title title title title titlepic"
+      "cell1 cell2 cell3 cell4 cell5 cell6 cell7 cell8 cell9 cell10"
+      "cell11 cell12 cell13 cell14 cell15 cell16 cell17 cell18 cell19 cell20"
+      "cell21 cell22 cell23 cell24 cell25 cell26 cell27 cell28 cell29 cell30"
+      "cell31 cell32 cell33 cell34 cell35 cell36 cell37 cell38 cell39 cell40"
+      "cell41 cell42 cell43 cell44 cell45 cell46 cell47 cell48 cell49 cell50"
+      "cell51 cell52 cell53 cell54 cell55 cell56 cell57 cell58 cell59 cell60"
+      "cell61 cell62 cell63 cell64 cell65 cell66 cell67 cell68 cell69 cell70"
+      "cell71 cell72 cell73 cell74 cell75 cell76 cell77 cell78 cell79 cell80"
+      "cell81 cell82 cell83 cell84 cell85 cell86 cell87 cell88 cell89 cell90"
+      "cell91 cell92 cell93 cell94 cell95 cell96 cell97 cell98 cell99 cell100"
+      "cell101 cell102 cell103 cell104 cell105 cell106 cell107 cell108 cell109 cell110"
+      "cell111 cell112 cell113 cell114 cell115 cell116 cell117 cell118 cell119 cell120"
+      "cell121 cell122 cell123 cell124 cell125 cell126 cell127 cell128 cell129 cell130"
+      "cell131 cell132 cell133 cell134 cell135 cell136 cell137 cell138 cell139 cell140"
+      "cell141 cell142 cell143 cell144 cell145 cell146 cell147 cell148 cell149 cell150"
+      "cell151 cell152 cell153 cell154 cell155 cell156 cell157 cell158 cell159 cell160"
+      "cell161 cell162 cell163 cell164 cell165 cell166 cell167 cell168 cell169 cell170"
+      "cell171 cell172 cell173 cell174 cell175 cell176 cell177 cell178 cell179 cell180"
+      "cell181 cell182 cell183 cell184 cell185 cell186 cell187 cell188 cell189 cell190";
+  }
+  
+  .title {
+  grid-area: title;
+  color: #00FF33;
+  font-size: 2vw;
+  font-family: "Courier New", Courier, mono;
+}
+
+  .titlepic {
+  grid-area: titlepic;
+  height: auto;
+  }
+   
+  .cell1 { grid-area: cell1;
+  border: 1px solid #00FF33; 
+  color: rgb(255, 153, 0);
+  }
+   
+  .cell2 { grid-area: cell2;
+  border: 1px solid #00FF33;
+  color: rgb(255, 153, 0);
+  }
+
+  .cell3 { grid-area: cell3;
+  border: 1px solid #00FF33;
+  color: rgb(255, 153, 0);
+  }
+  
+  .cell4 { grid-area: cell4;
+  border: 1px solid #00FF33;
+  color: rgb(255, 153, 0);
+  }
+  
+  .cell5 { grid-area: cell5;
+  border: 1px solid #00FF33;
+  color: rgb(255, 153, 0);
+  }
+  
+  .cell6 { grid-area: cell6;
+  border: 1px solid #00FF33;
+  color: rgb(255, 153, 0);
+  }
+
+  .cell7 { grid-area: cell7;
+  border: 1px solid #00FF33;
+  color: rgb(255, 153, 0);
+  }
+  
+  .cell8 { grid-area: cell8;
+  border: 1px solid #00FF33;
+  color: rgb(255, 153, 0);
+  }
+  
+  .cell9 { grid-area: cell9;
+  border: 1px solid #00FF33;
+  color: rgb(255, 153, 0);
+  }
+
+  .cell10 { grid-area: cell10;
+  border: 1px solid #00FF33;
+  color: rgb(255, 153, 0);
+  }
+
+  .cell11 { grid-area: cell11;
+  border: 1px solid #00FF33; 
+  color: blue;
+  }
+
+  .cell12 { grid-area: cell12;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+
+  .cell13 { grid-area: cell13;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell14 { grid-area: cell14;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell15 { grid-area: cell15;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell16 { grid-area: cell16;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+
+  .cell17 { grid-area: cell17;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell18 { grid-area: cell18;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell19 { grid-area: cell19;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+
+  .cell20 { grid-area: cell20;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+
+   .cell21 { grid-area: cell21;
+  border: 1px solid #00FF33; 
+  color: blue;
+  }
+
+  .cell22 { grid-area: cell22;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+
+  .cell23 { grid-area: cell23;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell24 { grid-area: cell24;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell25 { grid-area: cell25;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell26 { grid-area: cell26;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+
+  .cell27 { grid-area: cell27;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell28 { grid-area: cell28;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell29 { grid-area: cell29;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+
+  .cell30 { grid-area: cell30;
+  border: 1px solid #00FF33;
+  color: blue;
+  } 
+
+  .cell31 { grid-area: cell31;
+  border: 1px solid #00FF33; 
+  color: blue;
+  }
+
+  .cell32 { grid-area: cell32;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+
+  .cell33 { grid-area: cell33;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell34 { grid-area: cell34;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell35 { grid-area: cell35;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell36 { grid-area: cell36;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+
+  .cell37 { grid-area: cell37;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell38 { grid-area: cell38;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell39 { grid-area: cell39;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+
+  .cell40 { grid-area: cell40;
+  border: 1px solid #00FF33;
+  color: blue;
+  } 
+
+  .cell41 { grid-area: cell41;
+  border: 1px solid #00FF33; 
+  color: blue;
+  }
+   
+  .cell42 { grid-area: cell42;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+
+  .cell43 { grid-area: cell43;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell44 { grid-area: cell44;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell45 { grid-area: cell45;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell46 { grid-area: cell46;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+
+  .cell47 { grid-area: cell47;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell48 { grid-area: cell48;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell49 { grid-area: cell49;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+
+  .cell50 { grid-area: cell50;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+
+  .cell51 { grid-area: cell51;
+  border: 1px solid #00FF33; 
+  color: blue;
+  }
+   
+  .cell52 { grid-area: cell52;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+
+  .cell53 { grid-area: cell53;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell54 { grid-area: cell54;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell55 { grid-area: cell55;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell56 { grid-area: cell56;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+
+  .cell57 { grid-area: cell57;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell58 { grid-area: cell58;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell59 { grid-area: cell59;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+
+  .cell60 { grid-area: cell60;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+
+    .cell61 { grid-area: cell61;
+  border: 1px solid #00FF33; 
+  color: blue;
+  }
+   
+  .cell62 { grid-area: cell62;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+
+  .cell63 { grid-area: cell63;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell64 { grid-area: cell64;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell65 { grid-area: cell65;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell66 { grid-area: cell66;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+
+  .cell67 { grid-area: cell67;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell68 { grid-area: cell68;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell69 { grid-area: cell69;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+
+  .cell70 { grid-area: cell70;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell71 { grid-area: cell71;
+  border: 1px solid #00FF33; 
+  color: blue;
+  }
+   
+  .cell72 { grid-area: cell72;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+
+  .cell73 { grid-area: cell73;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell74 { grid-area: cell74;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell75 { grid-area: cell75;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell76 { grid-area: cell76;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+
+  .cell77 { grid-area: cell77;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell78 { grid-area: cell78;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell79 { grid-area: cell79;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+
+  .cell80 { grid-area: cell80;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell81 { grid-area: cell81;
+  border: 1px solid #00FF33; 
+  color: blue;
+  }
+   
+  .cell82 { grid-area: cell82;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+
+  .cell83 { grid-area: cell83;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell84 { grid-area: cell84;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell85 { grid-area: cell85;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell86 { grid-area: cell86;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+
+  .cell87 { grid-area: cell87;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell88 { grid-area: cell88;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell89 { grid-area: cell89;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+
+  .cell90 { grid-area: cell90;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell91 { grid-area: cell91;
+  border: 1px solid #00FF33; 
+  color: blue;
+  }
+   
+  .cell92 { grid-area: cell92;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+
+  .cell93 { grid-area: cell93;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell94 { grid-area: cell94;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell95 { grid-area: cell95;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell96 { grid-area: cell96;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+
+  .cell97 { grid-area: cell97;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell98 { grid-area: cell98;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell99 { grid-area: cell99;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+
+  .cell100 { grid-area: cell100;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+    .cell101 { grid-area: cell101;
+  border: 1px solid #00FF33; 
+  color: blue;
+  }
+   
+  .cell102 { grid-area: cell102;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+
+  .cell103 { grid-area: cell103;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell104 { grid-area: cell104;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell105 { grid-area: cell105;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell106 { grid-area: cell106;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+
+  .cell107 { grid-area: cell107;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell108 { grid-area: cell108;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell109 { grid-area: cell109;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+
+  .cell110 { grid-area: cell110;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  .cell111 { grid-area: cell111;
+  border: 1px solid #00FF33; 
+  color: blue;
+  }
+   
+  .cell112 { grid-area: cell112;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+
+  .cell113 { grid-area: cell113;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell114 { grid-area: cell114;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell115 { grid-area: cell115;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell116 { grid-area: cell116;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+
+  .cell117 { grid-area: cell117;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell118 { grid-area: cell118;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell119 { grid-area: cell119;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+
+  .cell120 { grid-area: cell120;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell121 { grid-area: cell121;
+  border: 1px solid #00FF33; 
+  color: blue;
+  }
+   
+  .cell122 { grid-area: cell122;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+
+  .cell123 { grid-area: cell123;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell124 { grid-area: cell124;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell125 { grid-area: cell125;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell126 { grid-area: cell126;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+
+  .cell127 { grid-area: cell127;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell128 { grid-area: cell128;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell129 { grid-area: cell129;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+
+  .cell130 { grid-area: cell130;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell131 { grid-area: cell131;
+  border: 1px solid #00FF33; 
+  color: blue;
+  }
+   
+  .cell132 { grid-area: cell132;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+
+  .cell133 { grid-area: cell133;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell134 { grid-area: cell134;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell135 { grid-area: cell135;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell136 { grid-area: cell136;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+
+  .cell137 { grid-area: cell137;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell138 { grid-area: cell138;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell139 { grid-area: cell139;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+
+  .cell140 { grid-area: cell140;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell141 { grid-area: cell141;
+  border: 1px solid #00FF33; 
+  color: blue;
+  }
+   
+  .cell142 { grid-area: cell142;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+
+  .cell143 { grid-area: cell143;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell144 { grid-area: cell144;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell145 { grid-area: cell145;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell146 { grid-area: cell146;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+
+  .cell147 { grid-area: cell147;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell148 { grid-area: cell148;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell149 { grid-area: cell149;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+
+  .cell150 { grid-area: cell150;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell151 { grid-area: cell151;
+  border: 1px solid #00FF33; 
+  color: blue;
+  }
+   
+  .cell152 { grid-area: cell152;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+
+  .cell153 { grid-area: cell153;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell154 { grid-area: cell154;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell155 { grid-area: cell155;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell156 { grid-area: cell56;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+
+  .cell157 { grid-area: cell157;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell158 { grid-area: cell158;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell159 { grid-area: cell159;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+
+  .cell160 { grid-area: cell160;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell161 { grid-area: cell161;
+  border: 1px solid #00FF33; 
+  color: blue;
+  }
+   
+  .cell162 { grid-area: cell162;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+
+  .cell163 { grid-area: cell163;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell164 { grid-area: cell164;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell165 { grid-area: cell165;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell166 { grid-area: cell166;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+
+  .cell167 { grid-area: cell167;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell168 { grid-area: cell168;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell169 { grid-area: cell169;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+
+  .cell170 { grid-area: cell170;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell171 { grid-area: cell171;
+  border: 1px solid #00FF33; 
+  color: blue;
+  }
+   
+  .cell172 { grid-area: cell172;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+
+  .cell173 { grid-area: cell173;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell174 { grid-area: cell174;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell175 { grid-area: cell175;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell176 { grid-area: cell176;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+
+  .cell177 { grid-area: cell177;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell178 { grid-area: cell178;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell179 { grid-area: cell179;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+
+  .cell180 { grid-area: cell180;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell181 { grid-area: cell181;
+  border: 1px solid #00FF33; 
+  color: blue;
+  }
+   
+  .cell182 { grid-area: cell182;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+
+  .cell183 { grid-area: cell183;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell184 { grid-area: cell184;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell185 { grid-area: cell185;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell186 { grid-area: cell186;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+
+  .cell187 { grid-area: cell187;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell188 { grid-area: cell188;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+  
+  .cell189 { grid-area: cell189;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+
+  .cell190 { grid-area: cell190;
+  border: 1px solid #00FF33;
+  color: blue;
+  }
+
+
+</style>
+        <body>
+
+            <div class="grid-container">
+                <div class="title">
+                    <h1>Larry and Wendy's Home Page</h1>
+                </div>
+                <div class="titlepic">
+                    <img src="House.png" alt="Our House">
+                </div>
+                <div class="cell1">
+                    <h2>Google</h2>
+                </div>
+                <div class="cell2">
+                    <h2>Weather</h2>
+                </div>
+                <div class="cell3">
+                    <h2>Shopping</h2>
+                </div>
+                <div class="cell4">
+                    <h2>News</h2>
+                </div>
+                <div class="cell5">
+                    <h2>HTML</h2>
+                </div>
+                <div class="cell6">
+                    <h2>TV</h2>
+                </div>
+                <div class="cell7">
+                   <h2>Money</h2>
+                </div>
+                <div class="cell8">
+                    <h2>Genealogy</h2>
+                </div>
+                <div class="cell9">
+                    <h2>ESP32</h2>
+                </div>
+                <div class="cell10">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell11">
+                    <a href="https://mail.google.com/">Gmail</a>
+                </div>
+                <div class="cell12">
+                    <a href="https://go.usa.gov/xHPC6">NWS Weather Map</a>
+                </div>
+                <div class="cell13">
+                    <a href="https://www.walmart.com/grocery/">Walmart Pickup</a>
+                </div>
+                <div class="cell14">
+                    <a href="https://news.google.com/">Google News</a>
+                </div>
+                <div class="cell15">
+                    <a href="https://www.w3.org/">W3C</a>
+                </div>
+                <div class="cell16">
+                    <a href="https://tv.youtube.com/">You Tube TV</a>
+                </div>
+                <div class="cell17">
+                    <a href="https://oltx.fidelity.com/ftgw/fbc/oftop/portfolio#positions">Fidelity</a>
+                </div>
+                <div class="cell18">
+                    <a href="https://www.familysearch.org/tree/pedigree/portrait/GM2S-LF8">Family Search</a>
+                </div>
+                <div class="cell19">
+                    <a href="https://www.espressif.com/en/products/socs/esp32">Espressif</a>
+                </div>
+                <div class="cell20">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell21">
+                    <a href="https://drive.google.com/">Drive</a>
+                </div>
+                <div class="cell22">
+                    <a
+                        href="https://forecast.weather.gov/MapClick.php?lat=41.323216322823676&lon=-81.2315150048828#.YIm0rKJKiV7">NWS
+                        Mantua Ohio Forecast</a>
+                </div>
+                <div class="cell23">
+                    <a href="https://www.walmart.com/">Walmart.com</a>
+                </div>
+                <div class="cell24">
+                    <a href="https://www.cnn.com/">CNN</a>
+                </div>
+                <div class="cell25">
+                    <a href="http://panel.byethost.com/panel/index.php">Byethost</a>
+                </div>
+                <div class="cell26">
+                    <a href="https://www.amazon.com/Amazon-Video/b/?ie=UTF8&node=2858778011&ref_=nav_cs_prime_video_d0a174c3fb9c402e84dd77b60d476e12">Amazon</a>
+                </div>
+                <div class="cell27">
+                    <a href="https://finviz.com/">Finviz</a>
+                </div>
+                <div class="cell28">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell29">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell30">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell31">
+                    <a href="https://www.youtube.com/">You Tube</a>
+                </div>
+                <div class="cell32">
+                    <a
+                        href="https://www.star.nesdis.noaa.gov/GOES/sector_band.php?sat=G16&sector=cgl&band=GEOCOLOR&length=12">NWS
+                        Satellite </a>
+                </div>
+                <div class="cell33">
+                    <a href="https://shop.gianteagle.com/tanglewood/">Giant Eagle Tanglewood</a>
+                </div>
+                <div class="cell34">
+                    <a href="https://www.msnbc.com/">MSNBC</a>
+                </div>
+                <div class="cell35">
+                    <a href="https://www.w3schools.com/">W3 Schools</a>
+                </div>
+                <div class="cell36">
+                    <a href="https://www.crackle.com/ird.html">Crackle</a>
+                </div>
+                <div class="cell37">
+                    <a href="https://www.investing.com/">Investing</a>
+                </div>
+                <div class="cell38">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell39">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell40">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell41">
+                    <a href="https://tv.youtube.com/">You Tube TV</a>
+                </div>
+                <div class="cell42">
+                    <a href="https://www.wunderground.com/dashboard/pws/KOHCHAGR6">WU Auburn</a>
+                </div>
+                <div class="cell43">
+                    <a href="https://www.target.com/">Target</a>
+                </div>
+                <div class="cell44">
+                    <a href="https://www.foxnews.com/">Fox News</a>
+                </div>
+                <div class="cell45">
+                    <a href="https://codepen.io/">Codepen</a>
+                </div>
+                <div class="cell46">
+                    <a href="https://www.distro.tv/">Distro TV</a>
+                </div>
+                <div class="cell47">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell48">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell49">
+                    <button type="button" onclick="alert('Hello world!')">Click Me!</button>
+                </div>
+                <div class="cell50">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell51">
+                    <a href="https://calendar.google.com/calendar/">Calendar</a>
+                </div>
+                <div class="cell52">
+                    <a href="https://www.meteoblue.com/en/weather/week/mantua_united-states-of-america_5161742">metoblue Mantua Weather</a>
+                </div>
+                <div class="cell53">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell54">
+                    <a href="https://www.wkyc.com/">WKYC</a>
+                </div>
+                <div class="cell55">
+                    <a href="https://www.webpagetest.org/">Webpage Test</a>
+                </div>
+                <div class="cell56">
+                    <a href="https://www.xumo.tv/">Xumo</a>
+                </div>
+                <div class="cell57">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell58">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell59">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell60">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell61">
+                    <a href="https://www.google.com/maps/">Maps</a>
+                </div>
+                <div class="cell62">
+                    <a href="http://outages.firstenergycorp.com/oh.html">First Energy Outage Map</a>
+                </div>
+                <div class="cell63">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell64">
+                    <a href="https://www.news5cleveland.com/">WEWS</a>
+                </div>
+                <div class="cell65">
+                    <a href="https://jstherightway.org/">Javascript - The Right  Way</a>
+                </div>
+                <div class="cell66">
+                    <a href="https://www.discoveryplus.com/">Discovery Plus</a>
+                </div>
+                <div class="cell67">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell68">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell69">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell70">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell71">
+                    <a href="https://docs.google.com/spreadsheets/">Sheets</a>
+                </div>
+                <div class="cell72">
+                    <a href="https://www.broadcastify.com/webPlayer/34917">Cleveland Skywarn</a>
+                </div>
+                <div class="cell73">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell74">
+                    <a href="https://fox8.com/">WJKW</a>
+                </div>
+                <div class="cell75">
+                    <a href="https://www.javascripttutorial.net/">JavaScript Tutorial</a>
+                </div>
+                <div class="cell76">
+                    <a href="https://www.vudu.com/content/movies/home">Vudo</a>
+                </div>
+                <div class="cell77">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell78">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell79">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell80">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell81">
+                    <a href="https://contacts.google.com/">Contacts</a>
+                </div>
+                <div class="cell82">
+                    <a href="https://www.lightningmaps.org/#m=oss;r=0;t=4;s=0;o=0;b=0.00;n=0;y=40.8346;x=-80.8415;z=9;ts=0;d=9;dl=8;dc=0;src=6;ts24=1;dn=1;">Lightning Maps</a>
+                </div>
+                <div class="cell83">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell84">
+                    <a href="https://www.cleveland19.com/">WOIO</a>
+                </div>
+                <div class="cell85">
+                    <a href="https://www.jsv9000.app/">JavaScript Visualizer 9000</a>
+                </div>
+                <div class="cell86">
+                    <a href="https://therokuchannel.roku.com/">Roku Channel</a>
+                </div>
+                <div class="cell87">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell88">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell89">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell90">
+                    <a href="Bird.html" class="myButton">grey</a>
+
+                </div>
+                <div class="cell91">
+                    <a href="https://voice.google.com/">Voice</a>
+                </div>
+                <div class="cell92">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell93">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell94">
+                    <a href="englishnews.html">International News in English</a>
+                </div>
+                <div class="cell95">
+                    <a href="https://keyframes.app/">Key Frames</a>
+                </div>
+                <div class="cell96">
+                    <a href="https://pluto.tv/">Pluto TV</a>
+                </div>
+                <div class="cell97">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell98">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell99">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell100">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell101">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell102">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell103">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell104">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell105">
+                    <a href="https://palette.ninja/">Palette Ninja</a>
+                </div>
+                <div class="cell106">
+                    <a href="https://tubitv.com/">Tubi TV</a>
+                </div>
+                <div class="cell107">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell108">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell109">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell110">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell111">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell112">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell113">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell114">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell115">
+                    <a href="https://grid.layoutit.com/">Lay Out It</a>
+                </div>
+                <div class="cell116">
+                    <a href="https://www.cbsnews.com/live/">CBS News</a>
+                </div>
+                <div class="cell117">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell118">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell119">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell120">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell121">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell122">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell123">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell124">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell125">
+                    <a href="https://andreasbm.github.io/web-skills/">Web Skills</a>
+                </div>
+                <div class="cell126">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell127">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell128">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell129">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell130">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell131">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell132">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell133">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell134">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell135">
+                    <a href="https://www.bestcssbuttongenerator.com/">CSS Button Generator</a>
+                </div>
+                <div class="cell136">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell137">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell138">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell139">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell140">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell141">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell142">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell143">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell144">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell145">
+                    <a href="https://cssgradient.io/">CSS Gradient</a>
+                </div>
+                <div class="cell146">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell147">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell148">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell149">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell150">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell161">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell162">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell163">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell164">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell165">
+                    <a href="https://www.html.am/">HTML AM</a>
+                </div>
+                <div class="cell166">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell167">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell168">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell169">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell170">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell171">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell172">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell173">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell174">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell175">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell176">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell177">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell178">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell179">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell180">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell181">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell182">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell183">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell184">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell185">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell186">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell187">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell188">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell189">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+                <div class="cell190">
+                    <a href="Bird.html">Bird Feeders</a>
+                </div>
+            </div>
+            <div class="logo">
+              <a href="https://byet.host/"><img src="logo.png" alt="Byethost Logo";></a>
+            </div>
+
+        </body>
+
+    </html>
