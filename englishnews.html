@@ -82,9 +82,44 @@
         50% { opacity: 0.5; }
         100% { opacity: 1; }
     }
+
+    /* Meteor Animation */
+    .meteor-container {
+        position: fixed;
+        top: 0; left: 0; width: 100vw; height: 100vh;
+        pointer-events: none;
+        z-index: 0;
+        overflow: hidden;
+    }
+    .meteor {
+        position: absolute;
+        width: 2px;
+        height: 60px;
+        background: linear-gradient(to bottom, rgba(255,255,255,0), #00FF33);
+        border-radius: 50%;
+        transform: rotate(45deg);
+        opacity: 0;
+        animation: shooting-star 10s linear infinite;
+    }
+    .meteor:nth-child(1) { top: 10%; left: 30%; animation-delay: 2s; animation-duration: 8s; }
+    .meteor:nth-child(2) { top: -20px; left: 70%; animation-delay: 6s; animation-duration: 12s; }
+    .meteor:nth-child(3) { top: 40%; left: 10%; animation-delay: 4s; animation-duration: 9s; }
+    
+    @keyframes shooting-star {
+        0% { opacity: 0; transform: translate(0, 0) rotate(45deg); }
+        5% { opacity: 1; }
+        15% { opacity: 0; transform: translate(60vw, 60vh) rotate(45deg); }
+        100% { opacity: 0; transform: translate(60vw, 60vh) rotate(45deg); }
+    }
 </style>
 </head>
 <body>
+
+<div class="meteor-container">
+    <div class="meteor"></div>
+    <div class="meteor"></div>
+    <div class="meteor"></div>
+</div>
 
 <div class="header">
   International News in English
@@ -92,69 +127,69 @@
  
 <div class="grid-container">
     <!-- News Streams -->
-    <a href="https://www.youtube.com/@aljazeeraenglish/live" target="_blank" class="card">
+    <a href="https://www.youtube.com/@aljazeeraenglish/live" class="card">
         <span class="card-title">Al Jazeera - Qatar</span>
         <span class="live-badge">Live</span>
     </a>
-    <a href="https://www.youtube.com/@BloombergLive/live" target="_blank" class="card">
+    <a href="https://www.youtube.com/@BloombergLive/live" class="card">
         <span class="card-title">Bloomberg Global Financial</span>
         <span class="live-badge">Live</span>
     </a>
-    <a href="https://www.youtube.com/@France24_en/live" target="_blank" class="card">
+    <a href="https://www.youtube.com/@France24_en/live" class="card">
         <span class="card-title">France 24 - France</span>
         <span class="live-badge">Live</span>
     </a>
-    <a href="https://www.youtube.com/@SkyNews/live" target="_blank" class="card">
+    <a href="https://www.youtube.com/@SkyNews/live" class="card">
         <span class="card-title">Sky News - UK</span>
         <span class="live-badge">Live</span>
     </a>
-    <a href="https://www.youtube.com/@channelnewsasia/live" target="_blank" class="card">
+    <a href="https://www.youtube.com/@channelnewsasia/live" class="card">
         <span class="card-title">CNA - Singapore</span>
         <span class="live-badge">Live</span>
     </a>
-    <a href="https://www.youtube.com/@dwnews/live" target="_blank" class="card">
+    <a href="https://www.youtube.com/@dwnews/live" class="card">
         <span class="card-title">Deutsche Welle - Germany</span>
         <span class="live-badge">Live</span>
     </a>
-    <a href="https://www.youtube.com/@trtworld/live" target="_blank" class="card">
+    <a href="https://www.youtube.com/@trtworld/live" class="card">
         <span class="card-title">TRT - Turkey</span>
         <span class="live-badge">Live</span>
     </a>
-    <a href="https://www.youtube.com/@KTNNewsKenya/live" target="_blank" class="card">
+    <a href="https://www.youtube.com/@KTNNewsKenya/live" class="card">
         <span class="card-title">KTN - Kenya</span>
         <span class="live-badge">Live</span>
     </a>
-    <a href="https://www.youtube.com/@unitednations/live" target="_blank" class="card">
+    <a href="https://www.youtube.com/@unitednations/live" class="card">
         <span class="card-title">UN TV</span>
         <span class="live-badge">Live</span>
     </a>
-    <a href="https://www.youtube.com/@NBCNews/live" target="_blank" class="card">
+    <a href="https://www.youtube.com/@NBCNews/live" class="card">
         <span class="card-title">NBC News - USA</span>
         <span class="live-badge">Live</span>
     </a>
 
     <!-- Animal / Nature Cams -->
-    <a href="https://www.youtube.com/results?search_query=Allen%27s+Hummingbird+Nest+live+stream" target="_blank" class="card">
+    <a href="https://www.youtube.com/results?search_query=Allen%27s+Hummingbird+Nest+live+stream" class="card">
         <span class="card-title">Allen's Hummingbird Nest</span>
         <span class="live-badge">Live</span>
     </a>
-    <a href="https://www.youtube.com/results?search_query=Animal+%2B+Bird+Feeder+Recke%2C+Germany+live" target="_blank" class="card">
+    <a href="https://www.youtube.com/results?search_query=Animal+%2B+Bird+Feeder+Recke%2C+Germany+live" class="card">
         <span class="card-title">Bird Feeder Recke, Germany</span>
         <span class="live-badge">Live</span>
     </a>
-    <a href="https://www.youtube.com/results?search_query=Hummingbird+Feeder+California+live" target="_blank" class="card">
+    <a href="https://www.youtube.com/results?search_query=Hummingbird+Feeder+California+live" class="card">
         <span class="card-title">Hummingbird Feeder CA</span>
         <span class="live-badge">Live</span>
     </a>
-    <a href="https://www.youtube.com/results?search_query=Animals+%2B+Birds+South+Africa+live" target="_blank" class="card">
+    <a href="https://www.youtube.com/results?search_query=Animals+%2B+Birds+South+Africa+live" class="card">
         <span class="card-title">Animals & Birds South Africa</span>
         <span class="live-badge">Live</span>
     </a>
-    <a href="https://www.youtube.com/@EarthCamLive/live" target="_blank" class="card">
+    <a href="https://www.youtube.com/@EarthCamLive/live" class="card">
         <span class="card-title">New York Times Square</span>
         <span class="live-badge">Live</span>
     </a>
-    <a href="https://www.youtube.com/@ExploreBears/live" target="_blank" class="card">
+    <a href="https://www.youtube.com/@ExploreBears/live" class="card">
         <span class="card-title">Bald Eagle Nest Decorah</span>
         <span class="live-badge">Live</span>
     </a>

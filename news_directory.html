@@ -147,9 +147,44 @@
         .card:hover .card-title {
             color: #00FF33;
         }
+
+        /* Meteor Animation */
+        .meteor-container {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+        .meteor {
+            position: absolute;
+            width: 2px;
+            height: 60px;
+            background: linear-gradient(to bottom, rgba(255,255,255,0), #00FF33);
+            border-radius: 50%;
+            transform: rotate(45deg);
+            opacity: 0;
+            animation: shooting-star 10s linear infinite;
+        }
+        .meteor:nth-child(1) { top: 10%; left: 30%; animation-delay: 2s; animation-duration: 8s; }
+        .meteor:nth-child(2) { top: -20px; left: 70%; animation-delay: 6s; animation-duration: 12s; }
+        .meteor:nth-child(3) { top: 40%; left: 10%; animation-delay: 4s; animation-duration: 9s; }
+        
+        @keyframes shooting-star {
+            0% { opacity: 0; transform: translate(0, 0) rotate(45deg); }
+            5% { opacity: 1; }
+            15% { opacity: 0; transform: translate(60vw, 60vh) rotate(45deg); }
+            100% { opacity: 0; transform: translate(60vw, 60vh) rotate(45deg); }
+        }
     </style>
 </head>
 <body>
+
+    <div class="meteor-container">
+        <div class="meteor"></div>
+        <div class="meteor"></div>
+        <div class="meteor"></div>
+    </div>
 
     <div class="header-container">
         <a href="landing.html" class="back-btn">← Back to Home</a>
@@ -157,109 +192,109 @@
     </div>
      
     <div class="grid-container">
-        <a href="https://eu.36kr.com/" target="_blank" class="card"><span class="card-title">36氪</span></a>
-        <a href="https://www.youtube.com/@AgendaFreeTV" target="_blank" class="card"><span class="card-title">Agenda-Free TV</span></a>
-        <a href="https://aibusiness.com/" target="_blank" class="card"><span class="card-title">AI Business</span></a>
-        <a href="https://www.ainvest.com/dashboard/" target="_blank" class="card"><span class="card-title">AInvest</span></a>
-        <a href="https://airlive.net/" target="_blank" class="card"><span class="card-title">Airlive</span></a>
-        <a href="https://www.aljazeera.com/" target="_blank" class="card"><span class="card-title">AlJazeera</span></a>
-        <a href="https://www.alternet.org/" target="_blank" class="card"><span class="card-title">AlterNet</span></a>
-        <a href="https://soygrowers.com/" target="_blank" class="card"><span class="card-title">American Soybean Association</span></a>
-        <a href="https://amsterdamnews.com/" target="_blank" class="card"><span class="card-title">Amsterdam News - NYC</span></a>
-        <a href="https://anash.org/" target="_blank" class="card"><span class="card-title">Anash.org</span></a>
-        <a href="https://apnews.com/" target="_blank" class="card"><span class="card-title">AP</span></a>
-        <a href="https://arstechnica.com/" target="_blank" class="card"><span class="card-title">Ars Technica</span></a>
-        <a href="https://avherald.com/" target="_blank" class="card"><span class="card-title">Aviation Herald</span></a>
-        <a href="https://www.axios.com/" target="_blank" class="card"><span class="card-title">Axios</span></a>
-        <a href="https://www.azernews.az/" target="_blank" class="card"><span class="card-title">AzerNews</span></a>
-        <a href="https://www.bbc.com/" target="_blank" class="card"><span class="card-title">BBC</span></a>
-        <a href="https://www.bellingcat.com/" target="_blank" class="card"><span class="card-title">Bellingcat</span></a>
-        <a href="https://burstcomms.com/" target="_blank" class="card"><span class="card-title">Burstcomms -</span></a>
-        <a href="https://www.c4isrnet.com/" target="_blank" class="card"><span class="card-title">C4ISRNET</span></a>
-        <a href="https://www.centcom.mil/" target="_blank" class="card"><span class="card-title">Centcom</span></a>
-        <a href="https://www.ciodive.com/" target="_blank" class="card"><span class="card-title">CIO Dive</span></a>
-        <a href="https://www.youtube.com/@ClevelandAreaBodyCamera" target="_blank" class="card"><span class="card-title">Cleveland Area Body Camera</span></a>
-        <a href="https://www.cleveland.com/archives/police-blotter/" target="_blank" class="card"><span class="card-title">Cleveland.com police-blotter</span></a>
-        <a href="https://twitter.com/ClevelandFire" target="_blank" class="card"><span class="card-title">ClevelandFire</span></a>
-        <a href="https://www.cnbc.com/" target="_blank" class="card"><span class="card-title">CNBC</span></a>
-        <a href="https://www.cnn.com/" target="_blank" class="card"><span class="card-title">CNN</span></a>
-        <a href="https://www.coindesk.com/" target="_blank" class="card"><span class="card-title">CoinDesk</span></a>
-        <a href="https://www.commondreams.org/" target="_blank" class="card"><span class="card-title">Common Dreams</span></a>
-        <a href="https://www.cybertruckownersclub.com/" target="_blank" class="card"><span class="card-title">Cybertruck Owners Club</span></a>
-        <a href="https://www.defenseone.com/" target="_blank" class="card"><span class="card-title">Defence One</span></a>
-        <a href="https://en.defence-ua.com/" target="_blank" class="card"><span class="card-title">Defense Express</span></a>
-        <a href="https://www.defensenews.com/" target="_blank" class="card"><span class="card-title">Defense News</span></a>
-        <a href="https://www.digitalcameraworld.com/" target="_blank" class="card"><span class="card-title">Digital Camera World</span></a>
-        <a href="https://www.dropsitenews.com/" target="_blank" class="card"><span class="card-title">Drop Site News</span></a>
-        <a href="https://www.earth.com/" target="_blank" class="card"><span class="card-title">Earth</span></a>
-        <a href="https://www.eff.org/" target="_blank" class="card"><span class="card-title">Electronic Frontier Foundation</span></a>
-        <a href="https://eyesonrussia.org/" target="_blank" class="card"><span class="card-title">Eyes on Russia Map</span></a>
-        <a href="https://federalnewsnetwork.com/" target="_blank" class="card"><span class="card-title">Federal News Network</span></a>
-        <a href="https://www.foxnews.com/" target="_blank" class="card"><span class="card-title">Fox News</span></a>
-        <a href="https://x.com/gavinnewsom?lang=en" target="_blank" class="card"><span class="card-title">Gavin Newsom (@GavinNewsom) / X</span></a>
-        <a href="https://globalnews.ca/" target="_blank" class="card"><span class="card-title">Global News</span></a>
-        <a href="https://www.globaltimes.cn/" target="_blank" class="card"><span class="card-title">Global Times</span></a>
-        <a href="https://news.google.com/" target="_blank" class="card"><span class="card-title">Google News</span></a>
-        <a href="https://heavy.com/" target="_blank" class="card"><span class="card-title">Heavy</span></a>
-        <a href="https://www.hindustantimes.com/" target="_blank" class="card"><span class="card-title">Hindustan Times</span></a>
-        <a href="https://www.humanoidsdaily.com/" target="_blank" class="card"><span class="card-title">Humanoids Daily</span></a>
-        <a href="https://interfax.com/" target="_blank" class="card"><span class="card-title">Interfax</span></a>
-        <a href="https://www.iaea.org/" target="_blank" class="card"><span class="card-title">International Atomic Energy Agency</span></a>
-        <a href="https://www.iranintl.com/en" target="_blank" class="card"><span class="card-title">Iran International</span></a>
-        <a href="https://www.understandingwar.org/" target="_blank" class="card"><span class="card-title">ISW</span></a>
-        <a href="https://www.jpost.com/" target="_blank" class="card"><span class="card-title">Jerusalem Post</span></a>
-        <a href="https://www.clevelandjewishnews.com/" target="_blank" class="card"><span class="card-title">Jewish News</span></a>
-        <a href="https://www.kan.org.il/" target="_blank" class="card"><span class="card-title">KAN</span></a>
-        <a href="https://www.karar.com/" target="_blank" class="card"><span class="card-title">KARAR</span></a>
-        <a href="https://kentwired.com/" target="_blank" class="card"><span class="card-title">Kent Wired</span></a>
-        <a href="https://www.killerstartups.com/" target="_blank" class="card"><span class="card-title">KillerStartups</span></a>
-        <a href="https://english.kyodonews.net/" target="_blank" class="card"><span class="card-title">Kyodo News</span></a>
-        <a href="https://www.mediaite.com/" target="_blank" class="card"><span class="card-title">Mediaite</span></a>
-        <a href="https://meduza.io/en" target="_blank" class="card"><span class="card-title">Meduza</span></a>
-        <a href="https://www.military.com/" target="_blank" class="card"><span class="card-title">military.com</span></a>
-        <a href="https://mothership.sg/" target="_blank" class="card"><span class="card-title">Mothership</span></a>
-        <a href="https://www.msnbc.com/" target="_blank" class="card"><span class="card-title">MSNBC</span></a>
-        <a href="https://www.navalnews.com/" target="_blank" class="card"><span class="card-title">Naval News</span></a>
-        <a href="https://www.nbcnews.com/" target="_blank" class="card"><span class="card-title">NBC News</span></a>
-        <a href="https://twitter.com/NEO_Scan" target="_blank" class="card"><span class="card-title">NEO_Scan</span></a>
-        <a href="https://www.newsnationnow.com/" target="_blank" class="card"><span class="card-title">NewsNation</span></a>
-        <a href="https://www.npr.org/" target="_blank" class="card"><span class="card-title">NPR</span></a>
-        <a href="https://ohtrafficdata.dps.ohio.gov/crashretrieval" target="_blank" class="card"><span class="card-title">Ohio Crash System</span></a>
-        <a href="https://oilprice.com/" target="_blank" class="card"><span class="card-title">Oil Price</span></a>
-        <a href="https://onemileatatime.com/" target="_blank" class="card"><span class="card-title">One Mile at a Time</span></a>
-        <a href="https://parmaobserver.com/" target="_blank" class="card"><span class="card-title">Parma Observer</span></a>
-        <a href="https://theportager.com/" target="_blank" class="card"><span class="card-title">Portager</span></a>
-        <a href="https://www.presstv.ir/" target="_blank" class="card"><span class="card-title">Press TV</span></a>
-        <a href="https://pv-magazine-usa.com/" target="_blank" class="card"><span class="card-title">pv magazine USA</span></a>
-        <a href="https://www.quantamagazine.org/" target="_blank" class="card"><span class="card-title">Quanta Magazine</span></a>
-        <a href="https://www.rferl.org/" target="_blank" class="card"><span class="card-title">Radio Free Europe</span></a>
-        <a href="https://www.radiotamazuj.org/en" target="_blank" class="card"><span class="card-title">Radio Tamazuj</span></a>
-        <a href="https://www.realclearpolitics.com/epolls/latest_polls/2024/" target="_blank" class="card"><span class="card-title">RealClearPolitics 24</span></a>
-        <a href="https://www.reuters.com/" target="_blank" class="card"><span class="card-title">Reuters</span></a>
-        <a href="https://rocketalert.live/" target="_blank" class="card"><span class="card-title">Rocket Alerts</span></a>
-        <a href="https://www.rudaw.net/english" target="_blank" class="card"><span class="card-title">Rudaw</span></a>
-        <a href="https://sana.sy/en/" target="_blank" class="card"><span class="card-title">SANA</span></a>
-        <a href="https://www.clevescene.com/" target="_blank" class="card"><span class="card-title">Scene</span></a>
-        <a href="https://www.science.org/" target="_blank" class="card"><span class="card-title">Science</span></a>
-        <a href="https://www.scotusblog.com/" target="_blank" class="card"><span class="card-title">SCOTUSblog</span></a>
-        <a href="https://www.seatrade-maritime.com/" target="_blank" class="card"><span class="card-title">Seatrade Maritime News</span></a>
-        <a href="https://www.semafor.com/" target="_blank" class="card"><span class="card-title">Semafor</span></a>
-        <a href="https://thiswillhold.substack.com/p/she-won-they-didnt-just-change-the" target="_blank" class="card"><span class="card-title">She Won. They Didn't Just Change the Machines. They Rewired the Election.</span></a>
-        <a href="https://www.space.com/" target="_blank" class="card"><span class="card-title">Space</span></a>
-        <a href="https://spacenews.com/" target="_blank" class="card"><span class="card-title">Spacenews</span></a>
-        <a href="https://www.syriahr.com/en/" target="_blank" class="card"><span class="card-title">Syrian Observatory For Human Rights</span></a>
-        <a href="https://www.timesofisrael.com/" target="_blank" class="card"><span class="card-title">The Times of Israel</span></a>
-        <a href="https://tvpworld.com/" target="_blank" class="card"><span class="card-title">TVP World</span></a>
-        <a href="https://www.pravda.com.ua/eng/" target="_blank" class="card"><span class="card-title">Ukrainska Pravda</span></a>
-        <a href="https://united24media.com/" target="_blank" class="card"><span class="card-title">UNITED24 Media</span></a>
-        <a href="https://news.usni.org/" target="_blank" class="card"><span class="card-title">USNI News</span></a>
-        <a href="https://www.villages-news.com/" target="_blank" class="card"><span class="card-title">Villages-News</span></a>
-        <a href="https://www.news5cleveland.com/" target="_blank" class="card"><span class="card-title">WEWS</span></a>
-        <a href="https://fox8.com/" target="_blank" class="card"><span class="card-title">WJKW</span></a>
-        <a href="https://www.wkyc.com/" target="_blank" class="card"><span class="card-title">WKYC</span></a>
-        <a href="https://www.cleveland19.com/" target="_blank" class="card"><span class="card-title">WOIO</span></a>
-        <a href="https://news.yahoo.com/" target="_blank" class="card"><span class="card-title">Yahoo News</span></a>
-        <a href="https://www.zerohedge.com/" target="_blank" class="card"><span class="card-title">ZeroHedge</span></a>
+        <a href="https://eu.36kr.com/" class="card"><span class="card-title">36氪</span></a>
+        <a href="https://www.youtube.com/@AgendaFreeTV" class="card"><span class="card-title">Agenda-Free TV</span></a>
+        <a href="https://aibusiness.com/" class="card"><span class="card-title">AI Business</span></a>
+        <a href="https://www.ainvest.com/dashboard/" class="card"><span class="card-title">AInvest</span></a>
+        <a href="https://airlive.net/" class="card"><span class="card-title">Airlive</span></a>
+        <a href="https://www.aljazeera.com/" class="card"><span class="card-title">AlJazeera</span></a>
+        <a href="https://www.alternet.org/" class="card"><span class="card-title">AlterNet</span></a>
+        <a href="https://soygrowers.com/" class="card"><span class="card-title">American Soybean Association</span></a>
+        <a href="https://amsterdamnews.com/" class="card"><span class="card-title">Amsterdam News - NYC</span></a>
+        <a href="https://anash.org/" class="card"><span class="card-title">Anash.org</span></a>
+        <a href="https://apnews.com/" class="card"><span class="card-title">AP</span></a>
+        <a href="https://arstechnica.com/" class="card"><span class="card-title">Ars Technica</span></a>
+        <a href="https://avherald.com/" class="card"><span class="card-title">Aviation Herald</span></a>
+        <a href="https://www.axios.com/" class="card"><span class="card-title">Axios</span></a>
+        <a href="https://www.azernews.az/" class="card"><span class="card-title">AzerNews</span></a>
+        <a href="https://www.bbc.com/" class="card"><span class="card-title">BBC</span></a>
+        <a href="https://www.bellingcat.com/" class="card"><span class="card-title">Bellingcat</span></a>
+        <a href="https://burstcomms.com/" class="card"><span class="card-title">Burstcomms -</span></a>
+        <a href="https://www.c4isrnet.com/" class="card"><span class="card-title">C4ISRNET</span></a>
+        <a href="https://www.centcom.mil/" class="card"><span class="card-title">Centcom</span></a>
+        <a href="https://www.ciodive.com/" class="card"><span class="card-title">CIO Dive</span></a>
+        <a href="https://www.youtube.com/@ClevelandAreaBodyCamera" class="card"><span class="card-title">Cleveland Area Body Camera</span></a>
+        <a href="https://www.cleveland.com/archives/police-blotter/" class="card"><span class="card-title">Cleveland.com police-blotter</span></a>
+        <a href="https://twitter.com/ClevelandFire" class="card"><span class="card-title">ClevelandFire</span></a>
+        <a href="https://www.cnbc.com/" class="card"><span class="card-title">CNBC</span></a>
+        <a href="https://www.cnn.com/" class="card"><span class="card-title">CNN</span></a>
+        <a href="https://www.coindesk.com/" class="card"><span class="card-title">CoinDesk</span></a>
+        <a href="https://www.commondreams.org/" class="card"><span class="card-title">Common Dreams</span></a>
+        <a href="https://www.cybertruckownersclub.com/" class="card"><span class="card-title">Cybertruck Owners Club</span></a>
+        <a href="https://www.defenseone.com/" class="card"><span class="card-title">Defence One</span></a>
+        <a href="https://en.defence-ua.com/" class="card"><span class="card-title">Defense Express</span></a>
+        <a href="https://www.defensenews.com/" class="card"><span class="card-title">Defense News</span></a>
+        <a href="https://www.digitalcameraworld.com/" class="card"><span class="card-title">Digital Camera World</span></a>
+        <a href="https://www.dropsitenews.com/" class="card"><span class="card-title">Drop Site News</span></a>
+        <a href="https://www.earth.com/" class="card"><span class="card-title">Earth</span></a>
+        <a href="https://www.eff.org/" class="card"><span class="card-title">Electronic Frontier Foundation</span></a>
+        <a href="https://eyesonrussia.org/" class="card"><span class="card-title">Eyes on Russia Map</span></a>
+        <a href="https://federalnewsnetwork.com/" class="card"><span class="card-title">Federal News Network</span></a>
+        <a href="https://www.foxnews.com/" class="card"><span class="card-title">Fox News</span></a>
+        <a href="https://x.com/gavinnewsom?lang=en" class="card"><span class="card-title">Gavin Newsom (@GavinNewsom) / X</span></a>
+        <a href="https://globalnews.ca/" class="card"><span class="card-title">Global News</span></a>
+        <a href="https://www.globaltimes.cn/" class="card"><span class="card-title">Global Times</span></a>
+        <a href="https://news.google.com/" class="card"><span class="card-title">Google News</span></a>
+        <a href="https://heavy.com/" class="card"><span class="card-title">Heavy</span></a>
+        <a href="https://www.hindustantimes.com/" class="card"><span class="card-title">Hindustan Times</span></a>
+        <a href="https://www.humanoidsdaily.com/" class="card"><span class="card-title">Humanoids Daily</span></a>
+        <a href="https://interfax.com/" class="card"><span class="card-title">Interfax</span></a>
+        <a href="https://www.iaea.org/" class="card"><span class="card-title">International Atomic Energy Agency</span></a>
+        <a href="https://www.iranintl.com/en" class="card"><span class="card-title">Iran International</span></a>
+        <a href="https://www.understandingwar.org/" class="card"><span class="card-title">ISW</span></a>
+        <a href="https://www.jpost.com/" class="card"><span class="card-title">Jerusalem Post</span></a>
+        <a href="https://www.clevelandjewishnews.com/" class="card"><span class="card-title">Jewish News</span></a>
+        <a href="https://www.kan.org.il/" class="card"><span class="card-title">KAN</span></a>
+        <a href="https://www.karar.com/" class="card"><span class="card-title">KARAR</span></a>
+        <a href="https://kentwired.com/" class="card"><span class="card-title">Kent Wired</span></a>
+        <a href="https://www.killerstartups.com/" class="card"><span class="card-title">KillerStartups</span></a>
+        <a href="https://english.kyodonews.net/" class="card"><span class="card-title">Kyodo News</span></a>
+        <a href="https://www.mediaite.com/" class="card"><span class="card-title">Mediaite</span></a>
+        <a href="https://meduza.io/en" class="card"><span class="card-title">Meduza</span></a>
+        <a href="https://www.military.com/" class="card"><span class="card-title">military.com</span></a>
+        <a href="https://mothership.sg/" class="card"><span class="card-title">Mothership</span></a>
+        <a href="https://www.msnbc.com/" class="card"><span class="card-title">MSNBC</span></a>
+        <a href="https://www.navalnews.com/" class="card"><span class="card-title">Naval News</span></a>
+        <a href="https://www.nbcnews.com/" class="card"><span class="card-title">NBC News</span></a>
+        <a href="https://twitter.com/NEO_Scan" class="card"><span class="card-title">NEO_Scan</span></a>
+        <a href="https://www.newsnationnow.com/" class="card"><span class="card-title">NewsNation</span></a>
+        <a href="https://www.npr.org/" class="card"><span class="card-title">NPR</span></a>
+        <a href="https://ohtrafficdata.dps.ohio.gov/crashretrieval" class="card"><span class="card-title">Ohio Crash System</span></a>
+        <a href="https://oilprice.com/" class="card"><span class="card-title">Oil Price</span></a>
+        <a href="https://onemileatatime.com/" class="card"><span class="card-title">One Mile at a Time</span></a>
+        <a href="https://parmaobserver.com/" class="card"><span class="card-title">Parma Observer</span></a>
+        <a href="https://theportager.com/" class="card"><span class="card-title">Portager</span></a>
+        <a href="https://www.presstv.ir/" class="card"><span class="card-title">Press TV</span></a>
+        <a href="https://pv-magazine-usa.com/" class="card"><span class="card-title">pv magazine USA</span></a>
+        <a href="https://www.quantamagazine.org/" class="card"><span class="card-title">Quanta Magazine</span></a>
+        <a href="https://www.rferl.org/" class="card"><span class="card-title">Radio Free Europe</span></a>
+        <a href="https://www.radiotamazuj.org/en" class="card"><span class="card-title">Radio Tamazuj</span></a>
+        <a href="https://www.realclearpolitics.com/epolls/latest_polls/2024/" class="card"><span class="card-title">RealClearPolitics 24</span></a>
+        <a href="https://www.reuters.com/" class="card"><span class="card-title">Reuters</span></a>
+        <a href="https://rocketalert.live/" class="card"><span class="card-title">Rocket Alerts</span></a>
+        <a href="https://www.rudaw.net/english" class="card"><span class="card-title">Rudaw</span></a>
+        <a href="https://sana.sy/en/" class="card"><span class="card-title">SANA</span></a>
+        <a href="https://www.clevescene.com/" class="card"><span class="card-title">Scene</span></a>
+        <a href="https://www.science.org/" class="card"><span class="card-title">Science</span></a>
+        <a href="https://www.scotusblog.com/" class="card"><span class="card-title">SCOTUSblog</span></a>
+        <a href="https://www.seatrade-maritime.com/" class="card"><span class="card-title">Seatrade Maritime News</span></a>
+        <a href="https://www.semafor.com/" class="card"><span class="card-title">Semafor</span></a>
+        <a href="https://thiswillhold.substack.com/p/she-won-they-didnt-just-change-the" class="card"><span class="card-title">She Won. They Didn't Just Change the Machines. They Rewired the Election.</span></a>
+        <a href="https://www.space.com/" class="card"><span class="card-title">Space</span></a>
+        <a href="https://spacenews.com/" class="card"><span class="card-title">Spacenews</span></a>
+        <a href="https://www.syriahr.com/en/" class="card"><span class="card-title">Syrian Observatory For Human Rights</span></a>
+        <a href="https://www.timesofisrael.com/" class="card"><span class="card-title">The Times of Israel</span></a>
+        <a href="https://tvpworld.com/" class="card"><span class="card-title">TVP World</span></a>
+        <a href="https://www.pravda.com.ua/eng/" class="card"><span class="card-title">Ukrainska Pravda</span></a>
+        <a href="https://united24media.com/" class="card"><span class="card-title">UNITED24 Media</span></a>
+        <a href="https://news.usni.org/" class="card"><span class="card-title">USNI News</span></a>
+        <a href="https://www.villages-news.com/" class="card"><span class="card-title">Villages-News</span></a>
+        <a href="https://www.news5cleveland.com/" class="card"><span class="card-title">WEWS</span></a>
+        <a href="https://fox8.com/" class="card"><span class="card-title">WJKW</span></a>
+        <a href="https://www.wkyc.com/" class="card"><span class="card-title">WKYC</span></a>
+        <a href="https://www.cleveland19.com/" class="card"><span class="card-title">WOIO</span></a>
+        <a href="https://news.yahoo.com/" class="card"><span class="card-title">Yahoo News</span></a>
+        <a href="https://www.zerohedge.com/" class="card"><span class="card-title">ZeroHedge</span></a>
     </div>
 
 </body>
