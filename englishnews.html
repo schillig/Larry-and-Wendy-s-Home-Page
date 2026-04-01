@@ -1,191 +1,164 @@
-
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>International News in English</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
 <style>
-* {
-  box-sizing: border-box;
-}
-
-body {
-  background-color: rgb(0, 0, 0);
-  background-image: url("NewStars.png");
-  max-width: 1700px;
-  margin: auto;
-}
-
-/* unvisited link */
-a:link {
-  color: white;
-  text-decoration: none;
-}
-
-/* visited link */
-a:visited {
-  color: white;
-  text-decoration: none;
-}
-
-/* mouse over link */
-a:hover {
-  color: red;
-  text-decoration: none;
-}
-
-/* selected link */
-a:active {
-  color: white;
-  text-decoration: none;
-}
+    * { box-sizing: border-box; }
+    body {
+        background-color: rgb(0, 0, 0);
+        background-image: url("NewStars.png");
+        margin: 0;
+        padding: 2rem;
+        font-family: 'Inter', sans-serif;
+        color: white;
+    }
     
-.header {
-	color: #00FF33;
-  font-size:1vw;
-	font-family: "Courier New", Courier, mono;
-	text-align: center;
-}
+    .header {
+        color: #00FF33;
+        font-size: clamp(2rem, 5vw, 3.5rem);
+        font-family: "Space Mono", monospace;
+        text-align: center;
+        margin-bottom: 3rem;
+        text-shadow: 0 0 10px #00FF33;
+    }
 
+    .grid-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1.5rem;
+        max-width: 1400px;
+        margin: 0 auto;
+    }
 
-.video {
-  position:relative;
-  padding: 0px;
-  float: left;
-}
-    
-.video-link {
-  position:relative;
-  font-size:1vw;
-	font-family: "Courier New", Courier, mono;
-	text-align: center;
-  text-decoration: none;
-  padding: 0px;
-}
+    .card {
+        background: rgba(15, 15, 20, 0.7);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        transition: transform 0.2s, box-shadow 0.2s;
+        text-decoration: none;
+    }
 
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0, 255, 51, 0.15), 0 0 15px rgba(0, 255, 51, 0.1) inset;
+        border-color: rgba(0, 255, 51, 0.4);
+    }
 
+    .card-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: white;
+        text-decoration: none;
+    }
+
+    .card:hover .card-title {
+        color: #00FF33;
+    }
+
+    .live-badge {
+        background: #e62117;
+        color: white;
+        font-size: 0.8rem;
+        font-weight: bold;
+        padding: 0.3rem 0.6rem;
+        border-radius: 4px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        animation: pulseLive 2s infinite;
+    }
+
+    @keyframes pulseLive {
+        0% { opacity: 1; }
+        50% { opacity: 0.5; }
+        100% { opacity: 1; }
+    }
 </style>
-    
 </head>
 <body>
 
 <div class="header">
-  <h1>International News in English</h1>
+  International News in English
 </div>
  
-<div class="video">
-    <iframe src="https://www.youtube.com/embed/-upyPouRrB8?autoplay=1&mute=1" width="407" height="220"></iframe> 
-    <div class="video-link">
-      <a href="https://www.youtube.com/watch?v=-upyPouRrB8">Al Jazeera - Qatar</a>
-    </div>
-</div>
-    
+<div class="grid-container">
+    <!-- News Streams -->
+    <a href="https://www.youtube.com/@aljazeeraenglish/live" target="_blank" class="card">
+        <span class="card-title">Al Jazeera - Qatar</span>
+        <span class="live-badge">Live</span>
+    </a>
+    <a href="https://www.youtube.com/@BloombergLive/live" target="_blank" class="card">
+        <span class="card-title">Bloomberg Global Financial</span>
+        <span class="live-badge">Live</span>
+    </a>
+    <a href="https://www.youtube.com/@France24_en/live" target="_blank" class="card">
+        <span class="card-title">France 24 - France</span>
+        <span class="live-badge">Live</span>
+    </a>
+    <a href="https://www.youtube.com/@SkyNews/live" target="_blank" class="card">
+        <span class="card-title">Sky News - UK</span>
+        <span class="live-badge">Live</span>
+    </a>
+    <a href="https://www.youtube.com/@channelnewsasia/live" target="_blank" class="card">
+        <span class="card-title">CNA - Singapore</span>
+        <span class="live-badge">Live</span>
+    </a>
+    <a href="https://www.youtube.com/@dwnews/live" target="_blank" class="card">
+        <span class="card-title">Deutsche Welle - Germany</span>
+        <span class="live-badge">Live</span>
+    </a>
+    <a href="https://www.youtube.com/@trtworld/live" target="_blank" class="card">
+        <span class="card-title">TRT - Turkey</span>
+        <span class="live-badge">Live</span>
+    </a>
+    <a href="https://www.youtube.com/@KTNNewsKenya/live" target="_blank" class="card">
+        <span class="card-title">KTN - Kenya</span>
+        <span class="live-badge">Live</span>
+    </a>
+    <a href="https://www.youtube.com/@unitednations/live" target="_blank" class="card">
+        <span class="card-title">UN TV</span>
+        <span class="live-badge">Live</span>
+    </a>
+    <a href="https://www.youtube.com/@NBCNews/live" target="_blank" class="card">
+        <span class="card-title">NBC News - USA</span>
+        <span class="live-badge">Live</span>
+    </a>
 
-<div class="video">
-    <iframe src="https://www.youtube.com/embed/dp8PhLsUcFE?autoplay=1&mute=1" width="407" height="220"></iframe> 
-    <div class="video-link">
-      <a href="https://www.youtube.com/watch?v=dp8PhLsUcFE">Bloomberg Global Financial News</a>
-    </div>
-</div>
-
-<div class="video">
-    <iframe src="https://www.youtube.com/embed/HeTWwH1a0CQ?autoplay=1&mute=1" width="407" height="220"></iframe> 
-    <div class="video-link">
-      <a href="https://www.youtube.com/embed/HeTWwH1a0CQ">France 24 - France</a>
-    </div>
-</div>
-
-<div class="video">
-    <iframe src="https://www.youtube.com/embed/9Auq9mYxFEE?autoplay=1&mute=1" width="407" height="220"></iframe> 
-    <div class="video-link">
-      <a href="https://www.youtube.com/watch?v=9L7EhGU_YY4">Sky News - United Kingdom</a>
-    </div>
-</div>
- 
-<div class="video">
-    <iframe src="https://www.youtube.com/embed/XWq5kBlakcQ?autoplay=1&mute=1" width="407" height="220"></iframe> 
-    <div class="video-link">
-      <a href="https://www.youtube.com/watch?v=XWq5kBlakcQ">CNA - Singapore</a>
-    </div>
-</div>
-
-<div class="video">
-    <iframe src="https://www.youtube.com/embed/qMtcWqCL_UQ?autoplay=1&mute=1" width="407" height="220"></iframe> 
-    <div class="video-link">
-      <a href="https://www.youtube.com/watch?v=qMtcWqCL_UQ">Deutsche Welle - Germany</a>
-    </div>
-</div>
-
-<div class="video">
-    <iframe src="https://www.youtube.com/embed/CV5Fooi8YJA?autoplay=1&mute=1" width="407" height="220"></iframe> 
-    <div class="video-link">
-      <a href="https://www.youtube.com/watch?v=CV5Fooi8YJA4">TRT - Turkey</a>
-    </div>
-</div>
-    
-
-<div class="video">
-    <iframe src="https://www.youtube.com/embed/G9PjkIydG5c?autoplay=1&mute=1" width="407" height="220"></iframe> 
-    <div class="video-link">
-      <a href="https://www.youtube.com/watch?v=G9PjkIydG5c">KTN - Kenya</a>
-    </div>
-</div>
-
-<div class="video">
-    <iframe src="https://www.youtube.com/embed/Ka4BElF4_3w?autoplay=1&mute=1" width="407" height="220"></iframe> 
-    <div class="video-link">
-      <a href="https://www.youtube.com/watch?v=Ka4BElF4_3w">UN TV</a>
-    </div>
-</div>
-    
-<div class="video">
-    <iframe src="https://www.youtube.com/embed/E-qJMJbkbWI?autoplay=1&mute=1" width="407" height="225"></iframe> 
-    <div class="video-link">
-      <a href="https://www.youtube.com/watch?v=E-qJMJbkbWI">NBC News - USA</a>
-    </div>
-</div>
-    
-<div class="video">
-    <iframe src="https://www.youtube.com/embed/z3HDROQc2eU?autoplay=1&mute=1" width="407" height="225"></iframe> 
-    <div class="video-link">
-      <a href="https://www.youtube.com/watch?v=z3HDROQc2eU">Allen's Hummingbird Nest</a>
-    </div>
+    <!-- Animal / Nature Cams -->
+    <a href="https://www.youtube.com/results?search_query=Allen%27s+Hummingbird+Nest+live+stream" target="_blank" class="card">
+        <span class="card-title">Allen's Hummingbird Nest</span>
+        <span class="live-badge">Live</span>
+    </a>
+    <a href="https://www.youtube.com/results?search_query=Animal+%2B+Bird+Feeder+Recke%2C+Germany+live" target="_blank" class="card">
+        <span class="card-title">Bird Feeder Recke, Germany</span>
+        <span class="live-badge">Live</span>
+    </a>
+    <a href="https://www.youtube.com/results?search_query=Hummingbird+Feeder+California+live" target="_blank" class="card">
+        <span class="card-title">Hummingbird Feeder CA</span>
+        <span class="live-badge">Live</span>
+    </a>
+    <a href="https://www.youtube.com/results?search_query=Animals+%2B+Birds+South+Africa+live" target="_blank" class="card">
+        <span class="card-title">Animals & Birds South Africa</span>
+        <span class="live-badge">Live</span>
+    </a>
+    <a href="https://www.youtube.com/@EarthCamLive/live" target="_blank" class="card">
+        <span class="card-title">New York Times Square</span>
+        <span class="live-badge">Live</span>
+    </a>
+    <a href="https://www.youtube.com/@ExploreBears/live" target="_blank" class="card">
+        <span class="card-title">Bald Eagle Nest Decorah</span>
+        <span class="live-badge">Live</span>
+    </a>
 </div>
 
-<div class="video">
-    <iframe src="https://www.youtube.com/embed/f7AJwlVzd1c?autoplay=1&mute=1" width="407" height="225"></iframe> 
-    <div class="video-link">
-      <a href="https://www.youtube.com/watch?v=f7AJwlVzd1c">Animal + Bird Feeder Recke, Germany</a>
-    </div>
-</div>
-
-<div class="video">
-    <iframe src="https://www.youtube.com/embed/pXe8MpU7uzk?autoplay=1&mute=1" width="407" height="225"></iframe> 
-    <div class="video-link">
-      <a href="https://www.youtube.com/watch?v=pXe8MpU7uzk">Hummingbird Feeder California</a>
-    </div>
-</div>
-    
-<div class="video">
-    <iframe src="https://www.youtube.com/embed/Py4kgTokYOA?autoplay=1&mute=1" width="407" height="225"></iframe> 
-    <div class="video-link">
-      <a href="https://www.youtube.com/watch?v=Py4kgTokYOA">Animals + Birds South Africa</a>
-    </div>
-</div>
-    
-<div class="video">
-    <iframe src="https://www.youtube.com/embed/eJ7ZkQ5TC08?autoplay=1&mute=1" width="407" height="225"></iframe> 
-    <div class="video-link">
-      <a href="https://www.youtube.com/watch?v=eJ7ZkQ5TC08">New York Times Square</a>
-    </div>
-</div>
-    
-<div class="video">
-    <iframe src="https://www.youtube.com/embed/eTAsANPVqB8?autoplay=1&mute=1" width="407" height="225"></iframe> 
-    <div class="video-link">
-      <a href="https://www.youtube.com/watch?v=eTAsANPVqB8">Bald Eagle Nest Decorah, Iowa</a>
-    </div>
-</div>
 </body>
 </html>
-
