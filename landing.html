@@ -3,230 +3,323 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Larry and Wendy's Home Page</title>
-    
-    <!-- Modern Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
-    
+    <title>Larry & Wendy's Home Page | Modern Portal</title>
+    <!-- 
+        Standard-Compliant Reference: 
+        Following MDN best practices for CSS Transitions and GPU-accelerated animations.
+    -->
     <style>
         :root {
-            /* Kept your original bright green */
-            --neon-green: #00FF33;
-            /* Modern glassmorphism colors */
-            --glass-bg: rgba(15, 15, 20, 0.65);
-            --glass-border: rgba(255, 255, 255, 0.08);
-            --text-main: #FFFFFF;
-            --text-muted: #A0A5B0;
+            --space-bg: #0b0d17;
+            --accent-blue: #4f9cf9;
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text-main: #f0f0f0;
+            --text-muted: #a0a0a0;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         * {
-            box-sizing: border-box;
             margin: 0;
             padding: 0;
+            box-sizing: border-box;
         }
 
         body {
-            background-color: #000;
-            /* Using your original star background */
-            background-image: url("NewStars.png");
-            background-repeat: repeat;
-            background-attachment: fixed;
-            background-size: auto;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--space-bg);
+            background-image: 
+                radial-gradient(circle at 20% 30%, rgba(79, 156, 249, 0.1) 0%, transparent 40%),
+                radial-gradient(circle at 80% 70%, rgba(157, 79, 249, 0.1) 0%, transparent 40%);
             color: var(--text-main);
-            font-family: 'Inter', sans-serif;
             min-height: 100vh;
             display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow-x: hidden;
-            position: relative;
-        }
-
-        /* A subtle dark radial gradient over the stars so the content is easy to read */
-        body::before {
-            content: "";
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.85) 100%);
-            z-index: 0;
-        }
-
-        /* Center Glassmorphism Container */
-        .container {
-            position: relative;
-            z-index: 1;
-            background: var(--glass-bg);
-            /* This blur creates the frosted glass look */
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid var(--glass-border);
-            border-radius: 24px;
-            padding: 4rem;
-            text-align: center;
-            max-width: 700px;
-            width: 90%;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 
-                        0 0 35px rgba(0, 255, 51, 0.08);
-            /* Slide up fade-in on load */
-            animation: fadeIn 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(30px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* Modernized Neon Title */
-        h1 {
-            font-family: 'Space Mono', monospace;
-            font-size: clamp(2.5rem, 6vw, 4.5rem);
-            color: var(--neon-green);
-            margin-bottom: 1rem;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            line-height: 1.1;
-            /* CSS Neon Glow text-shadow */
-            text-shadow: 
-                0 0 5px var(--neon-green),
-                0 0 15px rgba(0, 255, 51, 0.8),
-                0 0 30px rgba(0, 255, 51, 0.6),
-                0 0 50px rgba(0, 255, 51, 0.4);
-            animation: pulse 4s infinite alternate ease-in-out;
-        }
-
-        /* Subtly pulsating the glow */
-        @keyframes pulse {
-            0% { text-shadow: 0 0 5px var(--neon-green), 0 0 15px rgba(0,255,51,0.8), 0 0 30px rgba(0,255,51,0.6); }
-            100% { text-shadow: 0 0 8px var(--neon-green), 0 0 20px rgba(0,255,51,0.9), 0 0 40px rgba(0,255,51,0.7), 0 0 60px rgba(0,255,51,0.5); }
-        }
-
-        .subtitle {
-            font-size: 1.25rem;
-            color: var(--text-muted);
-            margin-bottom: 3.5rem;
-            font-weight: 400;
-        }
-
-        /* Flex layout for the navigation buttons */
-        .links-grid {
-            display: flex;
             flex-direction: column;
-            gap: 1.5rem;
             align-items: center;
+            overflow-x: hidden;
         }
 
-        /* Interactive Dynamic Buttons */
-        .action-button {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 100%;
-            max-width: 380px;
-            padding: 1.25rem 2rem;
-            background: rgba(0, 255, 51, 0.03);
-            border: 1px solid rgba(0, 255, 51, 0.3);
-            border-radius: 12px;
-            color: var(--text-main);
-            text-decoration: none;
-            font-family: 'Space Mono', monospace;
-            font-size: 1.1rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-            position: relative;
-            overflow: hidden;
-        }
-
-        /* Background fill slide on hover */
-        .action-button::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; width: 0%; height: 100%;
-            background: var(--neon-green);
-            opacity: 0.15;
-            transition: width 0.4s ease;
-            z-index: 0;
-        }
-
-        /* Hover states for the micro-animations */
-        .action-button:hover {
-            border-color: var(--neon-green);
-            color: var(--neon-green);
-            box-shadow: 0 0 25px rgba(0, 255, 51, 0.4), inset 0 0 15px rgba(0, 255, 51, 0.2);
-            transform: translateY(-4px);
-        }
-
-        .action-button:hover::before {
-            width: 100%;
-        }
-
-        .action-button span {
-            position: relative;
-            z-index: 1;
-        }
-
-        /* Meteor Animation */
-        .meteor-container {
+        /* Star Background */
+        .stars-container {
             position: fixed;
-            top: 0; left: 0; width: 100vw; height: 100vh;
-            pointer-events: none;
-            z-index: 0;
-            overflow: hidden;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: url('https://www.transparenttextures.com/patterns/stardust.png');
+            opacity: 0.3;
         }
+
+        /* Space Elements Container */
+        #space-elements {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        /* Meteor Styling */
         .meteor {
             position: absolute;
             width: 2px;
-            height: 60px;
-            background: linear-gradient(to bottom, rgba(255,255,255,0), #00FF33);
-            border-radius: 50%;
-            transform: rotate(45deg);
+            height: 80px;
+            background: linear-gradient(to bottom, rgba(255, 255, 255, 0), rgba(79, 156, 249, 0.8));
             opacity: 0;
-            animation: shooting-star 10s linear infinite;
+            transform: rotate(-35deg); 
+            will-change: transform, opacity;
         }
-        .meteor:nth-child(1) { top: 10%; left: 30%; animation-delay: 2s; animation-duration: 8s; }
-        .meteor:nth-child(2) { top: -20px; left: 70%; animation-delay: 6s; animation-duration: 12s; }
-        .meteor:nth-child(3) { top: 40%; left: 10%; animation-delay: 4s; animation-duration: 9s; }
-        
-        @keyframes shooting-star {
-            0% { opacity: 0; transform: translate(0, 0) rotate(45deg); }
-            5% { opacity: 1; }
-            15% { opacity: 0; transform: translate(60vw, 60vh) rotate(45deg); }
-            100% { opacity: 0; transform: translate(60vw, 60vh) rotate(45deg); }
+
+        @keyframes meteor-fall {
+            0% { transform: rotate(-35deg) translateY(-200px); opacity: 0; }
+            10% { opacity: 1; }
+            100% { transform: rotate(-35deg) translateY(100vh); opacity: 0; }
+        }
+
+        /* Planet Styling */
+        .planet-container {
+            position: absolute;
+            will-change: transform;
+        }
+
+        .planet {
+            width: 80px;
+            height: 80px;
+            background: radial-gradient(circle at 30% 30%, #ffcc80, #d4a373);
+            border-radius: 50%;
+            position: relative;
+            box-shadow: inset -15px -15px 30px rgba(0,0,0,0.7), 0 0 20px rgba(212, 163, 115, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Spinning Planet Surface Detail */
+        .planet::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background-image: radial-gradient(circle at 50% 50%, transparent 80%, rgba(0,0,0,0.1) 85%);
+            animation: planet-spin 20s linear infinite;
+        }
+
+        .planet-rings {
+            position: absolute;
+            width: 160px;
+            height: 40px;
+            border: 12px solid rgba(212, 163, 115, 0.3);
+            border-radius: 50%;
+            transform: rotateX(75deg) rotateY(10deg);
+            box-shadow: 0 0 10px rgba(212, 163, 115, 0.1);
+        }
+
+        @keyframes planet-spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes planet-move-across {
+            from { transform: translateX(-200px) translateY(var(--y-pos)); }
+            to { transform: translateX(calc(100vw + 200px)) translateY(var(--y-pos)); }
+        }
+
+        header {
+            text-align: center;
+            padding: 4rem 1rem 2rem;
+            max-width: 800px;
+        }
+
+        h1 {
+            font-size: clamp(2.5rem, 8vw, 4rem);
+            font-weight: 800;
+            letter-spacing: -1px;
+            margin-bottom: 1rem;
+            background: linear-gradient(to right, #fff, var(--accent-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Navigation Grid */
+        main {
+            width: 100%;
+            max-width: 1100px;
+            padding: 2rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .nav-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 1.5rem;
+            padding: 2rem;
+            text-decoration: none;
+            color: inherit;
+            transition: var(--transition);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .nav-card:hover {
+            transform: translateY(-8px);
+            border-color: var(--accent-blue);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .card-icon {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            color: var(--accent-blue);
+        }
+
+        .card-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .card-desc {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        footer {
+            margin-top: auto;
+            padding: 3rem 1rem;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            text-align: center;
+        }
+
+        @media (max-width: 600px) {
+            header { padding: 2rem 1rem; }
+            main { padding: 1rem; }
         }
     </style>
 </head>
 <body>
 
-    <div class="meteor-container">
-        <div class="meteor"></div>
-        <div class="meteor"></div>
-        <div class="meteor"></div>
-    </div>
+    <div class="stars-container"></div>
+    <div id="space-elements"></div>
 
-    <div class="container">
-        <!-- Kept your original title string -->
-        <h1>Larry & Wendy's<br>Home Page</h1>
-        <p class="subtitle">Exploring modern web design among the stars.</p>
+    <header>
+        <h1>Larry & Wendy's</h1>
+    </header>
 
-        <!-- Dynamic links utilizing your existing project pages -->
-        <div class="links-grid">
-            <a href="index.html" class="action-button">
-                <span>Classic Grid Version</span>
-            </a>
-            <a href="news_directory.html" class="action-button">
-                <span>Global News Directory</span>
-            </a>
-            <a href="englishnews.html" class="action-button">
-                <span>Live English News Cams</span>
-            </a>
-            <a href="Bird.html" class="action-button">
-                <span>The Bird Page</span>
-            </a>
-        </div>
-    </div>
+    <main>
+        <a href="index.html" class="nav-card">
+            <div>
+                <div class="card-icon">▦</div>
+                <div class="card-title">Classic Grid</div>
+                <p class="card-desc">The original structured view of our digital universe.</p>
+            </div>
+        </a>
 
+        <a href="news_directory.html" class="nav-card">
+            <div>
+                <div class="card-icon">🌍</div>
+                <div class="card-title">News Directory</div>
+                <p class="card-desc">Stay connected with major headlines from around the globe.</p>
+            </div>
+        </a>
+
+        <a href="englishnews.html" class="nav-card">
+            <div>
+                <div class="card-icon">📹</div>
+                <div class="card-title">Live News Cams</div>
+                <p class="card-desc">Real-time English news broadcasts and live streams.</p>
+            </div>
+        </a>
+
+        <a href="Bird.html" class="nav-card">
+            <div>
+                <div class="card-icon">🐦</div>
+                <div class="card-title">The Bird Page</div>
+                <p class="card-desc">Observations and media dedicated to our feathered friends.</p>
+            </div>
+        </a>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Larry & Wendy. Built with modern web standards.</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const container = document.getElementById('space-elements');
+            
+            // Function to create falling meteors
+            function createMeteor() {
+                const meteor = document.createElement('div');
+                meteor.className = 'meteor';
+                const startX = Math.random() * window.innerWidth;
+                meteor.style.left = `${startX}px`;
+                const duration = 1 + Math.random() * 3;
+                meteor.style.animation = `meteor-fall ${duration}s linear forwards`;
+                container.appendChild(meteor);
+                setTimeout(() => meteor.remove(), duration * 1000);
+            }
+
+            // Function to create an occasional spinning planet
+            function spawnPlanet() {
+                const pContainer = document.createElement('div');
+                pContainer.className = 'planet-container';
+                
+                // Random vertical position
+                const yPos = Math.random() * 80 + 10; // 10% to 90% of screen
+                pContainer.style.setProperty('--y-pos', `${yPos}vh`);
+                
+                const duration = 25 + Math.random() * 15; // Slow movement (25-40s)
+                pContainer.style.animation = `planet-move-across ${duration}s linear forwards`;
+                
+                const planetBody = document.createElement('div');
+                planetBody.className = 'planet';
+                
+                const rings = document.createElement('div');
+                rings.className = 'planet-rings';
+                
+                planetBody.appendChild(rings);
+                pContainer.appendChild(planetBody);
+                container.appendChild(pContainer);
+                
+                // Cleanup
+                setTimeout(() => pContainer.remove(), duration * 1000);
+            }
+
+            // Intervals
+            setInterval(() => {
+                if (document.visibilityState === 'visible') createMeteor();
+            }, 1000);
+
+            // Occasional Planet (Every 30-60 seconds)
+            setInterval(() => {
+                if (document.visibilityState === 'visible') spawnPlanet();
+            }, 35000);
+            
+            // Immediate first planet after a short delay
+            setTimeout(spawnPlanet, 5000);
+
+            // Parallax effect on mouse move
+            const stars = document.querySelector('.stars-container');
+            window.addEventListener('mousemove', (e) => {
+                const moveX = (e.clientX - window.innerWidth / 2) * 0.01;
+                const moveY = (e.clientY - window.innerHeight / 2) * 0.01;
+                stars.style.transform = `translate(${moveX}px, ${moveY}px)`;
+            });
+        });
+    </script>
 </body>
 </html>
