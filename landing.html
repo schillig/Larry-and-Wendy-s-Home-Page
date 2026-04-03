@@ -3,217 +3,392 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Larry & Wendy's Home Page | Modern Portal</title>
-    <!-- 
-        Standard-Compliant Reference: 
-        Following MDN best practices for CSS Transitions and GPU-accelerated animations.
-    -->
+    <title>Larry & Wendy's Home Page | Cinematic Universe</title>
     <style>
         :root {
-            --space-bg: #0b0d17;
+            --space-bg: #000005; /* True black for high contrast */
             --accent-blue: #4f9cf9;
-            --glass-bg: rgba(255, 255, 255, 0.05);
-            --glass-border: rgba(255, 255, 255, 0.1);
-            --text-main: #f0f0f0;
-            --text-muted: #a0a0a0;
-            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --glass-bg: rgba(10, 15, 30, 0.6);
+            --glass-border: rgba(255, 255, 255, 0.15);
+            --text-main: #ffffff;
+            --text-muted: #b0c4de;
+            --transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--space-bg);
-            background-image: 
-                radial-gradient(circle at 20% 30%, rgba(79, 156, 249, 0.1) 0%, transparent 40%),
-                radial-gradient(circle at 80% 70%, rgba(157, 79, 249, 0.1) 0%, transparent 40%);
             color: var(--text-main);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
             align-items: center;
             overflow-x: hidden;
+            overflow-y: auto;
         }
 
-        /* Star Background */
-        .stars-container {
+        /* --- DEEP SPACE ENVIRONMENT --- */
+        #deep-space {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: -1;
-            background: url('https://www.transparenttextures.com/patterns/stardust.png');
-            opacity: 0.3;
-        }
-
-        /* Space Elements Container */
-        #space-elements {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: -1;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            z-index: -10;
+            background-color: var(--space-bg);
+            overflow: hidden;
             pointer-events: none;
         }
 
-        /* Meteor Styling */
-        .meteor {
+        /* Nebulae and Galaxies */
+        .galaxy {
             position: absolute;
-            width: 2px;
-            height: 80px;
-            background: linear-gradient(to bottom, rgba(255, 255, 255, 0), rgba(79, 156, 249, 0.8));
-            opacity: 0;
-            transform: rotate(-35deg); 
-            will-change: transform, opacity;
+            border-radius: 50%;
+            filter: blur(60px);
+            mix-blend-mode: screen;
+            opacity: 0.6;
+            animation: pulse-galaxy 15s infinite alternate ease-in-out;
         }
 
-        @keyframes meteor-fall {
-            0% { transform: rotate(-35deg) translateY(-200px); opacity: 0; }
-            10% { opacity: 1; }
-            100% { transform: rotate(-35deg) translateY(100vh); opacity: 0; }
+        .galaxy-1 {
+            width: 80vw; height: 80vh;
+            top: -20%; left: -10%;
+            background: radial-gradient(circle, rgba(138,43,226,0.8) 0%, rgba(75,0,130,0.4) 40%, transparent 70%);
+            animation-duration: 20s;
+        }
+
+        .galaxy-2 {
+            width: 90vw; height: 90vh;
+            bottom: -30%; right: -20%;
+            background: radial-gradient(circle, rgba(0,191,255,0.7) 0%, rgba(0,0,139,0.4) 50%, transparent 70%);
+            animation-duration: 25s;
+        }
+        
+        .galaxy-3 {
+            width: 60vw; height: 60vh;
+            top: 40%; left: 30%;
+            background: radial-gradient(circle, rgba(255,20,147,0.5) 0%, rgba(139,0,139,0.2) 50%, transparent 70%);
+            animation-duration: 18s;
+        }
+
+        @keyframes pulse-galaxy {
+            0% { transform: scale(1) rotate(0deg); opacity: 0.4; }
+            100% { transform: scale(1.2) rotate(15deg); opacity: 0.8; }
+        }
+
+        /* High Contrast Stars */
+        .star {
+            position: absolute;
+            background: #fff;
+            border-radius: 50%;
+            box-shadow: 0 0 8px 2px rgba(255, 255, 255, 0.8);
+        }
+
+        /* --- DYNAMIC ENTITIES (Planets, Ships, Meteors) --- */
+        #dynamic-entities {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            z-index: -5;
+            pointer-events: none;
+            overflow: hidden;
         }
 
         /* Planet Styling */
-        .planet-container {
-            position: absolute;
-            will-change: transform;
-        }
-
-        .planet {
-            width: 80px;
-            height: 80px;
-            background: radial-gradient(circle at 30% 30%, #ffcc80, #d4a373);
-            border-radius: 50%;
-            position: relative;
-            box-shadow: inset -15px -15px 30px rgba(0,0,0,0.7), 0 0 20px rgba(212, 163, 115, 0.2);
+        .planet-wrapper { 
+            position: absolute; 
+            will-change: transform; 
             display: flex;
             align-items: center;
             justify-content: center;
+            transform-style: preserve-3d;
         }
-
-        /* Spinning Planet Surface Detail */
-        .planet::after {
-            content: '';
-            position: absolute;
-            width: 100%;
-            height: 100%;
+        .planet {
             border-radius: 50%;
-            background-image: radial-gradient(circle at 50% 50%, transparent 80%, rgba(0,0,0,0.1) 85%);
-            animation: planet-spin 20s linear infinite;
+            position: relative;
+            box-shadow: inset -20px -20px 40px rgba(0,0,0,0.9), 0 0 30px var(--planet-glow);
+            display: flex; align-items: center; justify-content: center;
+            overflow: hidden;
+            transform: translateZ(0);
         }
-
+        /* Planet Texture */
+        .planet::before {
+            content: ''; position: absolute; width: 200%; height: 200%;
+            background: repeating-linear-gradient(45deg, rgba(0,0,0,0.1) 0%, transparent 10%, rgba(255,255,255,0.1) 20%);
+            animation: rotate-texture 40s linear infinite;
+        }
         .planet-rings {
             position: absolute;
-            width: 160px;
-            height: 40px;
-            border: 12px solid rgba(212, 163, 115, 0.3);
+            border: 12px solid var(--ring-color);
             border-radius: 50%;
-            transform: rotateX(75deg) rotateY(10deg);
-            box-shadow: 0 0 10px rgba(212, 163, 115, 0.1);
+            box-shadow: 0 0 20px var(--ring-color), inset 0 0 20px var(--ring-color);
+            /* Base tilt, dynamic rotation applied in JS */
         }
 
-        @keyframes planet-spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
+        @keyframes rotate-texture { 100% { transform: rotate(360deg); } }
+
+        /* Spaceship Styling */
+        .spaceship-wrapper {
+            position: absolute;
+            will-change: transform;
+            filter: drop-shadow(0 0 15px rgba(0, 191, 255, 0.8));
+        }
+        .engine-trail {
+            position: absolute;
+            right: 90%; top: 50%;
+            width: 150px; height: 4px;
+            background: linear-gradient(to left, rgba(0, 255, 255, 1), transparent);
+            transform: translateY(-50%);
+            filter: blur(2px);
+            animation: flicker 0.1s infinite alternate;
         }
 
-        @keyframes planet-move-across {
-            from { transform: translateX(-200px) translateY(var(--y-pos)); }
-            to { transform: translateX(calc(100vw + 200px)) translateY(var(--y-pos)); }
+        /* Meteors */
+        .meteor {
+            position: absolute;
+            width: 3px; height: 120px;
+            /* Bright head at the top, fading to tail at bottom */
+            background: linear-gradient(to top, transparent, #fff);
+            filter: drop-shadow(0 0 10px #fff);
+            will-change: transform, opacity;
+            transform-origin: top center;
         }
 
+        @keyframes flicker { 0% { opacity: 0.8; } 100% { opacity: 1; } }
+
+        /* --- UI OVERLAY --- */
         header {
             text-align: center;
-            padding: 4rem 1rem 2rem;
+            padding: 5rem 1rem 3rem;
             max-width: 800px;
+            z-index: 10;
         }
 
         h1 {
-            font-size: clamp(2.5rem, 8vw, 4rem);
-            font-weight: 800;
-            letter-spacing: -1px;
+            font-size: clamp(3rem, 10vw, 5rem);
+            font-weight: 900;
+            letter-spacing: 2px;
+            text-transform: uppercase;
             margin-bottom: 1rem;
-            background: linear-gradient(to right, #fff, var(--accent-blue));
+            background: linear-gradient(to bottom right, #ffffff, #87cefa, #ffffff);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 20px rgba(135, 206, 250, 0.4));
         }
 
-        /* Navigation Grid */
         main {
             width: 100%;
             max-width: 1100px;
-            padding: 2rem;
+            padding: 0 2rem 4rem;
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-            gap: 1.5rem;
+            gap: 2rem;
+            z-index: 10;
         }
 
         .nav-card {
             background: var(--glass-bg);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             border: 1px solid var(--glass-border);
+            border-top: 1px solid rgba(255,255,255,0.4);
+            border-left: 1px solid rgba(255,255,255,0.4);
             border-radius: 1.5rem;
-            padding: 2rem;
+            padding: 2.5rem 2rem;
             text-decoration: none;
             color: inherit;
             transition: var(--transition);
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
             position: relative;
-            overflow: hidden;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.5);
         }
 
         .nav-card:hover {
-            transform: translateY(-8px);
-            border-color: var(--accent-blue);
-            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
-            background: rgba(255, 255, 255, 0.08);
+            transform: translateY(-10px) scale(1.02);
+            border-color: rgba(255,255,255,0.8);
+            box-shadow: 0 30px 60px rgba(0,0,0,0.8), 0 0 40px rgba(79, 156, 249, 0.4);
+            background: rgba(20, 30, 50, 0.8);
         }
 
         .card-icon {
-            font-size: 2rem;
-            margin-bottom: 1rem;
-            color: var(--accent-blue);
+            font-size: 2.5rem;
+            margin-bottom: 1.5rem;
+            color: #fff;
+            text-shadow: 0 0 15px var(--accent-blue);
         }
 
         .card-title {
             font-size: 1.5rem;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
+            font-weight: 700;
+            margin-bottom: 0.8rem;
+            letter-spacing: 1px;
         }
 
         .card-desc {
-            font-size: 0.95rem;
+            font-size: 1rem;
             color: var(--text-muted);
-            line-height: 1.5;
+            line-height: 1.6;
         }
 
         footer {
             margin-top: auto;
-            padding: 3rem 1rem;
-            color: var(--text-muted);
+            padding: 2rem;
+            color: rgba(255,255,255,0.5);
             font-size: 0.9rem;
-            text-align: center;
+            z-index: 10;
         }
 
-        @media (max-width: 600px) {
-            header { padding: 2rem 1rem; }
-            main { padding: 1rem; }
+        /* --- ✨ COSMIC ORACLE TERMINAL --- */
+        #oracle-container {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 15px;
+        }
+
+        .oracle-btn {
+            background: linear-gradient(135deg, rgba(79, 156, 249, 0.2), rgba(138, 43, 226, 0.4));
+            border: 1px solid var(--accent-blue);
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: bold;
+            letter-spacing: 1px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            box-shadow: 0 0 15px rgba(79, 156, 249, 0.3);
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .oracle-btn:hover {
+            box-shadow: 0 0 25px rgba(79, 156, 249, 0.6);
+            transform: scale(1.05);
+        }
+
+        .oracle-terminal {
+            display: none;
+            width: 350px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .oracle-terminal.open {
+            display: flex;
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp { 
+            from { opacity: 0; transform: translateY(20px); } 
+            to { opacity: 1; transform: translateY(0); } 
+        }
+
+        .oracle-messages {
+            height: 220px;
+            overflow-y: auto;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding-right: 8px;
+        }
+
+        /* Custom Scrollbar */
+        .oracle-messages::-webkit-scrollbar { width: 5px; }
+        .oracle-messages::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 5px; }
+
+        .oracle-messages .msg { 
+            padding: 10px 14px; 
+            border-radius: 8px; 
+            background: rgba(0,0,0,0.4); 
+            border-left: 3px solid transparent; 
+            line-height: 1.5; 
+        }
+        
+        .oracle-messages .msg.user { 
+            border-left-color: #fff; 
+            align-self: flex-end; 
+            background: rgba(255,255,255,0.1); 
+        }
+        
+        .oracle-messages .msg.ai { 
+            border-left-color: var(--accent-blue); 
+            color: #fff; 
+        }
+
+        .action-btns {
+            display: flex;
+            gap: 8px;
+            justify-content: space-between;
+        }
+
+        .small-btn {
+            background: rgba(79, 156, 249, 0.15);
+            border: 1px solid rgba(79, 156, 249, 0.4);
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            flex: 1;
+            transition: var(--transition);
+        }
+
+        .small-btn:hover {
+            background: rgba(79, 156, 249, 0.35);
+            transform: translateY(-2px);
+        }
+
+        .oracle-input-area {
+            display: flex;
+            gap: 8px;
+            margin-top: 5px;
+        }
+
+        .oracle-input-area input {
+            flex: 1;
+            background: rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #fff;
+            padding: 10px 14px;
+            border-radius: 20px;
+            outline: none;
+            transition: var(--transition);
+        }
+
+        .oracle-input-area input:focus {
+            border-color: var(--accent-blue);
         }
     </style>
 </head>
 <body>
 
-    <div class="stars-container"></div>
-    <div id="space-elements"></div>
+    <!-- Cinematic Background -->
+    <div id="deep-space">
+        <div class="galaxy galaxy-1"></div>
+        <div class="galaxy galaxy-2"></div>
+        <div class="galaxy galaxy-3"></div>
+        <!-- Stars injected via JS -->
+    </div>
+
+    <!-- Dynamic Objects (Planets, Ships) -->
+    <div id="dynamic-entities"></div>
 
     <header>
         <h1>Larry & Wendy's</h1>
@@ -221,105 +396,362 @@
 
     <main>
         <a href="index.html" class="nav-card">
-            <div>
-                <div class="card-icon">▦</div>
-                <div class="card-title">Classic Grid</div>
-                <p class="card-desc">The original structured view of our digital universe.</p>
-            </div>
+            <div class="card-icon">▦</div>
+            <div class="card-title">Classic Grid</div>
+            <p class="card-desc">The original structured view of our digital universe.</p>
         </a>
 
         <a href="news_directory.html" class="nav-card">
-            <div>
-                <div class="card-icon">🌍</div>
-                <div class="card-title">News Directory</div>
-                <p class="card-desc">Stay connected with major headlines from around the globe.</p>
-            </div>
+            <div class="card-icon">🌍</div>
+            <div class="card-title">News Directory</div>
+            <p class="card-desc">Stay connected with major headlines from around the globe.</p>
         </a>
 
         <a href="englishnews.html" class="nav-card">
-            <div>
-                <div class="card-icon">📹</div>
-                <div class="card-title">Live News Cams</div>
-                <p class="card-desc">Real-time English news broadcasts and live streams.</p>
-            </div>
+            <div class="card-icon">📹</div>
+            <div class="card-title">Live News Cams</div>
+            <p class="card-desc">Real-time English news broadcasts and live streams.</p>
         </a>
 
         <a href="Bird.html" class="nav-card">
-            <div>
-                <div class="card-icon">🐦</div>
-                <div class="card-title">The Bird Page</div>
-                <p class="card-desc">Observations and media dedicated to our feathered friends.</p>
-            </div>
+            <div class="card-icon">🐦</div>
+            <div class="card-title">The Bird Page</div>
+            <p class="card-desc">Observations and media dedicated to our feathered friends.</p>
         </a>
     </main>
 
     <footer>
-        <p>&copy; 2024 Larry & Wendy. Built with modern web standards.</p>
+        <p>&copy; 2024 Larry & Wendy. Exploring the Cosmos.</p>
     </footer>
 
+    <!-- ✨ Cosmic Oracle Terminal -->
+    <div id="oracle-container">
+        <div class="oracle-terminal" id="oracle-terminal">
+            <div style="font-weight: 800; color: var(--accent-blue); font-size: 1rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px;">✨ G.E.M.I.N.I. Oracle</div>
+            
+            <div class="oracle-messages" id="oracle-messages">
+                <div class="msg ai">Greetings, traveler. I am the Cosmic Oracle. How may I guide your journey through the cosmos today?</div>
+            </div>
+            
+            <div class="action-btns">
+                <button class="small-btn" onclick="scanAnomaly()">✨ Scan Sector</button>
+                <button class="small-btn" onclick="generateCaptainLog()">✨ Captain's Log</button>
+            </div>
+            
+            <div class="oracle-input-area">
+                <input type="text" id="oracle-input" placeholder="Ask the universe..." onkeypress="if(event.key==='Enter') askOracle()">
+                <button class="small-btn" style="flex: 0 0 auto; border-radius: 50%; width: 40px; height: 40px; padding: 0;" onclick="askOracle()">✨</button>
+            </div>
+        </div>
+        <button class="oracle-btn" onclick="toggleOracle()">✨ Cosmic Oracle</button>
+    </div>
+
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const container = document.getElementById('space-elements');
-            
-            // Function to create falling meteors
-            function createMeteor() {
-                const meteor = document.createElement('div');
-                meteor.className = 'meteor';
-                const startX = Math.random() * window.innerWidth;
-                meteor.style.left = `${startX}px`;
-                const duration = 1 + Math.random() * 3;
-                meteor.style.animation = `meteor-fall ${duration}s linear forwards`;
-                container.appendChild(meteor);
-                setTimeout(() => meteor.remove(), duration * 1000);
+        const spaceLayer = document.getElementById('deep-space');
+        const entityLayer = document.getElementById('dynamic-entities');
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+        
+        // --- ✨ GEMINI API LOGIC ---
+        const apiKey = ""; // API key is securely injected by the execution environment
+
+        async function callGemini(prompt, systemInstruction = "") {
+            const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            const payload = { contents: [{ parts: [{ text: prompt }] }] };
+            if (systemInstruction) {
+                payload.systemInstruction = { parts: [{ text: systemInstruction }] };
             }
 
-            // Function to create an occasional spinning planet
-            function spawnPlanet() {
-                const pContainer = document.createElement('div');
-                pContainer.className = 'planet-container';
-                
-                // Random vertical position
-                const yPos = Math.random() * 80 + 10; // 10% to 90% of screen
-                pContainer.style.setProperty('--y-pos', `${yPos}vh`);
-                
-                const duration = 25 + Math.random() * 15; // Slow movement (25-40s)
-                pContainer.style.animation = `planet-move-across ${duration}s linear forwards`;
-                
-                const planetBody = document.createElement('div');
-                planetBody.className = 'planet';
-                
-                const rings = document.createElement('div');
-                rings.className = 'planet-rings';
-                
-                planetBody.appendChild(rings);
-                pContainer.appendChild(planetBody);
-                container.appendChild(pContainer);
-                
-                // Cleanup
-                setTimeout(() => pContainer.remove(), duration * 1000);
+            // Robust exponential backoff for deep space network stability
+            for (let i = 0; i < 5; i++) {
+                try {
+                    const response = await fetch(endpoint, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (!response.ok) throw new Error('API Error');
+                    const data = await response.json();
+                    return data.candidates?.[0]?.content?.parts?.[0]?.text || "Cosmic interference. Try again.";
+                } catch (error) {
+                    if (i === 4) return "Connection to the Oracle lost. Please check your temporal relay.";
+                    await new Promise(r => setTimeout(r, Math.pow(2, i) * 1000));
+                }
             }
+        }
 
-            // Intervals
-            setInterval(() => {
-                if (document.visibilityState === 'visible') createMeteor();
-            }, 1000);
+        function toggleOracle() {
+            document.getElementById('oracle-terminal').classList.toggle('open');
+        }
 
-            // Occasional Planet (Every 30-60 seconds)
-            setInterval(() => {
-                if (document.visibilityState === 'visible') spawnPlanet();
-            }, 35000);
+        function addOracleMessage(text, sender = 'ai') {
+            const msgs = document.getElementById('oracle-messages');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `msg ${sender}`;
+            msgDiv.innerHTML = text; 
+            msgs.appendChild(msgDiv);
+            msgs.scrollTop = msgs.scrollHeight;
+        }
+
+        async function askOracle() {
+            const input = document.getElementById('oracle-input');
+            const text = input.value.trim();
+            if (!text) return;
             
-            // Immediate first planet after a short delay
-            setTimeout(spawnPlanet, 5000);
+            input.value = '';
+            addOracleMessage(text, 'user');
+            addOracleMessage('<span style="opacity:0.5; font-style:italic;">Consulting the stars...</span>', 'ai');
+            
+            const systemPrompt = "You are the G.E.M.I.N.I. Cosmic Oracle, an ancient, poetic, yet futuristic AI guiding a traveler through a cinematic universe. Keep responses under 3 sentences, deeply thematic, and insightful.";
+            const responseText = await callGemini(text, systemPrompt);
+            
+            const msgs = document.getElementById('oracle-messages');
+            msgs.removeChild(msgs.lastChild);
+            addOracleMessage(responseText, 'ai');
+        }
 
-            // Parallax effect on mouse move
-            const stars = document.querySelector('.stars-container');
+        async function scanAnomaly() {
+            addOracleMessage('<span style="opacity:0.5; font-style:italic;">Scanning local sector...</span>', 'ai');
+            const prompt = "Generate a short, poetic description (max 2 sentences) of a beautiful, terrifying, or bizarre space anomaly that the ship just discovered. Give it a creative name.";
+            const responseText = await callGemini(prompt, "You are an advanced ship sensor AI. Format your response beautifully.");
+            
+            const msgs = document.getElementById('oracle-messages');
+            msgs.removeChild(msgs.lastChild);
+            addOracleMessage(`<b>Anomaly Detected:</b><br>${responseText}`, 'ai');
+        }
+
+        async function generateCaptainLog() {
+            addOracleMessage('<span style="opacity:0.5; font-style:italic;">Drafting log entry...</span>', 'ai');
+            const prompt = "Write a dramatic, 3-sentence 'Captain's Log' entry about arriving in a completely unknown, visually stunning region of space. Include a random stardate.";
+            const responseText = await callGemini(prompt, "You are a seasoned, poetic Starship Captain writing a log.");
+            
+            const msgs = document.getElementById('oracle-messages');
+            msgs.removeChild(msgs.lastChild);
+            addOracleMessage(`<b>Captain's Log:</b><br>${responseText}`, 'ai');
+        }
+
+        // --- 1. HIGH CONTRAST STARFIELD ---
+        function generateStars() {
+            // Three layers of stars for intense depth
+            const counts = [150, 100, 50]; 
+            const sizes = [1, 2, 4];
+            const opacities = [0.4, 0.7, 1];
+
+            for (let layer = 0; layer < 3; layer++) {
+                for (let i = 0; i < counts[layer]; i++) {
+                    const star = document.createElement('div');
+                    star.className = 'star';
+                    const size = sizes[layer] + (Math.random() * 1.5);
+                    star.style.width = `${size}px`;
+                    star.style.height = `${size}px`;
+                    star.style.left = `${Math.random() * 100}vw`;
+                    star.style.top = `${Math.random() * 100}vh`;
+                    star.style.opacity = opacities[layer] * Math.random();
+                    
+                    // Add twinkle to larger stars
+                    if (layer === 2) {
+                        star.style.animation = `flicker ${1 + Math.random() * 3}s infinite alternate`;
+                    }
+                    spaceLayer.appendChild(star);
+                }
+            }
+        }
+
+        // --- 2. RANDOMIZED RINGED PLANET ---
+        function spawnPlanet() {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'planet-wrapper';
+            
+            const planet = document.createElement('div');
+            planet.className = 'planet';
+            const rings = document.createElement('div');
+            rings.className = 'planet-rings';
+            
+            const hue = Math.floor(Math.random() * 360);
+            
+            // 15+ Detailed Gas Giant Bands
+            const numBands = 15 + Math.floor(Math.random() * 15);
+            let bandStops = [];
+            let currentPos = 0;
+            for (let i = 0; i < numBands; i++) {
+                const step = (100 / numBands) + (Math.random() * 4 - 2);
+                const nextPos = Math.min(100, currentPos + step);
+                const lightness = 20 + Math.random() * 50; 
+                const saturation = 30 + Math.random() * 50; 
+                // Mix base hue with some random atmospheric drift
+                const bandHue = (hue + (Math.random() * 40 - 20)) % 360;
+                const color = `hsl(${bandHue}, ${saturation}%, ${lightness}%)`;
+                
+                // Hard stops to create crisp stripe edges
+                bandStops.push(`${color} ${currentPos}%`);
+                bandStops.push(`${color} ${nextPos}%`);
+                currentPos = nextPos;
+            }
+            const bandGradient = `linear-gradient(to bottom, ${bandStops.join(', ')})`;
+
+            // Jupiter-type Red Spots (Storm Eyes)
+            let spots = [];
+            const numSpots = 1 + Math.floor(Math.random() * 2);
+            for(let j = 0; j < numSpots; j++) {
+                const sX = 15 + Math.random() * 70;
+                const sY = 15 + Math.random() * 70;
+                const sSizeX = 10 + Math.random() * 20;
+                const sSizeY = sSizeX * (0.4 + Math.random() * 0.4); // Oval shape
+                const sHue = 0 + Math.random() * 25; // Deep reds to bright oranges
+                spots.push(`radial-gradient(ellipse ${sSizeX}% ${sSizeY}% at ${sX}% ${sY}%, hsla(${sHue}, 90%, 45%, 0.95) 0%, hsla(${sHue}, 100%, 25%, 0.8) 40%, hsla(${sHue}, 80%, 15%, 0.4) 60%, transparent 80%)`);
+            }
+            
+            // Spherical 3D Lighting Overlay
+            const lightingOverlay = `radial-gradient(circle at 30% 30%, rgba(255,255,255,0.2) 0%, rgba(0,0,0,0.85) 90%)`;
+
+            // Stack backgrounds: 3D Lighting on top, then storm spots, then the gas bands
+            planet.style.background = `${lightingOverlay}, ${spots.join(', ')}, ${bandGradient}`;
+            
+            const ringColor = `hsla(${(hue + 180) % 360}, 80%, 60%, 0.6)`;
+            wrapper.style.setProperty('--planet-glow', `hsla(${hue}, 80%, 60%, 0.3)`);
+            wrapper.style.setProperty('--ring-color', ringColor);
+
+            // Randomize Size (Huge variance)
+            const size = 50 + Math.random() * 250; // 50px to 300px
+            planet.style.width = `${size}px`;
+            planet.style.height = `${size}px`;
+            
+            // Align bands tilt exactly with the ring tilt
+            const tiltAngle = Math.random() * 360;
+            planet.style.transform = `rotate(${tiltAngle}deg)`;
+            
+            // Make the rings a perfect circle, then tilt them in 3D space so the back half hides behind the planet
+            rings.style.width = `${size * 2.2}px`;
+            rings.style.height = `${size * 2.2}px`;
+            rings.style.transform = `rotateX(75deg) rotateY(${Math.random() * 30 - 15}deg) rotateZ(${tiltAngle}deg)`;
+
+            wrapper.appendChild(planet);
+            wrapper.appendChild(rings);
+            entityLayer.appendChild(wrapper);
+
+            // Randomize Trajectory (From any edge to any opposite edge)
+            const edgePadding = 400;
+            const routes = [
+                { startX: -edgePadding, startY: Math.random() * h, endX: w + edgePadding, endY: Math.random() * h }, // L to R
+                { startX: w + edgePadding, startY: Math.random() * h, endX: -edgePadding, endY: Math.random() * h }, // R to L
+                { startX: Math.random() * w, startY: -edgePadding, endX: Math.random() * w, endY: h + edgePadding }, // T to B
+                { startX: Math.random() * w, startY: h + edgePadding, endX: Math.random() * w, endY: -edgePadding }  // B to T
+            ];
+            
+            const route = routes[Math.floor(Math.random() * routes.length)];
+            const duration = 20000 + Math.random() * 40000; // 20s to 60s
+
+            // Animate using Web Animations API
+            const animation = wrapper.animate([
+                { transform: `translate(${route.startX}px, ${route.startY}px) rotate(0deg)` },
+                { transform: `translate(${route.endX}px, ${route.endY}px) rotate(${Math.random() > 0.5 ? 360 : -360}deg)` }
+            ], { duration: duration, easing: 'linear' });
+
+            animation.onfinish = () => wrapper.remove();
+        }
+
+        // --- 3. CRUISING SPACESHIPS ---
+        function spawnSpaceship() {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'spaceship-wrapper';
+            
+            // Random Scale for depth perspective
+            const scale = 0.3 + Math.random() * 1.2;
+            
+            // Sleek Spaceship SVG
+            wrapper.innerHTML = `
+                <div class="engine-trail"></div>
+                <svg width="60" height="30" viewBox="0 0 100 50" fill="none" xmlns="http://www.w3.org/2000/svg" style="transform: scale(${scale});">
+                    <path d="M10 25 L30 10 L80 25 L30 40 Z" fill="#cbd5e1"/>
+                    <path d="M20 25 L30 15 L70 25 L30 35 Z" fill="#94a3b8"/>
+                    <circle cx="60" cy="25" r="4" fill="#38bdf8" filter="drop-shadow(0 0 5px #38bdf8)"/>
+                    <path d="M0 20 L15 25 L0 30 Z" fill="#0ea5e9"/>
+                </svg>
+            `;
+            
+            entityLayer.appendChild(wrapper);
+
+            // Trajectory
+            const edgePadding = 200;
+            const routes = [
+                { startX: -edgePadding, startY: Math.random() * h, endX: w + edgePadding, endY: Math.random() * h },
+                { startX: w + edgePadding, startY: Math.random() * h, endX: -edgePadding, endY: Math.random() * h }
+            ];
+            const route = routes[Math.floor(Math.random() * routes.length)];
+            
+            // Calculate angle to point ship forward
+            const angle = Math.atan2(route.endY - route.startY, route.endX - route.startX) * 180 / Math.PI;
+            
+            const duration = 5000 + Math.random() * 10000; // Fast! 5s to 15s
+
+            const animation = wrapper.animate([
+                { transform: `translate(${route.startX}px, ${route.startY}px) rotate(${angle}deg)` },
+                { transform: `translate(${route.endX}px, ${route.endY}px) rotate(${angle}deg)` }
+            ], { duration: duration, easing: 'linear' });
+
+            animation.onfinish = () => wrapper.remove();
+        }
+
+        // --- 4. HIGH SPEED METEORS ---
+        function spawnMeteor() {
+            const meteor = document.createElement('div');
+            meteor.className = 'meteor';
+            entityLayer.appendChild(meteor);
+
+            // Center of the screen
+            const centerX = w / 2;
+            const centerY = h / 2;
+            
+            // Random angle to radiate outwards in a 360-degree circle
+            const angle = Math.random() * Math.PI * 2;
+            
+            // Start slightly offset from the exact center
+            const startDist = 20 + Math.random() * 150;
+            const startX = centerX + Math.cos(angle) * startDist;
+            const startY = centerY + Math.sin(angle) * startDist;
+
+            // Travel far beyond the edges of the screen
+            const distance = Math.max(w, h);
+            const endX = centerX + Math.cos(angle) * distance;
+            const endY = centerY + Math.sin(angle) * distance;
+
+            // Rotate the meteor so its head points exactly toward the direction of travel
+            const rotation = (angle * 180 / Math.PI) + 90;
+            const duration = 400 + Math.random() * 600;
+
+            // Animate outwards while scaling up to simulate depth/getting closer
+            const animation = meteor.animate([
+                { transform: `translate(${startX}px, ${startY}px) rotate(${rotation}deg) scaleY(0.1)`, opacity: 0 },
+                { transform: `translate(${(startX+endX)/2}px, ${(startY+endY)/2}px) rotate(${rotation}deg) scaleY(1)`, opacity: 1, offset: 0.3 },
+                { transform: `translate(${endX}px, ${endY}px) rotate(${rotation}deg) scaleY(3)`, opacity: 0 }
+            ], { duration: duration, easing: 'ease-in' });
+
+            animation.onfinish = () => meteor.remove();
+        }
+
+        // --- INITIALIZATION & TIMERS ---
+        window.onload = () => {
+            generateStars();
+            
+            // Spawn initial entities
+            spawnPlanet();
+            setTimeout(spawnSpaceship, 2000);
+
+            // Intervals (Aggressive spawning for visuals)
+            setInterval(() => { if (document.visibilityState === 'visible') spawnPlanet(); }, 15000); // Every 15s
+            setInterval(() => { if (document.visibilityState === 'visible') spawnSpaceship(); }, 8000); // Every 8s
+            setInterval(() => { if (document.visibilityState === 'visible') spawnMeteor(); }, 400); // Heavy meteor shower
+            
+            // Dynamic Parallax for Galaxies on Mouse Move
+            const galaxies = document.querySelectorAll('.galaxy');
             window.addEventListener('mousemove', (e) => {
-                const moveX = (e.clientX - window.innerWidth / 2) * 0.01;
-                const moveY = (e.clientY - window.innerHeight / 2) * 0.01;
-                stars.style.transform = `translate(${moveX}px, ${moveY}px)`;
+                const moveX = (e.clientX - w / 2) * 0.02;
+                const moveY = (e.clientY - h / 2) * 0.02;
+                galaxies.forEach((g, i) => {
+                    g.style.transform = `translate(${moveX * (i+1)}px, ${moveY * (i+1)}px)`;
+                });
             });
-        });
+        };
     </script>
 </body>
 </html>
