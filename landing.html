@@ -113,9 +113,10 @@
         }
         /* Planet Texture */
         .planet::before {
-            content: ''; position: absolute; width: 200%; height: 200%;
-            background: repeating-linear-gradient(45deg, rgba(0,0,0,0.1) 0%, transparent 10%, rgba(255,255,255,0.1) 20%);
-            animation: rotate-texture 40s linear infinite;
+            content: ''; position: absolute; width: 100%; height: 100%;
+            background: repeating-linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, transparent 2%, rgba(255,255,255,0.05) 4%);
+            border-radius: 50%;
+            pointer-events: none;
         }
         .planet-rings {
             position: absolute;
@@ -124,8 +125,6 @@
             box-shadow: 0 0 20px var(--ring-color), inset 0 0 20px var(--ring-color);
             /* Base tilt, dynamic rotation applied in JS */
         }
-
-        @keyframes rotate-texture { 100% { transform: rotate(360deg); } }
 
         /* Spaceship Styling */
         .spaceship-wrapper {
@@ -623,7 +622,7 @@
             // Make the rings a perfect circle, then tilt them in 3D space so the back half hides behind the planet
             rings.style.width = `${size * 2.2}px`;
             rings.style.height = `${size * 2.2}px`;
-            rings.style.transform = `rotateX(75deg) rotateY(${Math.random() * 30 - 15}deg) rotateZ(${tiltAngle}deg)`;
+            rings.style.transform = `rotate(${tiltAngle}deg) rotateX(75deg)`;
 
             wrapper.appendChild(planet);
             wrapper.appendChild(rings);
