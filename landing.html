@@ -6,7 +6,7 @@
     <title>Larry & Wendy's Home Page | Cinematic Universe</title>
     <style>
         :root {
-            --space-bg: #000005; /* True black for high contrast */
+            --space-bg: #000005; 
             --accent-blue: #4f9cf9;
             --glass-bg: rgba(10, 15, 30, 0.6);
             --glass-border: rgba(255, 255, 255, 0.15);
@@ -40,7 +40,6 @@
             pointer-events: none;
         }
 
-        /* Nebulae and Galaxies */
         .galaxy {
             position: absolute;
             border-radius: 50%;
@@ -76,7 +75,6 @@
             100% { transform: scale(1.2) rotate(15deg); opacity: 0.8; }
         }
 
-        /* High Contrast Stars */
         .star {
             position: absolute;
             background: #fff;
@@ -84,7 +82,7 @@
             box-shadow: 0 0 8px 2px rgba(255, 255, 255, 0.8);
         }
 
-        /* --- DYNAMIC ENTITIES (Planets, Ships, Meteors) --- */
+        /* --- DYNAMIC ENTITIES --- */
         #dynamic-entities {
             position: fixed;
             top: 0; left: 0;
@@ -94,7 +92,6 @@
             overflow: hidden;
         }
 
-        /* Planet Styling */
         .planet-wrapper { 
             position: absolute; 
             will-change: transform; 
@@ -118,7 +115,6 @@
             box-shadow: 0 0 20px var(--ring-color), inset 0 0 20px var(--ring-color);
         }
 
-        /* Spaceship Styling */
         .spaceship-wrapper {
             position: absolute;
             will-change: transform;
@@ -134,7 +130,6 @@
             animation: flicker 0.1s infinite alternate;
         }
 
-        /* Forward Bursting Meteors */
         .meteor {
             position: absolute;
             width: 3px; height: 120px;
@@ -289,7 +284,6 @@
             padding-right: 8px;
         }
 
-        /* Custom Scrollbar */
         .oracle-messages::-webkit-scrollbar { width: 5px; }
         .oracle-messages::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 5px; }
 
@@ -363,7 +357,7 @@
         <div class="galaxy galaxy-1"></div>
         <div class="galaxy galaxy-2"></div>
         <div class="galaxy galaxy-3"></div>
-        </div>
+    </div>
 
     <div id="dynamic-entities"></div>
 
@@ -371,12 +365,20 @@
         <h1>Larry & Wendy's</h1>
     </header>
 
-    <main style="display: flex; justify-content: center; max-width: 1100px; margin: 0 auto; padding: 0 2rem 4rem; z-index: 10;">
+    <main style="display: flex; justify-content: center; flex-wrap: wrap; gap: 2rem; max-width: 1100px; margin: 0 auto; padding: 0 2rem 4rem; z-index: 10;">
+        
         <a href="news_directory.html" class="nav-card" style="max-width: 400px; width: 100%; text-align: center;">
             <div class="card-icon">🌍</div>
             <div class="card-title">News Directory</div>
             <p class="card-desc">Stay connected with major headlines from around the globe.</p>
         </a>
+
+        <a href="weather.html" class="nav-card" style="max-width: 400px; width: 100%; text-align: center;">
+            <div class="card-icon">⛈️</div>
+            <div class="card-title">Weather Directory</div>
+            <p class="card-desc">Track global weather patterns, live radar, and atmospheric forecasts.</p>
+        </a>
+
     </main>
 
     <footer>
@@ -411,7 +413,7 @@
         const h = window.innerHeight;
         
         // --- ✨ GEMINI API LOGIC ---
-        const apiKey = ""; // API key is securely injected by the execution environment
+        const apiKey = ""; 
 
         async function callGemini(prompt, systemInstruction = "") {
             const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
@@ -512,7 +514,7 @@
             }
         }
 
-        // --- 2. RANDOMIZED RINGED PLANET (WITH PARALLEL BANDS & SPOTS) ---
+        // --- 2. RANDOMIZED RINGED PLANET ---
         function spawnPlanet() {
             const wrapper = document.createElement('div');
             wrapper.className = 'planet-wrapper';
@@ -524,7 +526,6 @@
             
             const hue = Math.floor(Math.random() * 360);
             
-            // 15+ Detailed Gas Giant Bands
             const numBands = 15 + Math.floor(Math.random() * 15);
             let bandStops = [];
             let currentPos = 0;
@@ -542,7 +543,6 @@
             }
             const bandGradient = `linear-gradient(to bottom, ${bandStops.join(', ')})`;
 
-            // Jupiter-type Red Spots (Storm Eyes)
             let spots = [];
             const numSpots = 1 + Math.floor(Math.random() * 2);
             for(let j = 0; j < numSpots; j++) {
@@ -565,7 +565,6 @@
             planet.style.width = `${size}px`;
             planet.style.height = `${size}px`;
             
-            // Align bands tilt exactly with the ring tilt
             const tiltAngle = Math.random() * 360;
             planet.style.transform = `rotate(${tiltAngle}deg)`;
             
@@ -623,7 +622,7 @@
             const route = routes[Math.floor(Math.random() * routes.length)];
             
             const angle = Math.atan2(route.endY - route.startY, route.endX - route.startX) * 180 / Math.PI;
-            const duration = 5000 + Math.random() * 10000;
+            const duration = 5000 + Math.random() * 10000; 
 
             const animation = wrapper.animate([
                 { transform: `translate(${route.startX}px, ${route.startY}px) rotate(${angle}deg)` },
