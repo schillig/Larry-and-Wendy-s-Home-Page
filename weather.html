@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global Weather Directory | Cinematic Universe</title>
+    <style>
+        :root {
+            --space-bg: #000005; /* True black for high contrast */
+            --accent-blue: #4f9cf9;
+            --glass-bg: rgba(10, 15, 30, 0.6);
+            --glass-border: rgba(255, 255, 255, 0.15);
+            --text-main: #ffffff;
+            --text-muted: #b0c4de;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--space-bg);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow-x: hidden;
+            overflow-y: auto;
+        }
+
+        /* --- DEEP SPACE ENVIRONMENT --- */
+        #deep-space {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            z-index: -10;
+            background-color: var(--space-bg);
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        /* Nebulae and Galaxies */
+        .galaxy {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(60px);
+            mix-blend-mode: screen;
+            opacity: 0.6;
+            animation: pulse-galaxy 15s infinite alternate ease-in-out;
+        }
+
+        .galaxy-1 {
+            width: 80vw; height: 80vh;
+            top: -20%; left: -10%;
+            background: radial-gradient(circle, rgba(138,43,226,0.8) 0%, rgba(75,0,130,0.4) 40%, transparent 70%);
+            animation-duration: 20s;
+        }
+
+        .galaxy-2 {
+            width: 90vw; height: 90vh;
+            bottom: -30%; right: -20%;
+            background: radial-gradient(circle, rgba(0,191,255,0.7) 0%, rgba(0,0,139,0.4) 50%, transparent 70%);
+            animation-duration: 25s;
+        }
+        
+        .galaxy-3 {
+            width: 60vw; height: 60vh;
+            top: 40%; left: 30%;
+            background: radial-gradient(circle, rgba(255,20,147,0.5) 0%, rgba(139,0,139,0.2) 50%, transparent 70%);
+            animation-duration: 18s;
+        }
+
+        @keyframes pulse-galaxy {
+            0% { transform: scale(1) rotate(0deg); opacity: 0.4; }
+            100% { transform: scale(1.2) rotate(15deg); opacity: 0.8; }
+        }
+
+        /* High Contrast Stars */
+        .star {
+            position: absolute;
+            background: #fff;
+            border-radius: 50%;
+            box-shadow: 0 0 8px 2px rgba(255, 255, 255, 0.8);
+        }
+
+        /* --- DYNAMIC ENTITIES (Planets, Ships, Meteors) --- */
+        #dynamic-entities {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            z-index: -5;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        /* Planet Styling */
+        .planet-wrapper { 
+            position: absolute; 
+            will-change: transform; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transform-style: preserve-3d;
+        }
+        .planet {
+            border-radius: 50%;
+            position: relative;
+            box-shadow: inset -20px -20px 40px rgba(0,0,0,0.9), 0 0 30px var(--planet-glow);
+            display: flex; align-items: center; justify-content: center;
+            overflow: hidden;
+            transform: translateZ(0);
+        }
+        .planet-rings {
+            position: absolute;
+            border: 12px solid var(--ring-color);
+            border-radius: 50%;
+            box-shadow: 0 0 20px var(--ring-color), inset 0 0 20px var(--ring-color);
+        }
+
+        /* Spaceship Styling */
+        .spaceship-wrapper {
+            position: absolute;
+            will-change: transform;
+            filter: drop-shadow(0 0 15px rgba(0, 191, 255, 0.8));
+        }
+        .engine-trail {
+            position: absolute;
+            right: 90%; top: 50%;
+            width: 150px; height: 4px;
+            background: linear-gradient(to left, rgba(0, 255, 255, 1), transparent);
+            transform: translateY(-50%);
+            filter: blur(2px);
+            animation: flicker 0.1s infinite alternate;
+        }
+
+        /* Meteors */
+        .meteor {
+            position: absolute;
+            width: 3px; height: 120px;
+            background: linear-gradient(to top, transparent, #fff);
+            filter: drop-shadow(0 0 10px #fff);
+            will-change: transform, opacity;
+            transform-origin: top center;
+        }
+
+        @keyframes flicker { 0% { opacity: 0.8; } 100% { opacity: 1; } }
+
+        /* --- UI OVERLAY & NAVIGATION --- */
+        header {
+            text-align: center;
+            padding: 3rem 1rem 1rem;
+            width: 100%;
+            max-width: 1200px;
+            z-index: 10;
+        }
+
+        .nav-top {
+            display: flex;
+            justify-content: flex-start;
+            margin-bottom: 1rem;
+            padding: 0 1rem;
+        }
+
+        .back-link {
+            color: var(--accent-blue);
+            text-decoration: none;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: var(--transition);
+            background: rgba(0,0,0,0.5);
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid rgba(79, 156, 249, 0.3);
+        }
+
+        .back-link:hover { opacity: 0.8; transform: translateX(-5px); box-shadow: 0 0 10px rgba(79, 156, 249, 0.5); }
+
+        h1 {
+            font-size: clamp(2rem, 6vw, 3.5rem);
+            font-weight: 900;
+            margin-bottom: 2rem;
+            background: linear-gradient(to bottom right, #ffffff, #87cefa, #ffffff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 20px rgba(135, 206, 250, 0.4));
+        }
+
+        /* Search Filter */
+        .search-container {
+            margin-bottom: 2rem;
+            padding: 0 1rem;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        #news-search {
+            width: 100%;
+            padding: 1.2rem 1.5rem;
+            border-radius: 2rem;
+            border: 1px solid var(--glass-border);
+            background: var(--glass-bg);
+            color: #fff;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            outline: none;
+            transition: var(--transition);
+            font-size: 1rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        #news-search:focus {
+            border-color: var(--accent-blue);
+            background: rgba(20, 30, 50, 0.8);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.8), 0 0 20px rgba(79, 156, 249, 0.4);
+        }
+
+        /* News Grid */
+        main {
+            width: 100%;
+            max-width: 1200px;
+            padding: 1rem 2rem 4rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 1.5rem;
+            z-index: 10;
+        }
+
+        .news-item {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-top: 1px solid rgba(255,255,255,0.4);
+            border-left: 1px solid rgba(255,255,255,0.4);
+            border-radius: 1rem;
+            padding: 1.25rem;
+            text-decoration: none;
+            color: inherit;
+            text-align: center;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 80px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .news-item:hover {
+            transform: translateY(-5px) scale(1.05);
+            border-color: rgba(255,255,255,0.8);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.8), 0 0 30px rgba(79, 156, 249, 0.4);
+            background: rgba(20, 30, 50, 0.8);
+        }
+
+        .news-item.hidden {
+            display: none;
+        }
+
+        footer {
+            margin-top: auto;
+            padding: 2rem;
+            color: rgba(255,255,255,0.5);
+            font-size: 0.9rem;
+            text-align: center;
+            z-index: 10;
+        }
+
+        /* --- ✨ COSMIC ORACLE TERMINAL --- */
+        #oracle-container {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 15px;
+        }
+
+        .oracle-btn {
+            background: linear-gradient(135deg, rgba(79, 156, 249, 0.2), rgba(138, 43, 226, 0.4));
+            border: 1px solid var(--accent-blue);
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: bold;
+            letter-spacing: 1px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            box-shadow: 0 0 15px rgba(79, 156, 249, 0.3);
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .oracle-btn:hover { box-shadow: 0 0 25px rgba(79, 156, 249, 0.6); transform: scale(1.05); }
+
+        .oracle-terminal {
+            display: none;
+            width: 350px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .oracle-terminal.open { display: flex; animation: slideUp 0.3s ease-out; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        .oracle-messages {
+            height: 220px; overflow-y: auto; font-size: 0.85rem; color: var(--text-muted);
+            display: flex; flex-direction: column; gap: 10px; padding-right: 8px;
+        }
+        .oracle-messages::-webkit-scrollbar { width: 5px; }
+        .oracle-messages::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 5px; }
+        .oracle-messages .msg { padding: 10px 14px; border-radius: 8px; background: rgba(0,0,0,0.4); border-left: 3px solid transparent; line-height: 1.5; }
+        .oracle-messages .msg.user { border-left-color: #fff; align-self: flex-end; background: rgba(255,255,255,0.1); }
+        .oracle-messages .msg.ai { border-left-color: var(--accent-blue); color: #fff; }
+
+        .action-btns { display: flex; gap: 8px; justify-content: space-between; }
+        .small-btn {
+            background: rgba(79, 156, 249, 0.15); border: 1px solid rgba(79, 156, 249, 0.4);
+            color: #fff; padding: 8px 12px; border-radius: 15px; font-size: 0.8rem;
+            cursor: pointer; flex: 1; transition: var(--transition);
+        }
+        .small-btn:hover { background: rgba(79, 156, 249, 0.35); transform: translateY(-2px); }
+
+        .oracle-input-area { display: flex; gap: 8px; margin-top: 5px; }
+        .oracle-input-area input {
+            flex: 1; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.2);
+            color: #fff; padding: 10px 14px; border-radius: 20px; outline: none; transition: var(--transition);
+        }
+        .oracle-input-area input:focus { border-color: var(--accent-blue); }
+
+        @media (max-width: 600px) {
+            main { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); padding: 1rem; }
+            h1 { font-size: 2.5rem; }
+            #oracle-container { bottom: 15px; right: 15px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="deep-space">
+        <div class="galaxy galaxy-1"></div>
+        <div class="galaxy galaxy-2"></div>
+        <div class="galaxy galaxy-3"></div>
+    </div>
+
+    <div id="dynamic-entities"></div>
+
+    <header>
+        <div class="nav-top">
+            <a href="landing.html" class="back-link">← Back to Home Hub</a>
+        </div>
+        <h1>Global Weather Directory</h1>
+        
+        <div class="search-container">
+            <input type="text" id="news-search" placeholder="Search weather resources..." aria-label="Search weather">
+        </div>
+    </header>
+
+    <main id="news-grid">
+      <a target="_blank" href="https://www.meteoblue.com/en/weather/14-days/mantua_united-states_5161742" class="news-item">14-Day Weather Mantua</a>
+      <a target="_blank" href="https://www.accuweather.com/" class="news-item">AccuWeather</a>
+      <a target="_blank" href="https://advanced-storm.web.app/" class="news-item">Advanced Radar</a>
+      <a target="_blank" href="https://aguacerowx.com/" class="news-item">AguaceroWx</a>
+      <a target="_blank" href="https://www.airnow.gov/" class="news-item">Air Now</a>
+      <a target="_blank" href="https://aviationweather.gov/gfa/?tab=obs&amp;mode=er&amp;basemap=esriRoad&amp;mapLayers=basicMap,roadMap,highwayMap,countiesMap&amp;center=44.527,-89.237&amp;zoom=6.75&amp;tz=local&amp;er=1&amp;layers=rad,metar,airep,nwshazards,prog&amp;radproduct=cref&amp;radlooping=0&amp;radloopcontrols=1&amp;metardensity=1&amp;metarscale=1.25&amp;metarplottype=temp,wind&amp;aireptype=none&amp;airepage=0.25&amp;airepinten=sev&amp;airepscale=0.5&amp;aireptop=0&amp;airepdecoded=0" class="news-item">Aviation Radar</a>
+      <a target="_blank" href="https://aviationweather.gov/" class="news-item">Aviation Weather Center</a>
+      <a target="_blank" href="https://www.fire.ca.gov/" class="news-item">Cal Fire</a>
+      <a target="_blank" href="https://www.cleardarksky.com/" class="news-item">ClearDarkSky</a>
+      <a target="_blank" href="https://radar.weather.gov/?settings=v1_eyJhZ2VuZGEiOnsiaWQiOiJsb2NhbCIsImNlbnRlciI6Wy04My4yNjEsNDAuNjMzXSwibG9jYXRpb24iOm51bGwsInpvb20iOjgsImZpbHRlciI6IldTUi04OEQiLCJsYXllciI6InNyX2JyZWYiLCJzdGF0aW9uIjoiS0lXWCJ9LCJhbmltYXRpbmciOmZhbHNlLCJiYXNlIjoic3RhbmRhcmQiLCJhcnRjYyI6ZmFsc2UsImNvdW50eSI6ZmFsc2UsImN3YSI6ZmFsc2UsInJmYyI6ZmFsc2UsInN0YXRlIjpmYWxzZSwibWVudSI6dHJ1ZSwic2hvcnRGdXNlZE9ubHkiOnRydWUsIm9wYWNpdHkiOnsiYWxlcnRzIjowLjgsImxvY2FsIjowLjYsImxvY2FsU3RhdGlvbnMiOjAuOCwibmF0aW9uYWwiOjAuNn19#/" class="news-item">Cleveland Radar</a>
+      <a target="_blank" href="https://www.broadcastify.com/webPlayer/34917" class="news-item">Cleveland Skywarn</a>
+      <a target="_blank" href="https://www.transportation.ohio.gov/about-us/traffic-advisories#page=1&amp;alpha=" class="news-item">Construction update</a>
+      <a target="_blank" href="https://www.cyclocane.com/" class="news-item">Cyclocane</a>
+      <a target="_blank" href="https://droughtmonitor.unl.edu/" class="news-item">Drought Monitor</a>
+      <a target="_blank" href="https://earth.nullschool.net/" class="news-item">Earth</a>
+      <a target="_blank" href="https://earthnow.usgs.gov/observer/" class="news-item">EarthNow!</a>
+      <a target="_blank" href="https://remap.jrc.ec.europa.eu/Simple.aspx" class="news-item">EURDEP Gamma</a>
+      <a target="_blank" href="https://weathercams.faa.gov/" class="news-item">FAA WeatherCams</a>
+      <a target="_blank" href="https://www.firstenergycorp.com/content/customer/outages_help/current_outages_maps/outage_hub_dashboard.html" class="news-item">FE My Outage Information</a>
+      <a target="_blank" href="https://firesmoke.ca/" class="news-item">FireSmoke.ca</a>
+      <a target="_blank" href="https://firms.modaps.eosdis.nasa.gov/" class="news-item">FIRMS</a>
+      <a target="_blank" href="http://outages.firstenergycorp.com/oh.html" class="news-item">First Energy Map</a>
+      <a target="_blank" href="https://www.foxweather.com/" class="news-item">Fox Weather</a>
+      <a target="_blank" href="https://www.gmcmap.com/" class="news-item">Geiger Counter World Map</a>
+      <a target="_blank" href="https://aviationweather.gov/gfa/#obs" class="news-item">GFA</a>
+      <a target="_blank" href="https://www.youtube.com/@GlobalQuake" class="news-item">GlobalQuake</a>
+      <a target="_blank" href="https://www.nhc.noaa.gov/gtwo.php?basin=atlc&amp;fdays=7" class="news-item">Hurricane Center</a>
+      <a target="_blank" href="https://www.hurricanetracker.net/" class="news-item">Hurricane Tracker</a>
+      <a target="_blank" href="https://www.nohrsc.noaa.gov/interactive/html/map.html" class="news-item">Interactive Snow Information</a>
+      <a target="_blank" href="https://x.com/JimCantore" class="news-item">Jim Cantore (@JimCantore) / X</a>
+      <a target="_blank" href="https://www.lightningmaps.org/#m=oss;r=0;t=4;s=0;o=0;b=4.25;n=0;y=40.7514;x=-81.568;z=7;ts=0;d=9;dl=8;dc=0;src=6;ts24=0;dn=1;tsc=1;tr=1;" class="news-item">Lightning Maps</a>
+      <a target="_blank" href="https://livestormchasing.com/map" class="news-item">Live Storm Chasing</a>
+      <a target="_blank" href="https://macrostrat.org/" class="news-item">Macrostrat</a>
+      <a target="_blank" href="https://www.meteoblue.com/en/weather/week/mantua_united-states-of-america_5161742" class="news-item">metoblue Mantua</a>
+      <a target="_blank" href="https://coastwatch.glerl.noaa.gov/satellite-data-products/modis/" class="news-item">MODIS - Coastwatch Great Lakes Node</a>
+      <a target="_blank" href="https://svs.gsfc.nasa.gov/" class="news-item">NASA Scientific Visualization Studio</a>
+      <a target="_blank" href="https://worldview.earthdata.nasa.gov/" class="news-item">NASA Worldview</a>
+      <a target="_blank" href="https://www.wpc.ncep.noaa.gov/NationalForecastChart/map.php#" class="news-item">National Forecast Chart</a>
+      <a target="_blank" href="https://ngmdb.usgs.gov/" class="news-item">National Geologic Map Database</a>
+      <a target="_blank" href="https://water.noaa.gov/" class="news-item">National Water Prediction Service</a>
+      <a target="_blank" href="https://fiman.nc.gov/" class="news-item">NC FIMAN</a>
+      <a target="_blank" href="https://www.ndbc.noaa.gov/" class="news-item">NDBC</a>
+      <a target="_blank" href="https://www.wpc.ncep.noaa.gov/NationalForecastChart/staticmaps/" class="news-item">NOAA Forcast Maps</a>
+      <a target="_blank" href="https://www.facebook.com/NWSCleveland" class="news-item">NWS Cleveland Facebook</a>
+      <a target="_blank" href="https://viewer.weather.noaa.gov/general#layers=42914+40090+41806+41793+41791+41792+41794+41783+42464+41782+41781+41609+40091+42940+42379&amp;x=-83.0788&amp;y=43.39571&amp;z=11.4&amp;panel=layer&amp;location=-81.24177,41.32249" class="news-item">NWS GIS Viewer</a>
+      <a target="_blank" href="https://forecast.weather.gov/MapClick.php?lat=41.323216322823676&amp;lon=-81.2315150048828#.YIm0rKJKiV7" class="news-item">NWS Mantua</a>
+      <a target="_blank" href="https://www.star.nesdis.noaa.gov/GOES/sector_band.php?sat=G16&amp;sector=cgl&amp;band=GEOCOLOR&amp;length=12" class="news-item">NWS Satellite</a>
+      <a target="_blank" href="https://slider.cira.colostate.edu/?sat=goes-19&amp;sec=full_disk&amp;x=9617&amp;y=3079.125&amp;z=4&amp;angle=0&amp;im=12&amp;ts=1&amp;st=0&amp;et=0&amp;speed=130&amp;motion=loop&amp;maps%5Bborders%5D=white&amp;p%5B0%5D=geocolor&amp;opacity%5B0%5D=1&amp;pause=20260126135021&amp;slider=-1&amp;hide_controls=0&amp;mouse_draw=0&amp;follow_feature=0&amp;follow_hide=0&amp;s=rammb-slider&amp;draw_color=FFD700&amp;draw_width=6" class="news-item">NWS Satellite Slider</a>
+      <a target="_blank" href="https://www.transportation.ohio.gov/" class="news-item">ODOT</a>
+      <a target="_blank" href="https://www.ohgo.com/" class="news-item">OHGO</a>
+      <a target="_blank" href="https://home.pivotalweather.com/" class="news-item">Pivotal Weather</a>
+      <a target="_blank" href="https://poweroutage.us/" class="news-item">Power Outage US</a>
+      <a target="_blank" href="https://www.youtube.com/@radaromega_wx" class="news-item">RadarOmega</a>
+      <a target="_blank" href="https://stationview.raspberryshake.org/" class="news-item">Raspberry Shake Station View</a>
+      <a target="_blank" href="https://www.doc.govt.nz/nature/native-animals/birds/birds-a-z/albatrosses/royal-albatross-toroa/royal-cam/royal-cam-discussion/" class="news-item">Royal Albatross Blog</a>
+      <a target="_blank" href="https://360earthview.com/" class="news-item">Satellite Maps</a>
+      <a target="_blank" href="https://www.weather.gov/cle/winter" class="news-item">Snow</a>
+      <a target="_blank" href="https://www.weather.gov/source/crh/snowmap.html?zoom=9&amp;lat=41.37&amp;lon=-81.25&amp;hr=3" class="news-item">Snowfall Reports</a>
+      <a target="_blank" href="https://www.sfwmd.gov/" class="news-item">South Florida Water</a>
+      <a target="_blank" href="https://www.spaceweather.com/" class="news-item">Space Weather</a>
+      <a target="_blank" href="https://www.tornadohq.com/" class="news-item">tornado hq</a>
+      <a target="_blank" href="https://www.tropicaltidbits.com/" class="news-item">Tropical Tidbits</a>
+      <a target="_blank" href="https://www.ventusky.com/" class="news-item">Ventusky</a>
+      <a target="_blank" href="https://www.tropicaltidbits.com/sat/satlooper.php?region=goes19-meso2&amp;product=vis" class="news-item">Visible Satellite Loop</a>
+      <a target="_blank" href="https://www.volcanodiscovery.com/" class="news-item">Volcano Discovery</a>
+      <a target="_blank" href="https://weather.com/weather/radar/interactive/l/db40275d58f9b99a39c2fddb5a97d0e040b04019064beaf2646654c75edf5adb" class="news-item">Weather Channel Map</a>
+      <a target="_blank" href="https://gemini.google.com/gem/c13857ce09a0" class="news-item">Weather Forecaster From NOAA (Gemini)</a>
+      <a target="_blank" href="https://www.weatherstreet.com/" class="news-item">Weather Street</a>
+      <a target="_blank" href="https://www.windy.com/?40.073,-82.402,5" class="news-item">Windy</a>
+      <a target="_blank" href="https://www.wunderground.com/dashboard/pws/KOHCHAGR6" class="news-item">WU Auburn</a>
+      <a target="_blank" href="https://www.wunderground.com/wundermap" class="news-item">Wunder Map</a>
+      <a target="_blank" href="https://zoom.earth/" class="news-item">Zoom Earth</a>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Larry & Wendy. Exploring the Cosmos.</p>
+    </footer>
+
+    <div id="oracle-container">
+        <div class="oracle-terminal" id="oracle-terminal">
+            <div style="font-weight: 800; color: var(--accent-blue); font-size: 1rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px;">✨ G.E.M.I.N.I. Oracle</div>
+            
+            <div class="oracle-messages" id="oracle-messages">
+                <div class="msg ai">Greetings. I am the Cosmic Oracle. Need help interpreting atmospheric data in the void?</div>
+            </div>
+            
+            <div class="action-btns">
+                <button class="small-btn" onclick="scanAnomaly()">✨ Scan Weather</button>
+                <button class="small-btn" onclick="generateCaptainLog()">✨ Captain's Log</button>
+            </div>
+            
+            <div class="oracle-input-area">
+                <input type="text" id="oracle-input" placeholder="Ask the universe..." onkeypress="if(event.key==='Enter') askOracle()">
+                <button class="small-btn" style="flex: 0 0 auto; border-radius: 50%; width: 40px; height: 40px; padding: 0;" onclick="askOracle()">✨</button>
+            </div>
+        </div>
+        <button class="oracle-btn" onclick="toggleOracle()">✨ Cosmic Oracle</button>
+    </div>
+
+    <script>
+        const spaceLayer = document.getElementById('deep-space');
+        const entityLayer = document.getElementById('dynamic-entities');
+        const searchInput = document.getElementById('news-search');
+        const newsItems = document.querySelectorAll('.news-item');
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+
+        // --- SEARCH FUNCTIONALITY ---
+        searchInput.addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            newsItems.forEach(item => {
+                const text = item.textContent.toLowerCase();
+                item.classList.toggle('hidden', !text.includes(term));
+            });
+        });
+        
+        // --- ✨ GEMINI API LOGIC ---
+        const apiKey = ""; 
+
+        async function callGemini(prompt, systemInstruction = "") {
+            const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            const payload = { contents: [{ parts: [{ text: prompt }] }] };
+            if (systemInstruction) {
+                payload.systemInstruction = { parts: [{ text: systemInstruction }] };
+            }
+
+            for (let i = 0; i < 5; i++) {
+                try {
+                    const response = await fetch(endpoint, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (!response.ok) throw new Error('API Error');
+                    const data = await response.json();
+                    return data.candidates?.[0]?.content?.parts?.[0]?.text || "Cosmic interference. Try again.";
+                } catch (error) {
+                    if (i === 4) return "Connection to the Oracle lost. Please check your temporal relay.";
+                    await new Promise(r => setTimeout(r, Math.pow(2, i) * 1000));
+                }
+            }
+        }
+
+        function toggleOracle() { document.getElementById('oracle-terminal').classList.toggle('open'); }
+
+        function addOracleMessage(text, sender = 'ai') {
+            const msgs = document.getElementById('oracle-messages');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `msg ${sender}`;
+            msgDiv.innerHTML = text; 
+            msgs.appendChild(msgDiv);
+            msgs.scrollTop = msgs.scrollHeight;
+        }
+
+        async function askOracle() {
+            const input = document.getElementById('oracle-input');
+            const text = input.value.trim();
+            if (!text) return;
+            
+            input.value = '';
+            addOracleMessage(text, 'user');
+            addOracleMessage('<span style="opacity:0.5; font-style:italic;">Consulting the stars...</span>', 'ai');
+            
+            const systemPrompt = "You are the G.E.M.I.N.I. Cosmic Oracle, guiding a traveler through a cinematic weather directory. Keep responses under 3 sentences, deeply thematic, and insightful about atmospheric or cosmic conditions.";
+            const responseText = await callGemini(text, systemPrompt);
+            
+            const msgs = document.getElementById('oracle-messages');
+            msgs.removeChild(msgs.lastChild);
+            addOracleMessage(responseText, 'ai');
+        }
+
+        async function scanAnomaly() {
+            addOracleMessage('<span style="opacity:0.5; font-style:italic;">Scanning atmospheric conditions...</span>', 'ai');
+            const prompt = "Generate a short, poetic description (max 2 sentences) of a bizarre or extreme alien weather event that the ship just encountered. Give the storm a creative name.";
+            const responseText = await callGemini(prompt, "You are an advanced ship meteorological AI. Format your response beautifully.");
+            
+            const msgs = document.getElementById('oracle-messages');
+            msgs.removeChild(msgs.lastChild);
+            addOracleMessage(`<b>Weather Event Detected:</b><br>${responseText}`, 'ai');
+        }
+
+        async function generateCaptainLog() {
+            addOracleMessage('<span style="opacity:0.5; font-style:italic;">Drafting log entry...</span>', 'ai');
+            const prompt = "Write a dramatic, 3-sentence 'Captain's Log' entry about navigating a ship through an intense cosmic storm or strange atmospheric phenomenon. Include a random stardate.";
+            const responseText = await callGemini(prompt, "You are a seasoned, poetic Starship Captain writing a log.");
+            
+            const msgs = document.getElementById('oracle-messages');
+            msgs.removeChild(msgs.lastChild);
+            addOracleMessage(`<b>Captain's Log:</b><br>${responseText}`, 'ai');
+        }
+
+        // --- 1. HIGH CONTRAST STARFIELD ---
+        function generateStars() {
+            const counts = [150, 100, 50]; 
+            const sizes = [1, 2, 4];
+            const opacities = [0.4, 0.7, 1];
+
+            for (let layer = 0; layer < 3; layer++) {
+                for (let i = 0; i < counts[layer]; i++) {
+                    const star = document.createElement('div');
+                    star.className = 'star';
+                    const size = sizes[layer] + (Math.random() * 1.5);
+                    star.style.width = `${size}px`;
+                    star.style.height = `${size}px`;
+                    star.style.left = `${Math.random() * 100}vw`;
+                    star.style.top = `${Math.random() * 100}vh`;
+                    star.style.opacity = opacities[layer] * Math.random();
+                    
+                    if (layer === 2) {
+                        star.style.animation = `flicker ${1 + Math.random() * 3}s infinite alternate`;
+                    }
+                    spaceLayer.appendChild(star);
+                }
+            }
+        }
+
+        // --- 2. COMPLEX RINGED GAS GIANTS ---
+        function spawnPlanet() {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'planet-wrapper';
+            
+            const planet = document.createElement('div');
+            planet.className = 'planet';
+            const rings = document.createElement('div');
+            rings.className = 'planet-rings';
+            
+            const hue = Math.floor(Math.random() * 360);
+            
+            // 15+ Detailed Gas Giant Bands
+            const numBands = 15 + Math.floor(Math.random() * 15);
+            let bandStops = [];
+            let currentPos = 0;
+            for (let i = 0; i < numBands; i++) {
+                const step = (100 / numBands) + (Math.random() * 4 - 2);
+                const nextPos = Math.min(100, currentPos + step);
+                const lightness = 20 + Math.random() * 50; 
+                const saturation = 30 + Math.random() * 50; 
+                const bandHue = (hue + (Math.random() * 40 - 20)) % 360;
+                const color = `hsl(${bandHue}, ${saturation}%, ${lightness}%)`;
+                
+                bandStops.push(`${color} ${currentPos}%`);
+                bandStops.push(`${color} ${nextPos}%`);
+                currentPos = nextPos;
+            }
+            const bandGradient = `linear-gradient(to bottom, ${bandStops.join(', ')})`;
+
+            // Jupiter-type Red Spots (Storm Eyes)
+            let spots = [];
+            const numSpots = 1 + Math.floor(Math.random() * 2);
+            for(let j = 0; j < numSpots; j++) {
+                const sX = 15 + Math.random() * 70;
+                const sY = 15 + Math.random() * 70;
+                const sSizeX = 10 + Math.random() * 20;
+                const sSizeY = sSizeX * (0.4 + Math.random() * 0.4);
+                const sHue = 0 + Math.random() * 25;
+                spots.push(`radial-gradient(ellipse ${sSizeX}% ${sSizeY}% at ${sX}% ${sY}%, hsla(${sHue}, 90%, 45%, 0.95) 0%, hsla(${sHue}, 100%, 25%, 0.8) 40%, hsla(${sHue}, 80%, 15%, 0.4) 60%, transparent 80%)`);
+            }
+            
+            const lightingOverlay = `radial-gradient(circle at 30% 30%, rgba(255,255,255,0.2) 0%, rgba(0,0,0,0.85) 90%)`;
+            planet.style.background = `${lightingOverlay}, ${spots.join(', ')}, ${bandGradient}`;
+            
+            const ringColor = `hsla(${(hue + 180) % 360}, 80%, 60%, 0.6)`;
+            wrapper.style.setProperty('--planet-glow', `hsla(${hue}, 80%, 60%, 0.3)`);
+            wrapper.style.setProperty('--ring-color', ringColor);
+
+            const size = 50 + Math.random() * 250; 
+            planet.style.width = `${size}px`;
+            planet.style.height = `${size}px`;
+            
+            const tiltAngle = Math.random() * 360;
+            planet.style.transform = `rotate(${tiltAngle}deg)`;
+            
+            rings.style.width = `${size * 2.2}px`;
+            rings.style.height = `${size * 2.2}px`;
+            rings.style.transform = `rotate(${tiltAngle}deg) rotateX(75deg)`;
+
+            wrapper.appendChild(planet);
+            wrapper.appendChild(rings);
+            entityLayer.appendChild(wrapper);
+
+            const edgePadding = 400;
+            const routes = [
+                { startX: -edgePadding, startY: Math.random() * h, endX: w + edgePadding, endY: Math.random() * h },
+                { startX: w + edgePadding, startY: Math.random() * h, endX: -edgePadding, endY: Math.random() * h },
+                { startX: Math.random() * w, startY: -edgePadding, endX: Math.random() * w, endY: h + edgePadding },
+                { startX: Math.random() * w, startY: h + edgePadding, endX: Math.random() * w, endY: -edgePadding }
+            ];
+            
+            const route = routes[Math.floor(Math.random() * routes.length)];
+            const duration = 20000 + Math.random() * 40000;
+
+            const animation = wrapper.animate([
+                { transform: `translate(${route.startX}px, ${route.startY}px) rotate(0deg)` },
+                { transform: `translate(${route.endX}px, ${route.endY}px) rotate(${Math.random() > 0.5 ? 360 : -360}deg)` }
+            ], { duration: duration, easing: 'linear' });
+
+            animation.onfinish = () => wrapper.remove();
+        }
+
+        // --- 3. CRUISING SPACESHIPS ---
+        function spawnSpaceship() {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'spaceship-wrapper';
+            
+            const scale = 0.3 + Math.random() * 1.2;
+            
+            wrapper.innerHTML = `
+                <div class="engine-trail"></div>
+                <svg width="60" height="30" viewBox="0 0 100 50" fill="none" xmlns="http://www.w3.org/2000/svg" style="transform: scale(${scale});">
+                    <path d="M10 25 L30 10 L80 25 L30 40 Z" fill="#cbd5e1"/>
+                    <path d="M20 25 L30 15 L70 25 L30 35 Z" fill="#94a3b8"/>
+                    <circle cx="60" cy="25" r="4" fill="#38bdf8" filter="drop-shadow(0 0 5px #38bdf8)"/>
+                    <path d="M0 20 L15 25 L0 30 Z" fill="#0ea5e9"/>
+                </svg>
+            `;
+            
+            entityLayer.appendChild(wrapper);
+
+            const edgePadding = 200;
+            const routes = [
+                { startX: -edgePadding, startY: Math.random() * h, endX: w + edgePadding, endY: Math.random() * h },
+                { startX: w + edgePadding, startY: Math.random() * h, endX: -edgePadding, endY: Math.random() * h }
+            ];
+            const route = routes[Math.floor(Math.random() * routes.length)];
+            
+            const angle = Math.atan2(route.endY - route.startY, route.endX - route.startX) * 180 / Math.PI;
+            const duration = 5000 + Math.random() * 10000; 
+
+            const animation = wrapper.animate([
+                { transform: `translate(${route.startX}px, ${route.startY}px) rotate(${angle}deg)` },
+                { transform: `translate(${route.endX}px, ${route.endY}px) rotate(${angle}deg)` }
+            ], { duration: duration, easing: 'linear' });
+
+            animation.onfinish = () => wrapper.remove();
+        }
+
+        // --- 4. FORWARD BURSTING METEORS ---
+        function spawnMeteor() {
+            const meteor = document.createElement('div');
+            meteor.className = 'meteor';
+            entityLayer.appendChild(meteor);
+
+            const centerX = w / 2;
+            const centerY = h / 2;
+            const angle = Math.random() * Math.PI * 2;
+            
+            const startDist = 20 + Math.random() * 150;
+            const startX = centerX + Math.cos(angle) * startDist;
+            const startY = centerY + Math.sin(angle) * startDist;
+
+            const distance = Math.max(w, h);
+            const endX = centerX + Math.cos(angle) * distance;
+            const endY = centerY + Math.sin(angle) * distance;
+
+            const rotation = (angle * 180 / Math.PI) + 90;
+            const duration = 400 + Math.random() * 600;
+
+            const animation = meteor.animate([
+                { transform: `translate(${startX}px, ${startY}px) rotate(${rotation}deg) scaleY(0.1)`, opacity: 0 },
+                { transform: `translate(${(startX+endX)/2}px, ${(startY+endY)/2}px) rotate(${rotation}deg) scaleY(1)`, opacity: 1, offset: 0.3 },
+                { transform: `translate(${endX}px, ${endY}px) rotate(${rotation}deg) scaleY(3)`, opacity: 0 }
+            ], { duration: duration, easing: 'ease-in' });
+
+            animation.onfinish = () => meteor.remove();
+        }
+
+        // --- INITIALIZATION & TIMERS ---
+        window.onload = () => {
+            generateStars();
+            
+            spawnPlanet();
+            setTimeout(spawnSpaceship, 2000);
+
+            setInterval(() => { if (document.visibilityState === 'visible') spawnPlanet(); }, 15000); 
+            setInterval(() => { if (document.visibilityState === 'visible') spawnSpaceship(); }, 8000); 
+            setInterval(() => { if (document.visibilityState === 'visible') spawnMeteor(); }, 400); 
+            
+            const galaxies = document.querySelectorAll('.galaxy');
+            window.addEventListener('mousemove', (e) => {
+                const moveX = (e.clientX - w / 2) * 0.02;
+                const moveY = (e.clientY - h / 2) * 0.02;
+                galaxies.forEach((g, i) => {
+                    g.style.transform = `translate(${moveX * (i+1)}px, ${moveY * (i+1)}px)`;
+                });
+            });
+        };
+    </script>
+</body>
+</html>
