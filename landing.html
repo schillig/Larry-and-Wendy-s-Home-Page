@@ -177,6 +177,8 @@
             flex-direction: column;
             position: relative;
             box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+            flex: 1;
+            min-width: 250px;
         }
 
         .nav-card:hover {
@@ -365,18 +367,24 @@
         <h1>Larry & Wendy's</h1>
     </header>
 
-    <main style="display: flex; justify-content: center; flex-wrap: wrap; gap: 2rem; max-width: 1100px; margin: 0 auto; padding: 0 2rem 4rem; z-index: 10;">
+    <main style="display: flex; justify-content: center; flex-wrap: wrap; gap: 2rem; max-width: 1200px; margin: 0 auto; padding: 0 2rem 4rem; z-index: 10;">
         
-        <a href="news_directory.html" class="nav-card" style="max-width: 400px; width: 100%; text-align: center;">
+        <a href="news_directory.html" class="nav-card" style="max-width: 350px; text-align: center;">
             <div class="card-icon">🌍</div>
             <div class="card-title">News Directory</div>
             <p class="card-desc">Stay connected with major headlines from around the globe.</p>
         </a>
 
-        <a href="weather.html" class="nav-card" style="max-width: 400px; width: 100%; text-align: center;">
+        <a href="weather.html" class="nav-card" style="max-width: 350px; text-align: center;">
             <div class="card-icon">⛈️</div>
             <div class="card-title">Weather Directory</div>
-            <p class="card-desc">Track global weather patterns, live radar, and atmospheric forecasts.</p>
+            <p class="card-desc">Track global weather patterns, live radar, and forecasts.</p>
+        </a>
+
+        <a href="restaurants.html" class="nav-card" style="max-width: 350px; text-align: center;">
+            <div class="card-icon">🍽️</div>
+            <div class="card-title">Restaurant Directory</div>
+            <p class="card-desc">Explore our curated list of global and local dining establishments.</p>
         </a>
 
     </main>
