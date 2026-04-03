@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global Restaurant Directory | Cinematic Universe</title>
+    <style>
+        :root {
+            --space-bg: #000005; /* True black for high contrast */
+            --accent-blue: #4f9cf9;
+            --glass-bg: rgba(10, 15, 30, 0.6);
+            --glass-border: rgba(255, 255, 255, 0.15);
+            --text-main: #ffffff;
+            --text-muted: #b0c4de;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--space-bg);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow-x: hidden;
+            overflow-y: auto;
+        }
+
+        /* --- DEEP SPACE ENVIRONMENT --- */
+        #deep-space {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            z-index: -10;
+            background-color: var(--space-bg);
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        /* Nebulae and Galaxies */
+        .galaxy {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(60px);
+            mix-blend-mode: screen;
+            opacity: 0.6;
+            animation: pulse-galaxy 15s infinite alternate ease-in-out;
+        }
+
+        .galaxy-1 {
+            width: 80vw; height: 80vh;
+            top: -20%; left: -10%;
+            background: radial-gradient(circle, rgba(138,43,226,0.8) 0%, rgba(75,0,130,0.4) 40%, transparent 70%);
+            animation-duration: 20s;
+        }
+
+        .galaxy-2 {
+            width: 90vw; height: 90vh;
+            bottom: -30%; right: -20%;
+            background: radial-gradient(circle, rgba(0,191,255,0.7) 0%, rgba(0,0,139,0.4) 50%, transparent 70%);
+            animation-duration: 25s;
+        }
+        
+        .galaxy-3 {
+            width: 60vw; height: 60vh;
+            top: 40%; left: 30%;
+            background: radial-gradient(circle, rgba(255,20,147,0.5) 0%, rgba(139,0,139,0.2) 50%, transparent 70%);
+            animation-duration: 18s;
+        }
+
+        @keyframes pulse-galaxy {
+            0% { transform: scale(1) rotate(0deg); opacity: 0.4; }
+            100% { transform: scale(1.2) rotate(15deg); opacity: 0.8; }
+        }
+
+        /* High Contrast Stars */
+        .star {
+            position: absolute;
+            background: #fff;
+            border-radius: 50%;
+            box-shadow: 0 0 8px 2px rgba(255, 255, 255, 0.8);
+        }
+
+        /* --- DYNAMIC ENTITIES (Planets, Ships, Meteors) --- */
+        #dynamic-entities {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            z-index: -5;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        /* Planet Styling */
+        .planet-wrapper { 
+            position: absolute; 
+            will-change: transform; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transform-style: preserve-3d;
+        }
+        .planet {
+            border-radius: 50%;
+            position: relative;
+            box-shadow: inset -20px -20px 40px rgba(0,0,0,0.9), 0 0 30px var(--planet-glow);
+            display: flex; align-items: center; justify-content: center;
+            overflow: hidden;
+            transform: translateZ(0);
+        }
+        .planet-rings {
+            position: absolute;
+            border: 12px solid var(--ring-color);
+            border-radius: 50%;
+            box-shadow: 0 0 20px var(--ring-color), inset 0 0 20px var(--ring-color);
+        }
+
+        /* Spaceship Styling */
+        .spaceship-wrapper {
+            position: absolute;
+            will-change: transform;
+            filter: drop-shadow(0 0 15px rgba(0, 191, 255, 0.8));
+        }
+        .engine-trail {
+            position: absolute;
+            right: 90%; top: 50%;
+            width: 150px; height: 4px;
+            background: linear-gradient(to left, rgba(0, 255, 255, 1), transparent);
+            transform: translateY(-50%);
+            filter: blur(2px);
+            animation: flicker 0.1s infinite alternate;
+        }
+
+        /* Meteors */
+        .meteor {
+            position: absolute;
+            width: 3px; height: 120px;
+            background: linear-gradient(to top, transparent, #fff);
+            filter: drop-shadow(0 0 10px #fff);
+            will-change: transform, opacity;
+            transform-origin: top center;
+        }
+
+        @keyframes flicker { 0% { opacity: 0.8; } 100% { opacity: 1; } }
+
+        /* --- UI OVERLAY & NAVIGATION --- */
+        header {
+            text-align: center;
+            padding: 3rem 1rem 1rem;
+            width: 100%;
+            max-width: 1200px;
+            z-index: 10;
+        }
+
+        .nav-top {
+            display: flex;
+            justify-content: flex-start;
+            margin-bottom: 1rem;
+            padding: 0 1rem;
+        }
+
+        .back-link {
+            color: var(--accent-blue);
+            text-decoration: none;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: var(--transition);
+            background: rgba(0,0,0,0.5);
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid rgba(79, 156, 249, 0.3);
+        }
+
+        .back-link:hover { opacity: 0.8; transform: translateX(-5px); box-shadow: 0 0 10px rgba(79, 156, 249, 0.5); }
+
+        h1 {
+            font-size: clamp(2rem, 6vw, 3.5rem);
+            font-weight: 900;
+            margin-bottom: 2rem;
+            background: linear-gradient(to bottom right, #ffffff, #87cefa, #ffffff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 20px rgba(135, 206, 250, 0.4));
+        }
+
+        /* Search Filter */
+        .search-container {
+            margin-bottom: 2rem;
+            padding: 0 1rem;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        #news-search {
+            width: 100%;
+            padding: 1.2rem 1.5rem;
+            border-radius: 2rem;
+            border: 1px solid var(--glass-border);
+            background: var(--glass-bg);
+            color: #fff;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            outline: none;
+            transition: var(--transition);
+            font-size: 1rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        #news-search:focus {
+            border-color: var(--accent-blue);
+            background: rgba(20, 30, 50, 0.8);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.8), 0 0 20px rgba(79, 156, 249, 0.4);
+        }
+
+        /* News Grid */
+        main {
+            width: 100%;
+            max-width: 1200px;
+            padding: 1rem 2rem 4rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 1.5rem;
+            z-index: 10;
+        }
+
+        .news-item {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-top: 1px solid rgba(255,255,255,0.4);
+            border-left: 1px solid rgba(255,255,255,0.4);
+            border-radius: 1rem;
+            padding: 1.25rem;
+            text-decoration: none;
+            color: inherit;
+            text-align: center;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 80px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .news-item:hover {
+            transform: translateY(-5px) scale(1.05);
+            border-color: rgba(255,255,255,0.8);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.8), 0 0 30px rgba(79, 156, 249, 0.4);
+            background: rgba(20, 30, 50, 0.8);
+        }
+
+        .news-item.hidden {
+            display: none;
+        }
+
+        footer {
+            margin-top: auto;
+            padding: 2rem;
+            color: rgba(255,255,255,0.5);
+            font-size: 0.9rem;
+            text-align: center;
+            z-index: 10;
+        }
+
+        /* --- ✨ COSMIC ORACLE TERMINAL --- */
+        #oracle-container {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 15px;
+        }
+
+        .oracle-btn {
+            background: linear-gradient(135deg, rgba(79, 156, 249, 0.2), rgba(138, 43, 226, 0.4));
+            border: 1px solid var(--accent-blue);
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: bold;
+            letter-spacing: 1px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            box-shadow: 0 0 15px rgba(79, 156, 249, 0.3);
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .oracle-btn:hover { box-shadow: 0 0 25px rgba(79, 156, 249, 0.6); transform: scale(1.05); }
+
+        .oracle-terminal {
+            display: none;
+            width: 350px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .oracle-terminal.open { display: flex; animation: slideUp 0.3s ease-out; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        .oracle-messages {
+            height: 220px; overflow-y: auto; font-size: 0.85rem; color: var(--text-muted);
+            display: flex; flex-direction: column; gap: 10px; padding-right: 8px;
+        }
+        .oracle-messages::-webkit-scrollbar { width: 5px; }
+        .oracle-messages::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 5px; }
+        .oracle-messages .msg { padding: 10px 14px; border-radius: 8px; background: rgba(0,0,0,0.4); border-left: 3px solid transparent; line-height: 1.5; }
+        .oracle-messages .msg.user { border-left-color: #fff; align-self: flex-end; background: rgba(255,255,255,0.1); }
+        .oracle-messages .msg.ai { border-left-color: var(--accent-blue); color: #fff; }
+
+        .action-btns { display: flex; gap: 8px; justify-content: space-between; }
+        .small-btn {
+            background: rgba(79, 156, 249, 0.15); border: 1px solid rgba(79, 156, 249, 0.4);
+            color: #fff; padding: 8px 12px; border-radius: 15px; font-size: 0.8rem;
+            cursor: pointer; flex: 1; transition: var(--transition);
+        }
+        .small-btn:hover { background: rgba(79, 156, 249, 0.35); transform: translateY(-2px); }
+
+        .oracle-input-area { display: flex; gap: 8px; margin-top: 5px; }
+        .oracle-input-area input {
+            flex: 1; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.2);
+            color: #fff; padding: 10px 14px; border-radius: 20px; outline: none; transition: var(--transition);
+        }
+        .oracle-input-area input:focus { border-color: var(--accent-blue); }
+
+        @media (max-width: 600px) {
+            main { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); padding: 1rem; }
+            h1 { font-size: 2.5rem; }
+            #oracle-container { bottom: 15px; right: 15px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="deep-space">
+        <div class="galaxy galaxy-1"></div>
+        <div class="galaxy galaxy-2"></div>
+        <div class="galaxy galaxy-3"></div>
+    </div>
+
+    <div id="dynamic-entities"></div>
+
+    <header>
+        <div class="nav-top">
+            <a href="landing.html" class="back-link">← Back to Home Hub</a>
+        </div>
+        <h1>Global Restaurant Directory</h1>
+        
+        <div class="search-container">
+            <input type="text" id="news-search" placeholder="Search restaurants..." aria-label="Search restaurants">
+        </div>
+    </header>
+
+    <main id="news-grid">
+        <a href="https://www.17rivergrille.com/" class="news-item">17 River Grille</a>
+        <a href="http://1815tavern.com/" class="news-item">1815 Tavern</a>
+        <a href="https://56kitchen.com/?y_source=1_NDA3MTYxODMtNzE1LWxvY2F0aW9uLndlYnNpdGU%3D" class="news-item">56 Kitchen</a>
+        <a href="https://aladdins.com/" class="news-item">Aladdin's Eatery</a>
+        <a href="https://angeloskirtland.com/" class="news-item">Angelo's - Kirtland</a>
+        <a href="https://www.facebook.com/annex.bar.18/" class="news-item">Annex Bar & Grille</a>
+        <a href="https://www.anotherbrokenegg.com/locations/streetsboro-oh/" class="news-item">Another Broken Egg</a>
+        <a href="http://www.antoniospizza.net/" class="news-item">Antonio's Pizza</a>
+        <a href="https://restaurants.applebees.com/en-us/oh/streetsboro/1200-state-rt.-303-96096?utm_source=google&utm_medium=organic&utm_campaign=google_my_business&utm_term=96096&utm_content=website" class="news-item">Applebee's</a>
+        <a href="https://locations.arbys.com/oh/streetsboro/9530-oh-14.html?utm_source=google%20my%20business&utm_medium=organic&utm_campaign=website%20link" class="news-item">Arby's</a>
+        <a href="https://www.aureliabistro.com/" class="news-item">Aurelia</a>
+        <a href="http://www.balaton-restaurant.com/" class="news-item">Balaton</a>
+        <a href="https://www.barrellodgebarandgrill.com/" class="news-item">Barrel Lodge Bar & Grill</a>
+        <a href="https://www.batuquicleveland.com/" class="news-item">Batuqui</a>
+        <a href="https://beausgrille.com/menu/" class="news-item">Beau's Grille - Akron</a>
+        <a href="https://www.eatbirdigo.com/about-us/our-menu-2/?y_source=1_MzA4NTYwODAtNzE1LWxvY2F0aW9uLm1lbnVfdXJs" class="news-item">Birdigo Chicken</a>
+        <a href="http://blasioleseatery.com/" class="news-item">Blasiole's Pizza</a>
+        <a href="https://www.bobevans.com/locations/aurora?utm_source=google&utm_medium=local&utm_campaign=438-Aurora-OH" class="news-item">Bob Evans</a>
+        <a href="https://brownderbyusa.com/streetsboro/" class="news-item">Brown Derby</a>
+        <a href="https://www.buffalowildwings.com/locations/us/oh/aurora/18865-giles-road/sports-bar-562?utm_source=google%20my%20business&utm_medium=organic&utm_campaign=website%20link" class="news-item">Buffalo Wild Wings</a>
+        <a href="http://alwaysbff.com/" class="news-item">Burger Fresh</a>
+        <a href="https://burgerking.com/store-locator/store/restaurant_1025" class="news-item">Burger King</a>
+        <a href="http://burgers2beer.com/" class="news-item">Burgers 2 Beer</a>
+        <a href="https://www.burntwoodtavern.com/chagrin-falls" class="news-item">Burntwood Tavern</a>
+        <a href="https://www.cafetandooraurora.com/" class="news-item">Café Tandoor</a>
+        <a href="http://mycafetoscano.com/" class="news-item">Cafe Toscano</a>
+        <a href="https://www.carvingroom.com/" class="news-item">Carving Room - Washington</a>
+        <a href="https://www.charleys.com/locations/solon-village/" class="news-item">Charleys Cheesesteaks</a>
+        <a href="http://www.chicagodelisolon.com/" class="news-item">Chicago Deli</a>
+        <a href="http://www.cfarestaurant.com/SolonOH" class="news-item">Chick-fil-A</a>
+        <a href="https://chillingstation.net/" class="news-item">Chilling Station</a>
+        <a href="https://website--7070250979713514051149-restaurant.business.site/?utm_source=gmb&utm_medium=referral" class="news-item">China Chef</a>
+        <a href="https://locations.chipotle.com/oh/streetsboro/9754-state-route-14?utm_source=google&utm_medium=yext&utm_campaign=yext_listings" class="news-item">Chipotle</a>
+        <a href="http://www.chuggersbar-grille.com/" class="news-item">Chuggers Bar & Grille</a>
+        <a href="https://www.citybbq.com/" class="news-item">City BBQ</a>
+        <a href="https://condadotacos.com/" class="news-item">Condado Tacos - Orange Village</a>
+        <a href="https://www.facebook.com/CornersCatering/" class="news-item">Corners Catering</a>
+        <a href="https://www.cowboyfoodanddrink.com/" class="news-item">Cowboy</a>
+        <a href="https://www.coyotesmexican.com/" class="news-item">Coyote Mexican Grill</a>
+        <a href="http://crookedpeckerbrewing.com/" class="news-item">Crooked Pecker</a>
+        <a href="https://www.crumbandspigot.com/" class="news-item">Crumb & Spigot</a>
+        <a href="https://www.facebook.com/cucinarusticacooking/" class="news-item">Cucina Rustica</a>
+        <a href="https://dangelositalian.com/" class="news-item">D'Angelo's Italian Ristorante'</a>
+        <a href="https://www.dairyqueen.com/en-us/locations/oh/streetsboro/9391-state-route-14/15384/?utm_source=organic&utm_campaign=yext%2F&y_source=1_MTY4MzI0MzktNzE1LWxvY2F0aW9uLndlYnNpdGU%3D" class="news-item">Dairy Queen</a>
+        <a href="https://www.davescosmicsubs.com/" class="news-item">Dave's Cosmic Subs</a>
+        <a href="https://com.ohio.gov/divisions-and-programs/liquor-control/local-government-resources/designated-outdoor-refreshment-areas" class="news-item">Designated Outdoor Refreshment Areas</a>
+        <a href="http://desichowk.us/" class="news-item">Desi Chowk Eatery and Bakery</a>
+        <a href="http://www.dibellas.com/" class="news-item">Dibellas</a>
+        <a href="https://djhibachisushiaurora.com/" class="news-item">DJ Hibachi & Sushi</a>
+        <a href="https://www.dominos.com/en/?redirect=homepage&utm_source=google&utm_medium=loclist&utm_campaign=localmaps" class="news-item">Domino's</a>
+        <a href="https://www.donantoniorestaurant.com/" class="news-item">Don Antonio Restaurant - New York</a>
+        <a href="https://donpatronofstreetsboro.com/" class="news-item">Don Patron</a>
+        <a href="https://donslighthouse.com/" class="news-item">Don's Lighthouse Grille - Cleveland</a>
+        <a href="https://locations.dunkindonuts.com/en/oh/aurora/75-w-garfield-rd/349758?utm_source=google&utm_medium=local&utm_campaign=localmaps&utm_content=349758&y_source=1_MTIxMTMzNzQtNzE1LWxvY2F0aW9uLndlYnNpdGU%3D" class="news-item">Dunkin'</a>
+        <a href="https://locations.einsteinbros.com/us/oh/chagrin-falls/54-shopping-plz" class="news-item">Einstein Bros.</a>
+        <a href="http://www.elcaminomexican.com/" class="news-item">El Camino</a>
+        <a href="http://elcampesino.com/" class="news-item">El Campesino</a>
+        <a href="https://www.ellecle.com/?y_source=1_NDA3MTUzNzQtNzE1LWxvY2F0aW9uLndlYnNpdGU%3D" class="news-item">Elle Restaurant</a>
+        <a href="http://www.erawanthaikitchen.com/" class="news-item">Erawan Thai Kitchen</a>
+        <a href="https://www.eriesteakandseafoodco.com/" class="news-item">Erie Steak & Seafood - Lorain</a>
+        <a href="https://www.etalianpizza.com/" class="news-item">ETalian</a>
+        <a href="https://www.evexiacafe.com/" class="news-item">Evexia Cafe</a>
+        <a href="http://www.firstwatch.com/locations/uptown-solon-shopping-center/?utm_source=gbp-listing&utm_medium=organic&utm_campaign=gbp-listing&utm_content=uptown-solon-shopping-center" class="news-item">First Watch</a>
+        <a href="https://www.fisherscafe.com/" class="news-item">Fisher's Cafe - Peninsula</a>
+        <a href="http://flipsideburger.com/" class="news-item">Flip Side</a>
+        <a href="https://www.freddys.com/?utm_source=google&utm_medium=yext" class="news-item">Freddy's Frozen Custard</a>
+        <a href="#" class="news-item">Fresh Start</a>
+        <a href="https://www.gioninos.com/" class="news-item">Gionino's Pizza</a>
+        <a href="https://www.gogienkbbq.com/" class="news-item">Gogi En K BBQ</a>
+        <a href="https://www.gunselmans.com/" class="news-item">Gunselman's Tavern - Fairview Park</a>
+        <a href="https://www.facebook.com/hakkawokaurora/" class="news-item">Hakka Wok</a>
+        <a href="https://www.hunanbythefalls.com/" class="news-item">Hunan By The Falls</a>
+        <a href="http://hunanexpressaurora.com/" class="news-item">Hunan Express</a>
+        <a href="https://www.hunansolonoh.com/" class="news-item">Hunan Solon</a>
+        <a href="https://www.imperialwok.com/?y_source=1_MzA3NzcwNjQtNzE1LWxvY2F0aW9uLndlYnNpdGU%3D" class="news-item">Imperial Wok</a>
+        <a href="https://www.facebook.com/italianospizzamantua/" class="news-item">Italiano's Pizza</a>
+        <a href="https://www.facebook.com/jakeseatsmantua/" class="news-item">Jake's Eats</a>
+        <a href="https://www.jamesplace.co/" class="news-item">James Place</a>
+        <a href="https://www.jerseymikes.com/2067/chagrin-falls-oh" class="news-item">Jersey Mike's Subs</a>
+        <a href="https://www.jetspizza.com/stores/ohio/lyndhurst/5350-mayfield-rd/" class="news-item">Jets Pizza - Lyndhurst</a>
+        <a href="https://www.facebook.com/JimsOpenKitchenToo/" class="news-item">Jim's Open Kitchen</a>
+        <a href="https://locations.jimmyjohns.com/oh/streetsboro/sandwiches-2532.html?utm_source=google%20my%20business&utm_medium=organic&utm_campaign=website%20link" class="news-item">Jimmy John's</a>
+        <a href="https://www.jojosbar.com/" class="news-item">JoJo's Bar</a>
+        <a href="https://food.google.com/chooseprovider?restaurantId=/g/1thx985s&g2lbs=ANTchaOdpf2UFVuj2zc2UBghNzPjSGNuIxsdFbZcqrPZuhbxBhVVOkSyfEJyDLJ25d7ok3a328qISarheCExBpfSyP_zitQwHdsRU7JVJOVpmeO9U_v-hzpkixrqiALB5GmXTgXa5ou_&hl=en-US&gl=us&fo_m=MfohQo559jFvMUOzJVpjPL1YMfZ3bInYwBDuMfaXTPp5KXh-&gei=0ruOZfK1OK3IptQPh8yMiA4&ei=0ruOZfK1OK3IptQPh8yMiA4&fo_s=OA&opi=79508299&orderType=2&sei=CcGud3oqraKOEWu_Z-uv-6TU&utm_campaign&utm_source=tactile" class="news-item">Jude's</a>
+        <a href="https://www.mainstreetkent.org/dora/" class="news-item">Kent DORA</a>
+        <a href="https://issuu.com/lsickle/docs/2021_visitor_guide" class="news-item">Kent Visitor Guide</a>
+        <a href="https://locations.kfc.com/oh/streetsboro/9119-state-route-14" class="news-item">KFC</a>
+        <a href="https://kingstandoorandbaroh.com/" class="news-item">King's Tandoor and bar</a>
+        <a href="https://www.kitchenonthecorner.com/" class="news-item">Kitchen on the Corner - Novelty</a>
+        <a href="https://leeangelos.com/" class="news-item">Lee-Angelos</a>
+        <a href="https://www.lindeys.com/" class="news-item">Lindey's - Columbus</a>
+        <a href="https://www.lindeyslakehouse.com/" class="news-item">Lindey's - Flat's</a>
+        <a href="https://littlecaesars.com/en-us/store/9028" class="news-item">Little Caesars</a>
+        <a href="https://www.longhornsteakhouse.com/locations/oh/solon/solon/5057?cmpid=br:lh_ag:ie_ch:loc_ca:LHGMB_sn:gmb_gt:solon-oh-5057_pl:locurl_rd:1032" class="news-item">LongHorn Steakhouse</a>
+        <a href="#" class="news-item">Lopez CJGG+J9 Chagrin Falls, Ohio</a>
+        <a href="https://www.google.com/maps/place/Los+Venados+Mexican+Restaurant/@41.0726507,-81.7952832,9z/data=!4m10!1m2!2m1!1sLos+Venados+Mexican+Restaurant!3m6!1s0x88311500748266cb:0xc17db6a1cba4916d!8m2!3d41.310161!4d-81.221819!15sCh5Mb3MgVmVuYWRvcyBNZXhpY2FuIFJlc3RhdXJhbnSSARJtZXhpY2FuX3Jlc3RhdXJhbnTgAQA!16s%2Fg%2F11vk2mtypw?entry=ttu&source=mc" class="news-item">Los Venados</a>
+        <a href="https://lucasnypizza.com/" class="news-item">Luca's - Stow</a>
+        <a href="https://www.mitalian.com/" class="news-item">M Italian</a>
+        <a href="http://madjackspub.com/" class="news-item">Mad Jack's Grill + Pub</a>
+        <a href="https://maggiesandmore.wixsite.com/mysite" class="news-item">Maggies Doughnuts</a>
+        <a href="https://www.magicwok.com/" class="news-item">Magic Wok</a>
+        <a href="https://www.facebook.com/MAINSTREETSUBSHOP/" class="news-item">Main Street Sub</a>
+        <a href="https://www.masterpizza.com/" class="news-item">Master Pizza</a>
+        <a href="https://www.mazzulos.com/" class="news-item">Mazzulo's Market</a>
+        <a href="https://www.mcdonalds.com/us/en-us/location/OH/MANTUA/10637-MAIN-ST/22007.html?cid=RF:YXT:GMB::Clicks" class="news-item">McDonald's</a>
+        <a href="https://www.mikesplacerestaurant.com/" class="news-item">Mike's Place - Kent</a>
+        <a href="https://www.milesfarmersmarket.com/" class="news-item">Miles Farmers Market</a>
+        <a href="https://www.missamysbakery.com/" class="news-item">Miss Amy's Bakery</a>
+        <a href="https://www.mitchellshomemade.com/" class="news-item">Mitchell's Ice Cream</a>
+        <a href="https://www.mrhero.com/" class="news-item">Mr Hero</a>
+        <a href="https://www.muvelsociety.com/" class="news-item">Muvel Society</a>
+        <a href="https://www.google.com/maps/place/New+Peking+Express/@41.24349,-81.3589651,16z/data=!4m11!1m3!2m2!1sRestaurants!6e5!3m6!1s0x883122db78240253:0x6a637b6431858133!8m2!3d41.24349!4d-81.356271!15sCgtSZXN0YXVyYW50c1oNIgtyZXN0YXVyYW50c5IBEmNoaW5lc2VfcmVzdGF1cmFudOABAA!16s%2Fg%2F1tfd7mn0?entry=ttu" class="news-item">New Peking Express</a>
+        <a href="http://nicky-smittys-deli.business.site/" class="news-item">Nicky & Smitty's</a>
+        <a href="https://food.google.com/chooseprovider?restaurantId=/g/11f9gyc2zn&g2lbs=ANTchaPXC0-tKBLJhNFUmHSrBB6Pme-vhMZx-7_q8qM-YXeDqL3zKo5lu6IMIqFFokGb9iMdSS5DiJ4YXUPqM_PC7ohofzjN_4677bQighW52Z6VwhCbMS96FY8P46dgToVMOTPwQM9R&hl=en-US&gl=us&fo_m=MfohQo559jFvMUOzJVpjPL1YMfZ3bInYwBDuMfaXTPp5KXh-&gei=ubJTZeniA-naptQP6t-MoAc&ei=ubJTZeniA-naptQP6t-MoAc&fo_s=OA&opi=79508299&orderType=2&sei=CV7-or7Rt0ehETLv56gaoFCq&utm_campaign&utm_source=tactile" class="news-item">Nik’s Donuts</a>
+        <a href="https://clevelandsbestbbq.com/" class="news-item">Ol'Chefski's BBQ</a>
+        <a href="https://www.originalsandwichking.com/" class="news-item">Original Sandwich King - Auburn</a>
+        <a href="https://www.pandaexpress.com/locations/oh/streetsboro/9540-state-route-14" class="news-item">Panda Express</a>
+        <a href="https://www.panerabread.com/en-us/cafe/locations/oh/bainbridge-township/8480-east-washington-street?utm_medium=local&utm_source=google&utm_campaign=dpm-dist&utm_term=204636&utm_content=main" class="news-item">Panera Bread</a>
+        <a href="https://paninisgrill.com/locations/chagrin-falls/" class="news-item">Panini's Bar & Grill</a>
+        <a href="http://www.papajohns.com/" class="news-item">Papa John's</a>
+        <a href="https://papoustapgrille.com/" class="news-item">Papous Tap + Grille</a>
+        <a href="https://www.paradiseindiancuisine.us/aurora" class="news-item">Paradise Indian Cuisine</a>
+        <a href="https://www.parisroombistro.com/" class="news-item">Paris Room Bistro</a>
+        <a href="https://parksidechagrin.com/" class="news-item">Parkside Grille</a>
+        <a href="http://www.pawsrestaurant.com/" class="news-item">Paws Restaurant</a>
+        <a href="http://www.penn-station.com/" class="news-item">Penn Station</a>
+        <a href="https://pierw.com/" class="news-item">Pier W - Lakewood</a>
+        <a href="https://locations.pizzahut.com/oh/aurora/70-barrington-town-square-dr?utm_medium=organic&utm_source=local&utm_campaign=googlelistings&utm_content=website&utm_term=303455" class="news-item">Pizza Hut</a>
+        <a href="https://pizzazzpizzeria.com/" class="news-item">Pizzazz Pizza</a>
+        <a href="https://www.pizzeriadilauro.com/" class="news-item">Pizzeria Dilauro</a>
+        <a href="http://plazaagave.com/" class="news-item">Plaza Agave</a>
+        <a href="https://pubfrato.com/chagrin" class="news-item">Pub Frato</a>
+        <a href="https://pulpjuiceandsmoothie.com/locations/" class="news-item">Pulp Juice</a>
+        <a href="https://www.facebook.com/R44ButcherAndBaker" class="news-item">R44 Butcher</a>
+        <a href="https://www.raisingcanes.com/locations/C953" class="news-item">Raising Cane's</a>
+        <a href="https://r44coffee.com/" class="news-item">Restoration 44</a>
+        <a href="https://www.facebook.com/profile.php?id=100063544392047#" class="news-item">Rise and Dine Cafe</a>
+        <a href="https://www.ritasice.com/location/ritas-of-streetsboro-oh/" class="news-item">Rita’s Ice</a>
+        <a href="http://www.rocknes.com/" class="news-item">Rockne's</a>
+        <a href="https://therollhouse.com/solon/" class="news-item">RollHouse Solon</a>
+        <a href="https://locations.romeospizza.com/romeos-pizza-9664c596f08a/" class="news-item">Romeo's Pizza</a>
+        <a href="https://rubytuesday.com/" class="news-item">Ruby Tuesday</a>
+        <a href="https://www.samuraioh.com/" class="news-item">Samurai Japanese Steakhouse</a>
+        <a href="https://sand-pebbles.com/" class="news-item">Sand Pebbles</a>
+        <a href="https://www.senoritabonitasofsolon.com/" class="news-item">Senorita Bonita's</a>
+        <a href="https://www.shalecreektaproom.com/" class="news-item">Shale Creek Taproom</a>
+        <a href="http://sharonjamescellars.com/" class="news-item">Sharon James Cellars - Newbury</a>
+        <a href="http://www.simplygreekfood.com/" class="news-item">Simply Greek</a>
+        <a href="http://www.sixhorsestavern.com/" class="news-item">Six Horses Tavern</a>
+        <a href="https://www.skylanebowling.com/" class="news-item">Skylane Bowling</a>
+        <a href="https://slimchickens.com/location/streetsboro-oh-9545-state-route-14-44241/" class="news-item">Slim Chickens</a>
+        <a href="https://www.slymans.com/" class="news-item">Slyman's Restaurant</a>
+        <a href="https://www.sonicdrivein.com/locations/us/oh/streetsboro/9780-state-route-14/store-5972/?utm_source=google%20my%20business&utm_medium=organic&utm_campaign=website%20link" class="news-item">Sonic</a>
+        <a href="https://www.station43tavern.com/" class="news-item">Station 43 Tavern</a>
+        <a href="https://restaurants.subway.com/united-states/oh/chagrin-falls/8553-e-washington?utm_source=yxt-goog&utm_medium=local&utm_term=acq&utm_content=4461&utm_campaign=evergreen-2020&y_source=1_MTQ5MDQ2MTYtNzE1LWxvY2F0aW9uLndlYnNpdGU%3D" class="news-item">Subway</a>
+        <a href="https://locations.tacobell.com/oh/streetsboro/9223-st-rte-14.html?utm_source=yext&utm_campaign=googlelistings&utm_medium=referral&utm_term=002982&utm_content=website&y_source=1_MzkxNzI3NS03MTUtbG9jYXRpb24ud2Vic2l0ZQ%3D%3D" class="news-item">Taco Bell</a>
+        <a href="http://www.teresaspizza.com/mantua" class="news-item">Teresa's Pizza</a>
+        <a href="https://www.thereservechagrin.com/" class="news-item">The Reserve</a>
+        <a href="https://tipsybulltavern.com/" class="news-item">Tipsy Bull Tavern</a>
+        <a href="https://tokojapaneseoh.com/" class="news-item">Toko Japanese Steak House</a>
+        <a href="https://www.thetwistedolive.com/" class="news-item">Twisted Olive - Green</a>
+        <a href="http://www.twoandcompany.org/" class="news-item">Two & Company</a>
+        <a href="https://www.unclespikespizzeria.com/" class="news-item">Uncle Spike's Pizzeria</a>
+        <a href="https://washingtonstdiner.com/" class="news-item">Washington St. Diner</a>
+        <a href="https://thedriftwoodgroup.com/restaurants/welshfield-inn/" class="news-item">Welshfield Inn - Welshfield</a>
+        <a href="https://locations.wendys.com/united-states/oh/aurora/215-barrington-towne-square?utm_source=Yext&utm_medium=Google_My_Business&utm_campaign=Local_Search&utm_content=EN_US" class="news-item">Wendy's</a>
+        <a href="https://whiteys.com/" class="news-item">Whitey's Restaurant</a>
+        <a href="http://wildeagle.com/" class="news-item">Wild Eagle</a>
+        <a href="http://www.yihotpotsushibbq.com/" class="news-item">YI Hot Pot & Sushi & BBQ</a>
+        <a href="https://ytr.com/chagrinfalls/" class="news-item">Yours Truly</a>
+        <a href="https://www.yummusinc.com/" class="news-item">YUMMUS</a>
+        <a href="https://www.zeppes.com/" class="news-item">Zeppe's</a>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Larry & Wendy. Exploring the Cosmos.</p>
+    </footer>
+
+    <div id="oracle-container">
+        <div class="oracle-terminal" id="oracle-terminal">
+            <div style="font-weight: 800; color: var(--accent-blue); font-size: 1rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px;">✨ G.E.M.I.N.I. Oracle</div>
+            
+            <div class="oracle-messages" id="oracle-messages">
+                <div class="msg ai">Greetings. I am the Cosmic Oracle. Need help finding a dining signal in the void?</div>
+            </div>
+            
+            <div class="action-btns">
+                <button class="small-btn" onclick="scanAnomaly()">✨ Scan Cuisine</button>
+                <button class="small-btn" onclick="generateCaptainLog()">✨ Captain's Log</button>
+            </div>
+            
+            <div class="oracle-input-area">
+                <input type="text" id="oracle-input" placeholder="Ask the universe..." onkeypress="if(event.key==='Enter') askOracle()">
+                <button class="small-btn" style="flex: 0 0 auto; border-radius: 50%; width: 40px; height: 40px; padding: 0;" onclick="askOracle()">✨</button>
+            </div>
+        </div>
+        <button class="oracle-btn" onclick="toggleOracle()">✨ Cosmic Oracle</button>
+    </div>
+
+    <script>
+        const spaceLayer = document.getElementById('deep-space');
+        const entityLayer = document.getElementById('dynamic-entities');
+        const searchInput = document.getElementById('news-search');
+        const newsItems = document.querySelectorAll('.news-item');
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+
+        // --- SEARCH FUNCTIONALITY ---
+        searchInput.addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            newsItems.forEach(item => {
+                const text = item.textContent.toLowerCase();
+                item.classList.toggle('hidden', !text.includes(term));
+            });
+        });
+        
+        // --- ✨ GEMINI API LOGIC ---
+        const apiKey = ""; 
+
+        async function callGemini(prompt, systemInstruction = "") {
+            const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            const payload = { contents: [{ parts: [{ text: prompt }] }] };
+            if (systemInstruction) {
+                payload.systemInstruction = { parts: [{ text: systemInstruction }] };
+            }
+
+            for (let i = 0; i < 5; i++) {
+                try {
+                    const response = await fetch(endpoint, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (!response.ok) throw new Error('API Error');
+                    const data = await response.json();
+                    return data.candidates?.[0]?.content?.parts?.[0]?.text || "Cosmic interference. Try again.";
+                } catch (error) {
+                    if (i === 4) return "Connection to the Oracle lost. Please check your temporal relay.";
+                    await new Promise(r => setTimeout(r, Math.pow(2, i) * 1000));
+                }
+            }
+        }
+
+        function toggleOracle() { document.getElementById('oracle-terminal').classList.toggle('open'); }
+
+        function addOracleMessage(text, sender = 'ai') {
+            const msgs = document.getElementById('oracle-messages');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `msg ${sender}`;
+            msgDiv.innerHTML = text; 
+            msgs.appendChild(msgDiv);
+            msgs.scrollTop = msgs.scrollHeight;
+        }
+
+        async function askOracle() {
+            const input = document.getElementById('oracle-input');
+            const text = input.value.trim();
+            if (!text) return;
+            
+            input.value = '';
+            addOracleMessage(text, 'user');
+            addOracleMessage('<span style="opacity:0.5; font-style:italic;">Consulting the stars...</span>', 'ai');
+            
+            const systemPrompt = "You are the G.E.M.I.N.I. Cosmic Oracle, guiding a traveler through a cinematic restaurant directory. Keep responses under 3 sentences, deeply thematic, and insightful about food or cosmic dining.";
+            const responseText = await callGemini(text, systemPrompt);
+            
+            const msgs = document.getElementById('oracle-messages');
+            msgs.removeChild(msgs.lastChild);
+            addOracleMessage(responseText, 'ai');
+        }
+
+        async function scanAnomaly() {
+            addOracleMessage('<span style="opacity:0.5; font-style:italic;">Scanning local sector...</span>', 'ai');
+            const prompt = "Generate a short, poetic description (max 2 sentences) of a bizarre, delicious, or extreme alien cuisine that the ship just discovered. Give the dish a creative name.";
+            const responseText = await callGemini(prompt, "You are an advanced ship culinary AI. Format your response beautifully.");
+            
+            const msgs = document.getElementById('oracle-messages');
+            msgs.removeChild(msgs.lastChild);
+            addOracleMessage(`<b>Cuisine Detected:</b><br>${responseText}`, 'ai');
+        }
+
+        async function generateCaptainLog() {
+            addOracleMessage('<span style="opacity:0.5; font-style:italic;">Drafting log entry...</span>', 'ai');
+            const prompt = "Write a dramatic, 3-sentence 'Captain's Log' entry about the crew encountering a legendary intergalactic dining establishment. Include a random stardate.";
+            const responseText = await callGemini(prompt, "You are a seasoned, poetic Starship Captain writing a log.");
+            
+            const msgs = document.getElementById('oracle-messages');
+            msgs.removeChild(msgs.lastChild);
+            addOracleMessage(`<b>Captain's Log:</b><br>${responseText}`, 'ai');
+        }
+
+        // --- 1. HIGH CONTRAST STARFIELD ---
+        function generateStars() {
+            const counts = [150, 100, 50]; 
+            const sizes = [1, 2, 4];
+            const opacities = [0.4, 0.7, 1];
+
+            for (let layer = 0; layer < 3; layer++) {
+                for (let i = 0; i < counts[layer]; i++) {
+                    const star = document.createElement('div');
+                    star.className = 'star';
+                    const size = sizes[layer] + (Math.random() * 1.5);
+                    star.style.width = `${size}px`;
+                    star.style.height = `${size}px`;
+                    star.style.left = `${Math.random() * 100}vw`;
+                    star.style.top = `${Math.random() * 100}vh`;
+                    star.style.opacity = opacities[layer] * Math.random();
+                    
+                    if (layer === 2) {
+                        star.style.animation = `flicker ${1 + Math.random() * 3}s infinite alternate`;
+                    }
+                    spaceLayer.appendChild(star);
+                }
+            }
+        }
+
+        // --- 2. COMPLEX RINGED GAS GIANTS ---
+        function spawnPlanet() {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'planet-wrapper';
+            
+            const planet = document.createElement('div');
+            planet.className = 'planet';
+            const rings = document.createElement('div');
+            rings.className = 'planet-rings';
+            
+            const hue = Math.floor(Math.random() * 360);
+            
+            // 15+ Detailed Gas Giant Bands
+            const numBands = 15 + Math.floor(Math.random() * 15);
+            let bandStops = [];
+            let currentPos = 0;
+            for (let i = 0; i < numBands; i++) {
+                const step = (100 / numBands) + (Math.random() * 4 - 2);
+                const nextPos = Math.min(100, currentPos + step);
+                const lightness = 20 + Math.random() * 50; 
+                const saturation = 30 + Math.random() * 50; 
+                const bandHue = (hue + (Math.random() * 40 - 20)) % 360;
+                const color = `hsl(${bandHue}, ${saturation}%, ${lightness}%)`;
+                
+                bandStops.push(`${color} ${currentPos}%`);
+                bandStops.push(`${color} ${nextPos}%`);
+                currentPos = nextPos;
+            }
+            const bandGradient = `linear-gradient(to bottom, ${bandStops.join(', ')})`;
+
+            // Jupiter-type Red Spots (Storm Eyes)
+            let spots = [];
+            const numSpots = 1 + Math.floor(Math.random() * 2);
+            for(let j = 0; j < numSpots; j++) {
+                const sX = 15 + Math.random() * 70;
+                const sY = 15 + Math.random() * 70;
+                const sSizeX = 10 + Math.random() * 20;
+                const sSizeY = sSizeX * (0.4 + Math.random() * 0.4);
+                const sHue = 0 + Math.random() * 25;
+                spots.push(`radial-gradient(ellipse ${sSizeX}% ${sSizeY}% at ${sX}% ${sY}%, hsla(${sHue}, 90%, 45%, 0.95) 0%, hsla(${sHue}, 100%, 25%, 0.8) 40%, hsla(${sHue}, 80%, 15%, 0.4) 60%, transparent 80%)`);
+            }
+            
+            const lightingOverlay = `radial-gradient(circle at 30% 30%, rgba(255,255,255,0.2) 0%, rgba(0,0,0,0.85) 90%)`;
+            planet.style.background = `${lightingOverlay}, ${spots.join(', ')}, ${bandGradient}`;
+            
+            const ringColor = `hsla(${(hue + 180) % 360}, 80%, 60%, 0.6)`;
+            wrapper.style.setProperty('--planet-glow', `hsla(${hue}, 80%, 60%, 0.3)`);
+            wrapper.style.setProperty('--ring-color', ringColor);
+
+            const size = 50 + Math.random() * 250; 
+            planet.style.width = `${size}px`;
+            planet.style.height = `${size}px`;
+            
+            const tiltAngle = Math.random() * 360;
+            planet.style.transform = `rotate(${tiltAngle}deg)`;
+            
+            rings.style.width = `${size * 2.2}px`;
+            rings.style.height = `${size * 2.2}px`;
+            rings.style.transform = `rotate(${tiltAngle}deg) rotateX(75deg)`;
+
+            wrapper.appendChild(planet);
+            wrapper.appendChild(rings);
+            entityLayer.appendChild(wrapper);
+
+            const edgePadding = 400;
+            const routes = [
+                { startX: -edgePadding, startY: Math.random() * h, endX: w + edgePadding, endY: Math.random() * h },
+                { startX: w + edgePadding, startY: Math.random() * h, endX: -edgePadding, endY: Math.random() * h },
+                { startX: Math.random() * w, startY: -edgePadding, endX: Math.random() * w, endY: h + edgePadding },
+                { startX: Math.random() * w, startY: h + edgePadding, endX: Math.random() * w, endY: -edgePadding }
+            ];
+            
+            const route = routes[Math.floor(Math.random() * routes.length)];
+            const duration = 20000 + Math.random() * 40000;
+
+            const animation = wrapper.animate([
+                { transform: `translate(${route.startX}px, ${route.startY}px) rotate(0deg)` },
+                { transform: `translate(${route.endX}px, ${route.endY}px) rotate(${Math.random() > 0.5 ? 360 : -360}deg)` }
+            ], { duration: duration, easing: 'linear' });
+
+            animation.onfinish = () => wrapper.remove();
+        }
+
+        // --- 3. CRUISING SPACESHIPS ---
+        function spawnSpaceship() {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'spaceship-wrapper';
+            
+            const scale = 0.3 + Math.random() * 1.2;
+            
+            wrapper.innerHTML = `
+                <div class="engine-trail"></div>
+                <svg width="60" height="30" viewBox="0 0 100 50" fill="none" xmlns="http://www.w3.org/2000/svg" style="transform: scale(${scale});">
+                    <path d="M10 25 L30 10 L80 25 L30 40 Z" fill="#cbd5e1"/>
+                    <path d="M20 25 L30 15 L70 25 L30 35 Z" fill="#94a3b8"/>
+                    <circle cx="60" cy="25" r="4" fill="#38bdf8" filter="drop-shadow(0 0 5px #38bdf8)"/>
+                    <path d="M0 20 L15 25 L0 30 Z" fill="#0ea5e9"/>
+                </svg>
+            `;
+            
+            entityLayer.appendChild(wrapper);
+
+            const edgePadding = 200;
+            const routes = [
+                { startX: -edgePadding, startY: Math.random() * h, endX: w + edgePadding, endY: Math.random() * h },
+                { startX: w + edgePadding, startY: Math.random() * h, endX: -edgePadding, endY: Math.random() * h }
+            ];
+            const route = routes[Math.floor(Math.random() * routes.length)];
+            
+            const angle = Math.atan2(route.endY - route.startY, route.endX - route.startX) * 180 / Math.PI;
+            const duration = 5000 + Math.random() * 10000; 
+
+            const animation = wrapper.animate([
+                { transform: `translate(${route.startX}px, ${route.startY}px) rotate(${angle}deg)` },
+                { transform: `translate(${route.endX}px, ${route.endY}px) rotate(${angle}deg)` }
+            ], { duration: duration, easing: 'linear' });
+
+            animation.onfinish = () => wrapper.remove();
+        }
+
+        // --- 4. FORWARD BURSTING METEORS ---
+        function spawnMeteor() {
+            const meteor = document.createElement('div');
+            meteor.className = 'meteor';
+            entityLayer.appendChild(meteor);
+
+            const centerX = w / 2;
+            const centerY = h / 2;
+            const angle = Math.random() * Math.PI * 2;
+            
+            const startDist = 20 + Math.random() * 150;
+            const startX = centerX + Math.cos(angle) * startDist;
+            const startY = centerY + Math.sin(angle) * startDist;
+
+            const distance = Math.max(w, h);
+            const endX = centerX + Math.cos(angle) * distance;
+            const endY = centerY + Math.sin(angle) * distance;
+
+            const rotation = (angle * 180 / Math.PI) + 90;
+            const duration = 400 + Math.random() * 600;
+
+            const animation = meteor.animate([
+                { transform: `translate(${startX}px, ${startY}px) rotate(${rotation}deg) scaleY(0.1)`, opacity: 0 },
+                { transform: `translate(${(startX+endX)/2}px, ${(startY+endY)/2}px) rotate(${rotation}deg) scaleY(1)`, opacity: 1, offset: 0.3 },
+                { transform: `translate(${endX}px, ${endY}px) rotate(${rotation}deg) scaleY(3)`, opacity: 0 }
+            ], { duration: duration, easing: 'ease-in' });
+
+            animation.onfinish = () => meteor.remove();
+        }
+
+        // --- INITIALIZATION & TIMERS ---
+        window.onload = () => {
+            generateStars();
+            
+            spawnPlanet();
+            setTimeout(spawnSpaceship, 2000);
+
+            setInterval(() => { if (document.visibilityState === 'visible') spawnPlanet(); }, 15000); 
+            setInterval(() => { if (document.visibilityState === 'visible') spawnSpaceship(); }, 8000); 
+            setInterval(() => { if (document.visibilityState === 'visible') spawnMeteor(); }, 400); 
+            
+            const galaxies = document.querySelectorAll('.galaxy');
+            window.addEventListener('mousemove', (e) => {
+                const moveX = (e.clientX - w / 2) * 0.02;
+                const moveY = (e.clientY - h / 2) * 0.02;
+                galaxies.forEach((g, i) => {
+                    g.style.transform = `translate(${moveX * (i+1)}px, ${moveY * (i+1)}px)`;
+                });
+            });
+        };
+    </script>
+</body>
+</html>
