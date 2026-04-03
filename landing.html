@@ -111,19 +111,11 @@
             overflow: hidden;
             transform: translateZ(0);
         }
-        /* Planet Texture */
-        .planet::before {
-            content: ''; position: absolute; width: 100%; height: 100%;
-            background: repeating-linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, transparent 2%, rgba(255,255,255,0.05) 4%);
-            border-radius: 50%;
-            pointer-events: none;
-        }
         .planet-rings {
             position: absolute;
             border: 12px solid var(--ring-color);
             border-radius: 50%;
             box-shadow: 0 0 20px var(--ring-color), inset 0 0 20px var(--ring-color);
-            /* Base tilt, dynamic rotation applied in JS */
         }
 
         /* Spaceship Styling */
@@ -142,11 +134,10 @@
             animation: flicker 0.1s infinite alternate;
         }
 
-        /* Meteors */
+        /* Forward Bursting Meteors */
         .meteor {
             position: absolute;
             width: 3px; height: 120px;
-            /* Bright head at the top, fading to tail at bottom */
             background: linear-gradient(to top, transparent, #fff);
             filter: drop-shadow(0 0 10px #fff);
             will-change: transform, opacity;
@@ -173,16 +164,6 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             filter: drop-shadow(0 0 20px rgba(135, 206, 250, 0.4));
-        }
-
-        main {
-            width: 100%;
-            max-width: 1100px;
-            padding: 0 2rem 4rem;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-            gap: 2rem;
-            z-index: 10;
         }
 
         .nav-card {
@@ -378,44 +359,23 @@
 </head>
 <body>
 
-    <!-- Cinematic Background -->
     <div id="deep-space">
         <div class="galaxy galaxy-1"></div>
         <div class="galaxy galaxy-2"></div>
         <div class="galaxy galaxy-3"></div>
-        <!-- Stars injected via JS -->
-    </div>
+        </div>
 
-    <!-- Dynamic Objects (Planets, Ships) -->
     <div id="dynamic-entities"></div>
 
     <header>
         <h1>Larry & Wendy's</h1>
     </header>
 
-    <main>
-        <a href="index.html" class="nav-card">
-            <div class="card-icon">▦</div>
-            <div class="card-title">Classic Grid</div>
-            <p class="card-desc">The original structured view of our digital universe.</p>
-        </a>
-
-        <a href="news_directory.html" class="nav-card">
+    <main style="display: flex; justify-content: center; max-width: 1100px; margin: 0 auto; padding: 0 2rem 4rem; z-index: 10;">
+        <a href="news_directory.html" class="nav-card" style="max-width: 400px; width: 100%; text-align: center;">
             <div class="card-icon">🌍</div>
             <div class="card-title">News Directory</div>
             <p class="card-desc">Stay connected with major headlines from around the globe.</p>
-        </a>
-
-        <a href="englishnews.html" class="nav-card">
-            <div class="card-icon">📹</div>
-            <div class="card-title">Live News Cams</div>
-            <p class="card-desc">Real-time English news broadcasts and live streams.</p>
-        </a>
-
-        <a href="Bird.html" class="nav-card">
-            <div class="card-icon">🐦</div>
-            <div class="card-title">The Bird Page</div>
-            <p class="card-desc">Observations and media dedicated to our feathered friends.</p>
         </a>
     </main>
 
@@ -423,7 +383,6 @@
         <p>&copy; 2024 Larry & Wendy. Exploring the Cosmos.</p>
     </footer>
 
-    <!-- ✨ Cosmic Oracle Terminal -->
     <div id="oracle-container">
         <div class="oracle-terminal" id="oracle-terminal">
             <div style="font-weight: 800; color: var(--accent-blue); font-size: 1rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px;">✨ G.E.M.I.N.I. Oracle</div>
@@ -461,7 +420,6 @@
                 payload.systemInstruction = { parts: [{ text: systemInstruction }] };
             }
 
-            // Robust exponential backoff for deep space network stability
             for (let i = 0; i < 5; i++) {
                 try {
                     const response = await fetch(endpoint, {
@@ -531,7 +489,6 @@
 
         // --- 1. HIGH CONTRAST STARFIELD ---
         function generateStars() {
-            // Three layers of stars for intense depth
             const counts = [150, 100, 50]; 
             const sizes = [1, 2, 4];
             const opacities = [0.4, 0.7, 1];
@@ -547,7 +504,6 @@
                     star.style.top = `${Math.random() * 100}vh`;
                     star.style.opacity = opacities[layer] * Math.random();
                     
-                    // Add twinkle to larger stars
                     if (layer === 2) {
                         star.style.animation = `flicker ${1 + Math.random() * 3}s infinite alternate`;
                     }
@@ -556,7 +512,7 @@
             }
         }
 
-        // --- 2. RANDOMIZED RINGED PLANET ---
+        // --- 2. RANDOMIZED RINGED PLANET (WITH PARALLEL BANDS & SPOTS) ---
         function spawnPlanet() {
             const wrapper = document.createElement('div');
             wrapper.className = 'planet-wrapper';
@@ -577,11 +533,9 @@
                 const nextPos = Math.min(100, currentPos + step);
                 const lightness = 20 + Math.random() * 50; 
                 const saturation = 30 + Math.random() * 50; 
-                // Mix base hue with some random atmospheric drift
                 const bandHue = (hue + (Math.random() * 40 - 20)) % 360;
                 const color = `hsl(${bandHue}, ${saturation}%, ${lightness}%)`;
                 
-                // Hard stops to create crisp stripe edges
                 bandStops.push(`${color} ${currentPos}%`);
                 bandStops.push(`${color} ${nextPos}%`);
                 currentPos = nextPos;
@@ -595,23 +549,19 @@
                 const sX = 15 + Math.random() * 70;
                 const sY = 15 + Math.random() * 70;
                 const sSizeX = 10 + Math.random() * 20;
-                const sSizeY = sSizeX * (0.4 + Math.random() * 0.4); // Oval shape
-                const sHue = 0 + Math.random() * 25; // Deep reds to bright oranges
+                const sSizeY = sSizeX * (0.4 + Math.random() * 0.4); 
+                const sHue = 0 + Math.random() * 25; 
                 spots.push(`radial-gradient(ellipse ${sSizeX}% ${sSizeY}% at ${sX}% ${sY}%, hsla(${sHue}, 90%, 45%, 0.95) 0%, hsla(${sHue}, 100%, 25%, 0.8) 40%, hsla(${sHue}, 80%, 15%, 0.4) 60%, transparent 80%)`);
             }
             
-            // Spherical 3D Lighting Overlay
             const lightingOverlay = `radial-gradient(circle at 30% 30%, rgba(255,255,255,0.2) 0%, rgba(0,0,0,0.85) 90%)`;
-
-            // Stack backgrounds: 3D Lighting on top, then storm spots, then the gas bands
             planet.style.background = `${lightingOverlay}, ${spots.join(', ')}, ${bandGradient}`;
             
             const ringColor = `hsla(${(hue + 180) % 360}, 80%, 60%, 0.6)`;
             wrapper.style.setProperty('--planet-glow', `hsla(${hue}, 80%, 60%, 0.3)`);
             wrapper.style.setProperty('--ring-color', ringColor);
 
-            // Randomize Size (Huge variance)
-            const size = 50 + Math.random() * 250; // 50px to 300px
+            const size = 50 + Math.random() * 250; 
             planet.style.width = `${size}px`;
             planet.style.height = `${size}px`;
             
@@ -619,7 +569,6 @@
             const tiltAngle = Math.random() * 360;
             planet.style.transform = `rotate(${tiltAngle}deg)`;
             
-            // Make the rings a perfect circle, then tilt them in 3D space so the back half hides behind the planet
             rings.style.width = `${size * 2.2}px`;
             rings.style.height = `${size * 2.2}px`;
             rings.style.transform = `rotate(${tiltAngle}deg) rotateX(75deg)`;
@@ -628,19 +577,17 @@
             wrapper.appendChild(rings);
             entityLayer.appendChild(wrapper);
 
-            // Randomize Trajectory (From any edge to any opposite edge)
             const edgePadding = 400;
             const routes = [
-                { startX: -edgePadding, startY: Math.random() * h, endX: w + edgePadding, endY: Math.random() * h }, // L to R
-                { startX: w + edgePadding, startY: Math.random() * h, endX: -edgePadding, endY: Math.random() * h }, // R to L
-                { startX: Math.random() * w, startY: -edgePadding, endX: Math.random() * w, endY: h + edgePadding }, // T to B
-                { startX: Math.random() * w, startY: h + edgePadding, endX: Math.random() * w, endY: -edgePadding }  // B to T
+                { startX: -edgePadding, startY: Math.random() * h, endX: w + edgePadding, endY: Math.random() * h }, 
+                { startX: w + edgePadding, startY: Math.random() * h, endX: -edgePadding, endY: Math.random() * h }, 
+                { startX: Math.random() * w, startY: -edgePadding, endX: Math.random() * w, endY: h + edgePadding }, 
+                { startX: Math.random() * w, startY: h + edgePadding, endX: Math.random() * w, endY: -edgePadding }  
             ];
             
             const route = routes[Math.floor(Math.random() * routes.length)];
-            const duration = 20000 + Math.random() * 40000; // 20s to 60s
+            const duration = 20000 + Math.random() * 40000; 
 
-            // Animate using Web Animations API
             const animation = wrapper.animate([
                 { transform: `translate(${route.startX}px, ${route.startY}px) rotate(0deg)` },
                 { transform: `translate(${route.endX}px, ${route.endY}px) rotate(${Math.random() > 0.5 ? 360 : -360}deg)` }
@@ -654,10 +601,8 @@
             const wrapper = document.createElement('div');
             wrapper.className = 'spaceship-wrapper';
             
-            // Random Scale for depth perspective
             const scale = 0.3 + Math.random() * 1.2;
             
-            // Sleek Spaceship SVG
             wrapper.innerHTML = `
                 <div class="engine-trail"></div>
                 <svg width="60" height="30" viewBox="0 0 100 50" fill="none" xmlns="http://www.w3.org/2000/svg" style="transform: scale(${scale});">
@@ -670,7 +615,6 @@
             
             entityLayer.appendChild(wrapper);
 
-            // Trajectory
             const edgePadding = 200;
             const routes = [
                 { startX: -edgePadding, startY: Math.random() * h, endX: w + edgePadding, endY: Math.random() * h },
@@ -678,10 +622,8 @@
             ];
             const route = routes[Math.floor(Math.random() * routes.length)];
             
-            // Calculate angle to point ship forward
             const angle = Math.atan2(route.endY - route.startY, route.endX - route.startX) * 180 / Math.PI;
-            
-            const duration = 5000 + Math.random() * 10000; // Fast! 5s to 15s
+            const duration = 5000 + Math.random() * 10000;
 
             const animation = wrapper.animate([
                 { transform: `translate(${route.startX}px, ${route.startY}px) rotate(${angle}deg)` },
@@ -691,34 +633,27 @@
             animation.onfinish = () => wrapper.remove();
         }
 
-        // --- 4. HIGH SPEED METEORS ---
+        // --- 4. FORWARD BURSTING METEORS ---
         function spawnMeteor() {
             const meteor = document.createElement('div');
             meteor.className = 'meteor';
             entityLayer.appendChild(meteor);
 
-            // Center of the screen
             const centerX = w / 2;
             const centerY = h / 2;
-            
-            // Random angle to radiate outwards in a 360-degree circle
             const angle = Math.random() * Math.PI * 2;
             
-            // Start slightly offset from the exact center
             const startDist = 20 + Math.random() * 150;
             const startX = centerX + Math.cos(angle) * startDist;
             const startY = centerY + Math.sin(angle) * startDist;
 
-            // Travel far beyond the edges of the screen
             const distance = Math.max(w, h);
             const endX = centerX + Math.cos(angle) * distance;
             const endY = centerY + Math.sin(angle) * distance;
 
-            // Rotate the meteor so its head points exactly toward the direction of travel
             const rotation = (angle * 180 / Math.PI) + 90;
             const duration = 400 + Math.random() * 600;
 
-            // Animate outwards while scaling up to simulate depth/getting closer
             const animation = meteor.animate([
                 { transform: `translate(${startX}px, ${startY}px) rotate(${rotation}deg) scaleY(0.1)`, opacity: 0 },
                 { transform: `translate(${(startX+endX)/2}px, ${(startY+endY)/2}px) rotate(${rotation}deg) scaleY(1)`, opacity: 1, offset: 0.3 },
@@ -732,16 +667,13 @@
         window.onload = () => {
             generateStars();
             
-            // Spawn initial entities
             spawnPlanet();
             setTimeout(spawnSpaceship, 2000);
 
-            // Intervals (Aggressive spawning for visuals)
-            setInterval(() => { if (document.visibilityState === 'visible') spawnPlanet(); }, 15000); // Every 15s
-            setInterval(() => { if (document.visibilityState === 'visible') spawnSpaceship(); }, 8000); // Every 8s
-            setInterval(() => { if (document.visibilityState === 'visible') spawnMeteor(); }, 400); // Heavy meteor shower
+            setInterval(() => { if (document.visibilityState === 'visible') spawnPlanet(); }, 15000); 
+            setInterval(() => { if (document.visibilityState === 'visible') spawnSpaceship(); }, 8000); 
+            setInterval(() => { if (document.visibilityState === 'visible') spawnMeteor(); }, 400); 
             
-            // Dynamic Parallax for Galaxies on Mouse Move
             const galaxies = document.querySelectorAll('.galaxy');
             window.addEventListener('mousemove', (e) => {
                 const moveX = (e.clientX - w / 2) * 0.02;
