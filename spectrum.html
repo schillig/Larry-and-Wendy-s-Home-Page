@@ -1054,9 +1054,20 @@
                 
                 const currentGain = gainNode ? gainNode.gain.value : 1.0;
 
+                let dtStr = '--';
+                if (cursorsXEnabled) {
+                    const dt = Math.abs(scopeCursorX2Ms - scopeCursorX1Ms);
+                    if (dt > 0) {
+                        const freq = 1000 / dt;
+                        dtStr = `${dt.toFixed(2)}ms (${freq.toFixed(1)}Hz)`;
+                    } else {
+                        dtStr = '0.00ms';
+                    }
+                }
+
                 document.getElementById('readout-f1').textContent = cursorsXEnabled ? scopeCursorX1Ms.toFixed(2) + 'ms' : '--';
                 document.getElementById('readout-f2').textContent = cursorsXEnabled ? scopeCursorX2Ms.toFixed(2) + 'ms' : '--';
-                document.getElementById('readout-df').textContent = cursorsXEnabled ? Math.abs(scopeCursorX2Ms - scopeCursorX1Ms).toFixed(2) + 'ms' : '--';
+                document.getElementById('readout-df').textContent = dtStr;
                 
                 // Show True Voltage factored by Gain
                 document.getElementById('readout-a1').textContent = cursorsYEnabled ? (scopeCursorY1Amp > 0 ? '+' : '') + (scopeCursorY1Amp / currentGain).toFixed(3) : '--';
