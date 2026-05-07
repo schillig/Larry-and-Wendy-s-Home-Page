@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Audio Spectrum Visualizer</title>
-    <!-- Include Tailwind CSS for modern, responsive styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body, html {
@@ -40,7 +39,6 @@
 </head>
 <body class="flex flex-col items-center p-4 md:p-8 font-sans overflow-x-hidden">
 
-    <!-- Header Section -->
     <header class="text-center mb-6 max-w-2xl">
         <h1 class="text-4xl font-extrabold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500">
             Spectrum Analyzer
@@ -50,7 +48,6 @@
         </p>
     </header>
 
-    <!-- Source Controls Section -->
     <div class="flex flex-col sm:flex-row gap-4 mb-6">
         <button id="btn-mic" class="px-6 py-3 rounded-full bg-slate-800 hover:bg-slate-700 border border-slate-600 transition-colors flex items-center justify-center gap-2 font-medium shadow-lg">
             <svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path></svg>
@@ -67,11 +64,9 @@
         </button>
     </div>
 
-    <!-- Error/Message Display Box -->
     <div id="message-box" class="hidden mb-6 p-4 rounded-lg bg-red-900/40 border border-red-600 text-red-100 text-sm max-w-xl text-center w-full">
     </div>
 
-    <!-- Panel Header & Reset -->
     <div class="w-full max-w-7xl flex justify-between items-end mb-2 px-2">
         <h2 class="text-slate-400 font-bold text-xs tracking-widest uppercase">Control Panel</h2>
         <button id="btn-reset" class="text-xs text-cyan-500 hover:text-cyan-300 transition-colors flex items-center gap-1">
@@ -80,32 +75,36 @@
         </button>
     </div>
 
-    <!-- Instrument Control Panel -->
-    <div class="bg-slate-800/50 p-5 rounded-2xl border border-slate-700/50 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-6 mb-8 w-full max-w-7xl shadow-xl">
+    <div class="bg-slate-800/50 p-5 rounded-2xl border border-slate-700/50 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-x-8 gap-y-6 mb-8 w-full max-w-7xl shadow-xl">
         
-        <!-- Signal & Processing -->
+        <div class="flex flex-col gap-3">
+            <h3 class="text-xs uppercase tracking-wider text-slate-500 font-bold border-b border-slate-700 pb-1">Displays & Mode</h3>
+            <button id="btn-mode" class="py-1.5 rounded bg-indigo-700 hover:bg-indigo-600 border border-slate-500 transition-colors text-[11px] font-bold text-white shadow-inner">MODE: SPECTRUM</button>
+            <div class="flex gap-2">
+                <button id="btn-show-combined" class="flex-1 py-1 rounded bg-cyan-700 border border-slate-600 text-[10px] font-bold">L+R</button>
+                <button id="btn-show-left" class="flex-1 py-1 rounded bg-slate-700 border border-slate-600 text-[10px] font-bold">LEFT</button>
+                <button id="btn-show-right" class="flex-1 py-1 rounded bg-slate-700 border border-slate-600 text-[10px] font-bold">RIGHT</button>
+            </div>
+        </div>
+
         <div class="flex flex-col gap-4">
             <h3 class="text-xs uppercase tracking-wider text-slate-500 font-bold border-b border-slate-700 pb-1">Signal & Processing</h3>
-            
             <div class="flex items-center gap-3">
                 <label for="gain" class="text-xs font-medium text-slate-300 w-20">Gain:</label>
                 <input type="range" id="gain" min="0" max="10" step="0.1" value="2" class="flex-1">
                 <span id="gain-value" class="text-xs font-mono text-cyan-400 w-10 text-right">2.0x</span>
             </div>
-            
             <div class="flex items-center gap-3">
                 <label for="avg" class="text-xs font-medium text-slate-300 w-20">Average:</label>
                 <input type="range" id="avg" min="0" max="0.98" step="0.02" value="0.4" class="flex-1">
                 <span id="avg-value" class="text-xs font-mono text-cyan-400 w-10 text-right">40%</span>
             </div>
-
             <div class="flex gap-2">
                 <button id="btn-freeze" class="flex-1 py-1.5 rounded bg-slate-700 hover:bg-slate-600 border border-slate-500 transition-colors text-[11px] font-bold text-slate-300">FREEZE: OFF</button>
                 <button id="btn-peaks" class="flex-1 py-1.5 rounded bg-slate-700 hover:bg-slate-600 border border-slate-500 transition-colors text-[11px] font-bold text-slate-300">PEAKS: OFF</button>
             </div>
         </div>
 
-        <!-- Resolution & Scale -->
         <div class="flex flex-col gap-4">
             <h3 class="text-xs uppercase tracking-wider text-slate-500 font-bold border-b border-slate-700 pb-1">Resolution & Scale</h3>
             <div class="flex items-center gap-3">
@@ -116,13 +115,12 @@
             <button id="btn-scale" class="py-2 rounded-lg bg-slate-700 text-xs font-medium text-slate-200 w-full shadow-inner border border-slate-600">X-Axis Scale: Linear</button>
         </div>
 
-        <!-- Zoom Controls -->
         <div class="flex flex-col gap-3">
             <h3 class="text-xs uppercase tracking-wider text-slate-500 font-bold border-b border-slate-700 pb-1">Zoom (X & Y)</h3>
             <div class="grid grid-cols-2 gap-x-4 gap-y-2">
                 <div class="flex flex-col gap-1">
                     <label class="text-[10px] text-slate-400">Min Hz</label>
-                    <input type="range" id="min-freq" min="20" max="20000" step="10" value="20" class="w-full">
+                    <input type="range" id="min-freq" min="0" max="20000" step="1" value="0" class="w-full">
                 </div>
                 <div class="flex flex-col gap-1">
                     <label class="text-[10px] text-slate-400">Max Hz</label>
@@ -139,7 +137,6 @@
             </div>
         </div>
 
-        <!-- Measuring Tools -->
         <div class="flex flex-col gap-3">
             <h3 class="text-xs uppercase tracking-wider text-slate-500 font-bold border-b border-slate-700 pb-1">Measuring Tools</h3>
             <div class="flex gap-2">
@@ -159,20 +156,37 @@
         </div>
     </div>
 
-    <!-- Visualization Canvas -->
-    <div class="w-full max-w-7xl min-h-[250px] h-[450px] bg-slate-950 rounded-xl border border-slate-700 overflow-hidden canvas-container relative shadow-2xl">
-        <canvas id="visualizer" class="absolute inset-0 w-full h-full block"></canvas>
+    <div id="displays-wrapper" class="w-full max-w-7xl flex flex-col gap-4 mb-10">
+        
+        <div id="display-combined" class="canvas-container w-full min-h-[200px] h-[350px] bg-slate-950 rounded-xl border border-slate-700 overflow-hidden relative shadow-2xl">
+            <div class="absolute top-2 left-2 text-xs font-bold text-slate-300 z-20 bg-slate-900/80 px-2 py-1 rounded border border-slate-600">Combined (L+R)</div>
+            <canvas id="wf-combined" class="absolute inset-0 w-full h-full block z-0"></canvas>
+            <canvas id="vis-combined" class="absolute inset-0 w-full h-full block z-10"></canvas>
+        </div>
+
+        <div id="display-left" style="display: none;" class="canvas-container w-full min-h-[200px] h-[350px] bg-slate-950 rounded-xl border border-slate-700 overflow-hidden relative shadow-2xl">
+            <div class="absolute top-2 left-2 text-xs font-bold text-slate-300 z-20 bg-slate-900/80 px-2 py-1 rounded border border-slate-600">Left Channel</div>
+            <canvas id="wf-left" class="absolute inset-0 w-full h-full block z-0"></canvas>
+            <canvas id="vis-left" class="absolute inset-0 w-full h-full block z-10"></canvas>
+        </div>
+
+        <div id="display-right" style="display: none;" class="canvas-container w-full min-h-[200px] h-[350px] bg-slate-950 rounded-xl border border-slate-700 overflow-hidden relative shadow-2xl">
+            <div class="absolute top-2 left-2 text-xs font-bold text-slate-300 z-20 bg-slate-900/80 px-2 py-1 rounded border border-slate-600">Right Channel</div>
+            <canvas id="wf-right" class="absolute inset-0 w-full h-full block z-0"></canvas>
+            <canvas id="vis-right" class="absolute inset-0 w-full h-full block z-10"></canvas>
+        </div>
+
     </div>
 
     <script>
         // --- State Variables ---
-        let audioCtx, analyser, gainNode, source, stream, animationId;
+        let audioCtx, gainNode, source, stream, animationId;
         
+        let viewMode = 'spectrum'; // 'spectrum' or 'waterfall'
         let isLogScale = false;
         let isFrozen = false;
         let showPeaks = false;
         let averagingAlpha = 0.4; 
-        let displayDataArray = null;
 
         // Hack to prevent Chrome/Edge from muting inactive tabs
         let dummyAudioEl = null;
@@ -186,12 +200,37 @@
         let cursorY1Db = -40, cursorY2Db = -60;
         let activeDrag = null;
 
-        const canvasContainer = document.querySelector('.canvas-container');
-        const canvas = document.getElementById('visualizer');
-        const canvasCtx = canvas.getContext('2d');
         const statusEl = document.getElementById('engine-status');
         const messageBox = document.getElementById('message-box');
         
+        // Multi-Display Object Tracking
+        const displays = {
+            combined: {
+                show: true,
+                analyser: null,
+                data: null,
+                container: document.getElementById('display-combined'),
+                visCvs: document.getElementById('vis-combined'),
+                wfCvs: document.getElementById('wf-combined')
+            },
+            left: {
+                show: false,
+                analyser: null,
+                data: null,
+                container: document.getElementById('display-left'),
+                visCvs: document.getElementById('vis-left'),
+                wfCvs: document.getElementById('wf-left')
+            },
+            right: {
+                show: false,
+                analyser: null,
+                data: null,
+                container: document.getElementById('display-right'),
+                visCvs: document.getElementById('vis-right'),
+                wfCvs: document.getElementById('wf-right')
+            }
+        };
+
         const controls = {
             gain: { el: document.getElementById('gain'), disp: document.getElementById('gain-value') },
             avg: { el: document.getElementById('avg'), disp: document.getElementById('avg-value') },
@@ -202,11 +241,30 @@
             maxFreq: document.getElementById('max-freq')
         };
 
+        // --- Prepare Colormap for Waterfall ---
+        const colormap = new Uint8ClampedArray(256 * 4);
+        for (let i = 0; i < 256; i++) {
+            let t = i / 255;
+            // Turbo / Jet mapping approximation
+            let r = Math.max(0, Math.min(1, 1.5 - Math.abs(t * 4 - 3))) * 255;
+            let g = Math.max(0, Math.min(1, 1.5 - Math.abs(t * 4 - 2))) * 255;
+            let b = Math.max(0, Math.min(1, 1.5 - Math.abs(t * 4 - 1))) * 255;
+            if (t < 0.1) {
+                let fade = t / 0.1;
+                b = fade * b + (1 - fade) * 40; // fade to dark blue instead of hard black
+            }
+            colormap[i*4] = r;
+            colormap[i*4+1] = g;
+            colormap[i*4+2] = b;
+            colormap[i*4+3] = 255; // Alpha
+        }
+
+        // --- Coordinate Helpers (Now requires target canvas) ---
         const getPadding = () => ({ left: 55, bottom: 25 });
         
-        function getXPosition(freq) {
+        function getXPosition(freq, cvsWidth) {
             const p = getPadding();
-            const graphWidth = canvas.width - p.left;
+            const graphWidth = cvsWidth - p.left;
             const freqRange = zoomMaxFreq - zoomMinFreq;
             if (!isLogScale) return p.left + ((freq - zoomMinFreq) / freqRange) * graphWidth;
             const logMin = Math.log10(Math.max(1, zoomMinFreq));
@@ -214,9 +272,9 @@
             return p.left + ((Math.log10(freq) - logMin) / (logMax - logMin)) * graphWidth;
         }
 
-        function getFreqFromX(x) {
+        function getFreqFromX(x, cvsWidth) {
             const p = getPadding();
-            const graphWidth = canvas.width - p.left;
+            const graphWidth = cvsWidth - p.left;
             const normalizedX = Math.max(0, Math.min(1, (x - p.left) / graphWidth));
             if (!isLogScale) return normalizedX * (zoomMaxFreq - zoomMinFreq) + zoomMinFreq;
             const logMin = Math.log10(Math.max(1, zoomMinFreq));
@@ -224,15 +282,15 @@
             return Math.pow(10, normalizedX * (logMax - logMin) + logMin);
         }
 
-        function getYPosition(db) {
+        function getYPosition(db, cvsHeight) {
             const p = getPadding();
-            const graphHeight = canvas.height - p.bottom;
+            const graphHeight = cvsHeight - p.bottom;
             return graphHeight - ((db - displayMinDb) / (displayMaxDb - displayMinDb)) * graphHeight;
         }
 
-        function getDbFromY(y) {
+        function getDbFromY(y, cvsHeight) {
             const p = getPadding();
-            const graphHeight = canvas.height - p.bottom;
+            const graphHeight = cvsHeight - p.bottom;
             const normalizedY = Math.max(0, Math.min(1, (graphHeight - y) / graphHeight));
             return normalizedY * (displayMaxDb - displayMinDb) + displayMinDb;
         }
@@ -246,26 +304,25 @@
         }
 
         // --- Grid Drawing ---
-        function drawGrid() {
+        function drawGrid(ctx, cvs) {
             const p = getPadding();
-            const gW = canvas.width - p.left, gH = canvas.height - p.bottom;
-            const dbRange = displayMaxDb - displayMinDb;
+            const gH = cvs.height - p.bottom;
             const freqRange = zoomMaxFreq - zoomMinFreq;
 
-            // Draw Decibel Labels & Lines
-            canvasCtx.textAlign = 'right'; canvasCtx.font = '10px monospace';
+            ctx.textAlign = 'right'; ctx.font = '10px monospace';
             for (let db = -140; db <= 0; db += 10) {
                 if (db < displayMinDb || db > displayMaxDb) continue;
-                const y = getYPosition(db);
-                canvasCtx.strokeStyle = 'rgba(56, 189, 248, 0.1)';
-                canvasCtx.beginPath(); canvasCtx.moveTo(p.left, y); canvasCtx.lineTo(canvas.width, y); canvasCtx.stroke();
-                canvasCtx.fillStyle = '#94a3b8'; canvasCtx.fillText(`${db} dB`, p.left - 8, y + 4);
+                const y = getYPosition(db, cvs.height);
+                ctx.strokeStyle = 'rgba(56, 189, 248, 0.15)';
+                ctx.beginPath(); ctx.moveTo(p.left, y); ctx.lineTo(cvs.width, y); ctx.stroke();
+                
+                // Draw solid background for text readability in waterfall mode
+                ctx.fillStyle = 'rgba(2, 6, 23, 0.6)';
+                ctx.fillRect(5, y - 6, p.left - 10, 12);
+                ctx.fillStyle = '#94a3b8'; ctx.fillText(`${db} dB`, p.left - 8, y + 4);
             }
 
-            // Draw Frequency Labels & Lines
-            canvasCtx.textAlign = 'center';
-            
-            // Dynamic linear steps based on zoom depth to avoid overcrowding but show detail
+            ctx.textAlign = 'center';
             let freqStep = 2000;
             if (freqRange <= 50) freqStep = 5;
             else if (freqRange <= 100) freqStep = 10;
@@ -275,48 +332,46 @@
             else if (freqRange <= 2000) freqStep = 200;
             else if (freqRange <= 5000) freqStep = 500;
             else if (freqRange <= 10000) freqStep = 1000;
-            else freqStep = 2000;
             
             if (isLogScale) {
                 let logSteps = [];
                 if (freqRange > 8000) {
-                    // Broad log steps
                     for (let pow = 0; pow <= 5; pow++) {
                         const base = Math.pow(10, pow);
                         [1, 2, 5].forEach(m => logSteps.push(base * m));
                     }
                 } else if (freqRange > 2000) {
-                    // Dense log steps
                     for (let pow = 0; pow <= 5; pow++) {
                         const base = Math.pow(10, pow);
                         for(let i=1; i<=9; i++) logSteps.push(base * i);
                     }
                 } else {
-                    // Deep zoom fallback
                     const startFreq = Math.max(0, Math.ceil(zoomMinFreq / freqStep) * freqStep);
                     for (let freq = startFreq; freq <= zoomMaxFreq; freq += freqStep) {
                         logSteps.push(freq);
                     }
                 }
-
-                // Explicitly add 0 for the far left edge if we are zoomed out that far
                 if (zoomMinFreq === 0 && !logSteps.includes(0)) logSteps.unshift(0);
 
                 logSteps.forEach(freq => {
                     if (freq >= zoomMinFreq && freq <= zoomMaxFreq) {
-                        const x = getXPosition(freq);
-                        canvasCtx.strokeStyle = 'rgba(56, 189, 248, 0.1)';
-                        canvasCtx.beginPath(); canvasCtx.moveTo(x, 0); canvasCtx.lineTo(x, gH); canvasCtx.stroke();
-                        canvasCtx.fillStyle = '#94a3b8'; canvasCtx.fillText(formatFreqLabel(freq), x, gH + 15);
+                        const x = getXPosition(freq, cvs.width);
+                        ctx.strokeStyle = 'rgba(56, 189, 248, 0.15)';
+                        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, gH); ctx.stroke();
+                        ctx.fillStyle = 'rgba(2, 6, 23, 0.6)';
+                        ctx.fillRect(x - 15, gH + 2, 30, 14);
+                        ctx.fillStyle = '#94a3b8'; ctx.fillText(formatFreqLabel(freq), x, gH + 13);
                     }
                 });
             } else {
                 const startFreq = Math.max(0, Math.ceil(zoomMinFreq / freqStep) * freqStep);
                 for (let freq = startFreq; freq <= zoomMaxFreq; freq += freqStep) {
-                    const x = getXPosition(freq);
-                    canvasCtx.strokeStyle = 'rgba(56, 189, 248, 0.1)';
-                    canvasCtx.beginPath(); canvasCtx.moveTo(x, 0); canvasCtx.lineTo(x, gH); canvasCtx.stroke();
-                    canvasCtx.fillStyle = '#94a3b8'; canvasCtx.fillText(formatFreqLabel(freq), x, gH + 15);
+                    const x = getXPosition(freq, cvs.width);
+                    ctx.strokeStyle = 'rgba(56, 189, 248, 0.15)';
+                    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, gH); ctx.stroke();
+                    ctx.fillStyle = 'rgba(2, 6, 23, 0.6)';
+                    ctx.fillRect(x - 15, gH + 2, 30, 14);
+                    ctx.fillStyle = '#94a3b8'; ctx.fillText(formatFreqLabel(freq), x, gH + 13);
                 }
             }
         }
@@ -342,30 +397,38 @@
                     if (!audioTracks.length) throw new Error("No audio track shared. Did you forget to check the 'Share system audio' box?");
                 }
 
-                // Make sure the audio context is fully alive after the async picker
                 if (audioCtx.state === 'suspended') await audioCtx.resume();
                 actualNyquist = audioCtx.sampleRate / 2;
                 controls.maxFreq.max = actualNyquist;
 
-                // --- CRITICAL BROWSER BUG FIX ---
-                // Browsers will often silence a MediaStream track from getDisplayMedia 
-                // if it isn't explicitly consumed by an HTML media element. 
                 dummyAudioEl = new Audio();
                 dummyAudioEl.srcObject = stream;
-                dummyAudioEl.muted = true; // Keep it muted so we don't get an echo
+                dummyAudioEl.muted = true; 
                 dummyAudioEl.play().catch(e => console.warn("Dummy audio workaround blocked:", e));
-                // ---------------------------------
                 
-                analyser = audioCtx.createAnalyser();
-                analyser.fftSize = Math.pow(2, parseInt(controls.bandwidth.el.value)); 
-                analyser.smoothingTimeConstant = 0.8;
+                // Create Nodes & Channel Splitters
+                displays.combined.analyser = audioCtx.createAnalyser();
+                displays.left.analyser = audioCtx.createAnalyser();
+                displays.right.analyser = audioCtx.createAnalyser();
 
+                let splitter = audioCtx.createChannelSplitter(2);
                 gainNode = audioCtx.createGain();
                 gainNode.gain.value = parseFloat(controls.gain.el.value);
 
                 source = audioCtx.createMediaStreamSource(stream);
                 source.connect(gainNode);
-                gainNode.connect(analyser);
+
+                // Route Audio
+                gainNode.connect(displays.combined.analyser); // Web Audio natively downmixes stereo to mono here
+                gainNode.connect(splitter);
+                splitter.connect(displays.left.analyser, 0); // Isolate Left Channel
+                splitter.connect(displays.right.analyser, 1); // Isolate Right Channel
+
+                const fftSz = Math.pow(2, parseInt(controls.bandwidth.el.value));
+                Object.values(displays).forEach(d => {
+                    d.analyser.fftSize = fftSz;
+                    d.analyser.smoothingTimeConstant = 0.8;
+                });
 
                 document.getElementById('btn-mic').classList.add('hidden');
                 document.getElementById('btn-system').classList.add('hidden');
@@ -373,8 +436,6 @@
                 
                 statusEl.textContent = `LISTENING (${sourceType.toUpperCase()})`;
                 statusEl.className = "text-green-500 font-mono";
-                
-                // Hide the instructional message box upon successful connection
                 messageBox.classList.add('hidden');
                 
                 stream.getTracks().forEach(t => t.onended = () => stopAudio());
@@ -397,70 +458,124 @@
             document.getElementById('btn-stop').classList.add('hidden');
             statusEl.textContent = "STOPPED - WAITING FOR INPUT";
             statusEl.className = "text-yellow-500 font-mono";
-            
-            // Clean up the warning messages when stopping
             messageBox.classList.add('hidden');
         }
 
+        // --- Rendering Loop ---
         function drawVisualizer() {
             animationId = requestAnimationFrame(drawVisualizer);
-            canvasCtx.fillStyle = '#020617';
-            canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
-            drawGrid();
 
-            if (!analyser || isFrozen) {
-                if (displayDataArray) {
-                    drawTrace(displayDataArray);
-                    drawMeasurementTools(displayDataArray);
+            Object.keys(displays).forEach(key => {
+                const d = displays[key];
+                if (!d.show) return;
+
+                const visCtx = d.visCvs.getContext('2d');
+                const wfCtx = d.wfCvs.getContext('2d');
+                
+                visCtx.clearRect(0, 0, d.visCvs.width, d.visCvs.height);
+
+                if (!d.analyser || isFrozen) {
+                    if (d.data) {
+                        if (viewMode === 'spectrum') {
+                            drawTrace(visCtx, d.visCvs, d.data);
+                        } else {
+                            // In frozen waterfall mode, just show the last state
+                        }
+                        drawGrid(visCtx, d.visCvs);
+                        drawMeasurementTools(visCtx, d.visCvs, d.data);
+                    }
+                    return;
                 }
-                return;
-            }
 
-            const bufferLength = analyser.frequencyBinCount;
-            const rawData = new Float32Array(bufferLength);
-            analyser.getFloatFrequencyData(rawData);
+                const bufferLength = d.analyser.frequencyBinCount;
+                const rawData = new Float32Array(bufferLength);
+                d.analyser.getFloatFrequencyData(rawData);
 
-            if (!displayDataArray || displayDataArray.length !== bufferLength) {
-                displayDataArray = new Float32Array(rawData);
-            } else {
-                for (let i = 0; i < bufferLength; i++) {
-                    displayDataArray[i] = (averagingAlpha * displayDataArray[i]) + ((1 - averagingAlpha) * rawData[i]);
+                if (!d.data || d.data.length !== bufferLength) {
+                    d.data = new Float32Array(rawData);
+                } else {
+                    for (let i = 0; i < bufferLength; i++) {
+                        d.data[i] = (averagingAlpha * d.data[i]) + ((1 - averagingAlpha) * rawData[i]);
+                    }
                 }
-            }
-            drawTrace(displayDataArray);
-            drawMeasurementTools(displayDataArray);
+
+                if (viewMode === 'waterfall') {
+                    // Shift waterfall down 1 pixel
+                    wfCtx.drawImage(d.wfCvs, 0, 1);
+                    drawWaterfallRow(wfCtx, d.wfCvs, d.data);
+                } else {
+                    drawTrace(visCtx, d.visCvs, d.data);
+                }
+
+                drawGrid(visCtx, d.visCvs);
+                drawMeasurementTools(visCtx, d.visCvs, d.data);
+            });
         }
 
-        function drawTrace(data) {
+        function drawTrace(ctx, cvs, data) {
             const bufferLength = data.length;
             const binSize = actualNyquist / bufferLength;
             const p = getPadding();
             
-            canvasCtx.lineWidth = 1.5;
-            canvasCtx.strokeStyle = '#22d3ee';
-            canvasCtx.beginPath();
+            ctx.lineWidth = 1.5;
+            ctx.strokeStyle = '#22d3ee';
+            ctx.beginPath();
             
             let hasMoved = false;
             const startB = Math.max(0, Math.floor(zoomMinFreq / binSize));
             const endB = Math.min(bufferLength, Math.ceil(zoomMaxFreq / binSize));
 
             for (let i = startB; i < endB; i++) {
-                const x = getXPosition(i * binSize);
+                const x = getXPosition(i * binSize, cvs.width);
                 const val = Math.max(displayMinDb, Math.min(displayMaxDb, data[i]));
-                const y = getYPosition(val);
-                if (!hasMoved) { canvasCtx.moveTo(x, y); hasMoved = true; }
-                else canvasCtx.lineTo(x, y);
+                const y = getYPosition(val, cvs.height);
+                if (!hasMoved) { ctx.moveTo(x, y); hasMoved = true; }
+                else ctx.lineTo(x, y);
             }
-            canvasCtx.stroke();
-            canvasCtx.lineTo(getXPosition(endB * binSize), canvas.height - p.bottom);
-            canvasCtx.lineTo(p.left, canvas.height - p.bottom);
-            canvasCtx.fillStyle = 'rgba(34, 211, 238, 0.1)';
-            canvasCtx.fill();
+            ctx.stroke();
+            ctx.lineTo(getXPosition(endB * binSize, cvs.width), cvs.height - p.bottom);
+            ctx.lineTo(p.left, cvs.height - p.bottom);
+            ctx.fillStyle = 'rgba(34, 211, 238, 0.1)';
+            ctx.fill();
         }
 
-        function drawMeasurementTools(data) {
+        function drawWaterfallRow(wfCtx, cvs, data) {
             const p = getPadding();
-            const gH = canvas.height - p.bottom;
+            const w = cvs.width - p.left;
+            if (w <= 0) return;
+            
+            const imgData = wfCtx.createImageData(w, 1);
+            const buf = imgData.data;
+            const binSize = actualNyquist / data.length;
+            
+            for (let x = 0; x < w; x++) {
+                let normalizedX = x / w;
+                let freq = isLogScale 
+                    ? Math.pow(10, normalizedX * (Math.log10(Math.max(1, zoomMaxFreq)) - Math.log10(Math.max(1, zoomMinFreq))) + Math.log10(Math.max(1, zoomMinFreq)))
+                    : normalizedX * (zoomMaxFreq - zoomMinFreq) + zoomMinFreq;
+                
+                let exactBin = freq / binSize;
+                let bin1 = Math.floor(exactBin);
+                let bin2 = Math.min(data.length - 1, Math.ceil(exactBin));
+                let frac = exactBin - bin1;
+                let val = (data[bin1] || -140) * (1 - frac) + (data[bin2] || -140) * frac;
+                
+                let t = (val - displayMinDb) / (displayMaxDb - displayMinDb);
+                t = Math.max(0, Math.min(1, t));
+                let cIdx = Math.floor(t * 255) * 4;
+                
+                let pxIdx = x * 4;
+                buf[pxIdx] = colormap[cIdx];
+                buf[pxIdx+1] = colormap[cIdx+1];
+                buf[pxIdx+2] = colormap[cIdx+2];
+                buf[pxIdx+3] = 255;
+            }
+            wfCtx.putImageData(imgData, p.left, 0); // Print entirely across the top row
+        }
+
+        function drawMeasurementTools(ctx, cvs, data) {
+            const p = getPadding();
+            const gH = cvs.height - p.bottom;
             const bufferLength = data.length;
             const binSize = actualNyquist / bufferLength;
 
@@ -469,82 +584,92 @@
                 const startB = Math.max(0, Math.floor(zoomMinFreq / binSize));
                 const endB = Math.min(bufferLength, Math.ceil(zoomMaxFreq / binSize));
                 
-                // Find all local maxima
                 for (let i = startB + 1; i < endB - 1; i++) {
                     if (data[i] > data[i-1] && data[i] > data[i+1] && data[i] > -115) {
                         localPeaks.push({ i, db: data[i], freq: i * binSize });
                     }
                 }
                 
-                // Sort by highest amplitude
                 localPeaks.sort((a,b) => b.db - a.db);
-                
                 let distinctPeaks = [];
-                // Require peaks to be separated by at least 2% of the zoomed window width, or 50Hz minimum
                 const minFreqSep = Math.max(50, (zoomMaxFreq - zoomMinFreq) * 0.02);
 
                 for (const peak of localPeaks) {
                     if (distinctPeaks.length >= 3) break;
-                    
-                    // Check if this peak is too close to an already selected (louder) peak
                     let tooClose = false;
                     for (const dp of distinctPeaks) {
-                        if (Math.abs(peak.freq - dp.freq) < minFreqSep) {
-                            tooClose = true;
-                            break;
-                        }
+                        if (Math.abs(peak.freq - dp.freq) < minFreqSep) { tooClose = true; break; }
                     }
-                    
                     if (!tooClose) distinctPeaks.push(peak);
                 }
 
                 distinctPeaks.forEach((peak, idx) => {
-                    const x = getXPosition(peak.freq), y = getYPosition(peak.db);
+                    const x = getXPosition(peak.freq, cvs.width), y = getYPosition(peak.db, cvs.height);
                     
-                    // Draw target reticle
-                    canvasCtx.strokeStyle = '#f472b6'; 
-                    canvasCtx.beginPath(); 
-                    canvasCtx.arc(x, y, 6, 0, Math.PI*2); 
-                    canvasCtx.stroke();
+                    ctx.strokeStyle = '#f472b6'; 
+                    ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI*2); ctx.stroke();
                     
-                    // Configure text rendering
-                    canvasCtx.font = '10px monospace';
-                    canvasCtx.textAlign = 'left';
-                    canvasCtx.textBaseline = 'middle';
+                    ctx.font = '10px monospace';
+                    ctx.textAlign = 'left';
+                    ctx.textBaseline = 'middle';
                     
-                    // Format text and stagger vertically to avoid overlap if peaks are somewhat close
                     const text = `P${idx+1}:${formatFreqLabel(peak.freq)}`;
-                    const textWidth = canvasCtx.measureText(text).width;
+                    const textWidth = ctx.measureText(text).width;
                     const textY = y - 10 - (idx * 14); 
                     
-                    // Add dark background pill for text readability
-                    canvasCtx.fillStyle = 'rgba(2, 6, 23, 0.85)';
-                    canvasCtx.fillRect(x + 8, textY - 6, textWidth + 4, 12);
-                    
-                    // Draw Text
-                    canvasCtx.fillStyle = '#f472b6'; 
-                    canvasCtx.fillText(text, x + 10, textY);
+                    ctx.fillStyle = 'rgba(2, 6, 23, 0.85)';
+                    ctx.fillRect(x + 8, textY - 6, textWidth + 4, 12);
+                    ctx.fillStyle = '#f472b6'; 
+                    ctx.fillText(text, x + 10, textY);
                 });
             }
 
             if (cursorsXEnabled) {
                 [cursorX1Freq, cursorX2Freq].forEach(f => {
-                    const x = getXPosition(f);
-                    canvasCtx.setLineDash([5, 5]); canvasCtx.strokeStyle = '#4ade80';
-                    canvasCtx.beginPath(); canvasCtx.moveTo(x, 0); canvasCtx.lineTo(x, gH); canvasCtx.stroke();
+                    const x = getXPosition(f, cvs.width);
+                    ctx.setLineDash([5, 5]); ctx.strokeStyle = '#4ade80';
+                    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, gH); ctx.stroke();
                 });
             }
             if (cursorsYEnabled) {
                 [cursorY1Db, cursorY2Db].forEach(db => {
-                    const y = getYPosition(db);
-                    canvasCtx.setLineDash([5, 5]); canvasCtx.strokeStyle = '#c084fc';
-                    canvasCtx.beginPath(); canvasCtx.moveTo(p.left, y); canvasCtx.lineTo(canvas.width, y); canvasCtx.stroke();
+                    const y = getYPosition(db, cvs.height);
+                    ctx.setLineDash([5, 5]); ctx.strokeStyle = '#c084fc';
+                    ctx.beginPath(); ctx.moveTo(p.left, y); ctx.lineTo(cvs.width, y); ctx.stroke();
                 });
             }
-            canvasCtx.setLineDash([]);
+            ctx.setLineDash([]);
         }
 
-        // --- Interaction ---
+        // --- Interaction & Toggles ---
+        function toggleDisplay(key) {
+            displays[key].show = !displays[key].show;
+            displays[key].container.style.display = displays[key].show ? 'block' : 'none';
+            const btn = document.getElementById('btn-show-' + key);
+            btn.classList.toggle('bg-cyan-700', displays[key].show);
+            btn.classList.toggle('bg-slate-700', !displays[key].show);
+        }
+
+        document.getElementById('btn-show-combined').onclick = () => toggleDisplay('combined');
+        document.getElementById('btn-show-left').onclick = () => toggleDisplay('left');
+        document.getElementById('btn-show-right').onclick = () => toggleDisplay('right');
+
+        document.getElementById('btn-mode').onclick = function() {
+            viewMode = viewMode === 'spectrum' ? 'waterfall' : 'spectrum';
+            this.textContent = `MODE: ${viewMode.toUpperCase()}`;
+            this.classList.toggle('bg-indigo-700', viewMode === 'spectrum');
+            this.classList.toggle('bg-fuchsia-700', viewMode === 'waterfall');
+            
+            // Clear waterfall canvas on switch
+            if (viewMode === 'waterfall') {
+                Object.values(displays).forEach(d => {
+                    const wfCtx = d.wfCvs.getContext('2d');
+                    wfCtx.fillStyle = '#020617';
+                    wfCtx.fillRect(0, 0, d.wfCvs.width, d.wfCvs.height);
+                });
+            }
+        };
+
         controls.gain.el.oninput = (e) => {
             const v = parseFloat(e.target.value);
             controls.gain.disp.textContent = v.toFixed(1) + 'x';
@@ -557,7 +682,9 @@
         controls.bandwidth.el.oninput = (e) => {
             const sz = Math.pow(2, parseInt(e.target.value));
             controls.bandwidth.disp.textContent = sz;
-            if (analyser) analyser.fftSize = sz;
+            Object.values(displays).forEach(d => {
+                if (d.analyser) d.analyser.fftSize = sz;
+            });
         };
 
         document.getElementById('btn-freeze').onclick = function() {
@@ -575,7 +702,6 @@
             this.textContent = `X-Axis Scale: ${isLogScale ? 'Logarithmic' : 'Linear'}`;
         };
 
-        // Helper to ensure cursors never get left off-screen when zooming
         function clampCursors() {
             cursorX1Freq = Math.max(zoomMinFreq, Math.min(zoomMaxFreq, cursorX1Freq));
             cursorX2Freq = Math.max(zoomMinFreq, Math.min(zoomMaxFreq, cursorX2Freq));
@@ -586,37 +712,26 @@
         controls.minFreq.oninput = (e) => { 
             let val = parseInt(e.target.value);
             if (val >= zoomMaxFreq - 10) val = zoomMaxFreq - 10;
-            zoomMinFreq = val;
-            e.target.value = val;
-            clampCursors(); 
-            updateCursorReadouts(); 
+            zoomMinFreq = val; e.target.value = val;
+            clampCursors(); updateCursorReadouts(); 
         };
-        
         controls.maxFreq.oninput = (e) => { 
             let val = parseInt(e.target.value);
             if (val <= zoomMinFreq + 10) val = zoomMinFreq + 10;
-            zoomMaxFreq = val;
-            e.target.value = val;
-            clampCursors(); 
-            updateCursorReadouts(); 
+            zoomMaxFreq = val; e.target.value = val;
+            clampCursors(); updateCursorReadouts(); 
         };
-        
         controls.minDb.oninput = (e) => { 
             let val = parseInt(e.target.value);
             if (val >= displayMaxDb - 10) val = displayMaxDb - 10;
-            displayMinDb = val;
-            e.target.value = val;
-            clampCursors(); 
-            updateCursorReadouts(); 
+            displayMinDb = val; e.target.value = val;
+            clampCursors(); updateCursorReadouts(); 
         };
-        
         controls.maxDb.oninput = (e) => { 
             let val = parseInt(e.target.value);
             if (val <= displayMinDb + 10) val = displayMinDb + 10;
-            displayMaxDb = val;
-            e.target.value = val;
-            clampCursors(); 
-            updateCursorReadouts(); 
+            displayMaxDb = val; e.target.value = val;
+            clampCursors(); updateCursorReadouts(); 
         };
 
         const btnCursorX = document.getElementById('btn-cursor-x');
@@ -624,19 +739,14 @@
             cursorsXEnabled = !cursorsXEnabled; 
             btnCursorX.classList.toggle('bg-slate-700', !cursorsXEnabled);
             btnCursorX.classList.toggle('bg-green-700', cursorsXEnabled);
-            
-            // Initialize cursors inside the CURRENT visible bounds
             if (cursorsXEnabled) {
                 if (isLogScale) {
-                    const logMin = Math.log10(Math.max(1, zoomMinFreq));
-                    const logMax = Math.log10(zoomMaxFreq);
-                    const logRange = logMax - logMin;
-                    cursorX1Freq = Math.pow(10, logMin + logRange * 0.33);
-                    cursorX2Freq = Math.pow(10, logMin + logRange * 0.66);
+                    const logMin = Math.log10(Math.max(1, zoomMinFreq)), logMax = Math.log10(zoomMaxFreq);
+                    cursorX1Freq = Math.pow(10, logMin + (logMax - logMin) * 0.33);
+                    cursorX2Freq = Math.pow(10, logMin + (logMax - logMin) * 0.66);
                 } else {
-                    const fRange = zoomMaxFreq - zoomMinFreq;
-                    cursorX1Freq = zoomMinFreq + fRange * 0.33;
-                    cursorX2Freq = zoomMinFreq + fRange * 0.66;
+                    cursorX1Freq = zoomMinFreq + (zoomMaxFreq - zoomMinFreq) * 0.33;
+                    cursorX2Freq = zoomMinFreq + (zoomMaxFreq - zoomMinFreq) * 0.66;
                 }
             }
             updateCursorReadouts(); 
@@ -647,12 +757,9 @@
             cursorsYEnabled = !cursorsYEnabled; 
             btnCursorY.classList.toggle('bg-slate-700', !cursorsYEnabled);
             btnCursorY.classList.toggle('bg-purple-700', cursorsYEnabled);
-            
-            // Initialize cursors inside the CURRENT visible bounds
             if (cursorsYEnabled) {
-                const dbRange = displayMaxDb - displayMinDb;
-                cursorY1Db = displayMaxDb - dbRange * 0.33;
-                cursorY2Db = displayMaxDb - dbRange * 0.66;
+                cursorY1Db = displayMaxDb - (displayMaxDb - displayMinDb) * 0.33;
+                cursorY2Db = displayMaxDb - (displayMaxDb - displayMinDb) * 0.66;
             }
             updateCursorReadouts(); 
         };
@@ -666,96 +773,117 @@
             document.getElementById('readout-da').textContent = cursorsYEnabled ? Math.abs(cursorY2Db - cursorY1Db).toFixed(1) : '--';
         }
 
-        canvas.onmousedown = (e) => {
-            const rect = canvas.getBoundingClientRect();
-            const x = e.clientX - rect.left, y = e.clientY - rect.top;
+        // --- Cross-Canvas Pointer Logic ---
+        function handlePointerDown(e, cvs) {
+            const rect = cvs.getBoundingClientRect();
+            const clientX = e.touches && e.touches.length > 0 ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches && e.touches.length > 0 ? e.touches[0].clientY : e.clientY;
+            const x = clientX - rect.left;
+            const y = clientY - rect.top;
+            
+            activeDrag = null;
+            const hitTest = 25; 
+            
             if (cursorsXEnabled) {
-                if (Math.abs(x - getXPosition(cursorX1Freq)) < 15) activeDrag = 'x1';
-                else if (Math.abs(x - getXPosition(cursorX2Freq)) < 15) activeDrag = 'x2';
+                if (Math.abs(x - getXPosition(cursorX1Freq, cvs.width)) < hitTest) activeDrag = { id: 'x1', cvs };
+                else if (Math.abs(x - getXPosition(cursorX2Freq, cvs.width)) < hitTest) activeDrag = { id: 'x2', cvs };
             }
             if (!activeDrag && cursorsYEnabled) {
-                if (Math.abs(y - getYPosition(cursorY1Db)) < 15) activeDrag = 'y1';
-                else if (Math.abs(y - getYPosition(cursorY2Db)) < 15) activeDrag = 'y2';
+                if (Math.abs(y - getYPosition(cursorY1Db, cvs.height)) < hitTest) activeDrag = { id: 'y1', cvs };
+                else if (Math.abs(y - getYPosition(cursorY2Db, cvs.height)) < hitTest) activeDrag = { id: 'y2', cvs };
             }
-        };
-        window.onmousemove = (e) => {
+        }
+
+        function handlePointerMove(e) {
             if (!activeDrag) return;
-            const rect = canvas.getBoundingClientRect();
-            const x = e.clientX - rect.left, y = e.clientY - rect.top;
-            if (activeDrag === 'x1') cursorX1Freq = getFreqFromX(x);
-            if (activeDrag === 'x2') cursorX2Freq = getFreqFromX(x);
-            if (activeDrag === 'y1') cursorY1Db = getDbFromY(y);
-            if (activeDrag === 'y2') cursorY2Db = getDbFromY(y);
+            if (e.cancelable) e.preventDefault(); 
+            
+            const rect = activeDrag.cvs.getBoundingClientRect();
+            const clientX = e.touches && e.touches.length > 0 ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches && e.touches.length > 0 ? e.touches[0].clientY : e.clientY;
+            const x = clientX - rect.left;
+            const y = clientY - rect.top;
+            
+            if (activeDrag.id === 'x1') cursorX1Freq = getFreqFromX(x, activeDrag.cvs.width);
+            if (activeDrag.id === 'x2') cursorX2Freq = getFreqFromX(x, activeDrag.cvs.width);
+            if (activeDrag.id === 'y1') cursorY1Db = getDbFromY(y, activeDrag.cvs.height);
+            if (activeDrag.id === 'y2') cursorY2Db = getDbFromY(y, activeDrag.cvs.height);
             updateCursorReadouts();
-        };
-        window.onmouseup = () => activeDrag = null;
+        }
 
-        document.getElementById('btn-reset').onclick = () => {
-            // Reset State Variables
-            isLogScale = false;
-            isFrozen = false;
-            showPeaks = false;
-            averagingAlpha = 0.4;
-            displayMaxDb = -20;
-            displayMinDb = -100;
-            zoomMinFreq = 0;
-            zoomMaxFreq = 20000;
-            cursorsXEnabled = false;
-            cursorsYEnabled = false;
+        function handlePointerUp() { activeDrag = null; }
 
-            // Reset UI Inputs
-            controls.gain.el.value = 2;
-            controls.gain.disp.textContent = "2.0x";
-            if (gainNode) gainNode.gain.setTargetAtTime(2, audioCtx.currentTime, 0.05);
+        // Attach events to all visualizer canvases
+        Object.values(displays).forEach(d => {
+            d.visCvs.addEventListener('mousedown', (e) => handlePointerDown(e, d.visCvs));
+            d.visCvs.addEventListener('touchstart', (e) => handlePointerDown(e, d.visCvs), { passive: false });
+        });
+        window.addEventListener('mousemove', handlePointerMove);
+        window.addEventListener('mouseup', handlePointerUp);
+        window.addEventListener('touchmove', handlePointerMove, { passive: false });
+        window.addEventListener('touchend', handlePointerUp);
 
-            controls.avg.el.value = 0.4;
-            controls.avg.disp.textContent = "40%";
-
-            controls.bandwidth.el.value = 11;
-            controls.bandwidth.disp.textContent = "2048";
-            if (analyser) analyser.fftSize = 2048;
-
-            controls.minFreq.value = 0;
-            controls.maxFreq.value = 20000;
-            controls.minDb.value = -100;
-            controls.maxDb.value = -20;
-
-            // Reset UI Buttons
-            const btnFreeze = document.getElementById('btn-freeze');
-            btnFreeze.textContent = "FREEZE: OFF";
-            btnFreeze.classList.remove('bg-blue-700');
-
-            const btnPeaks = document.getElementById('btn-peaks');
-            btnPeaks.textContent = "PEAKS: OFF";
-            btnPeaks.classList.remove('bg-pink-700');
-
-            const btnScale = document.getElementById('btn-scale');
-            btnScale.textContent = "X-Axis Scale: Linear";
-
-            const btnCX = document.getElementById('btn-cursor-x');
-            btnCX.classList.remove('bg-green-700');
-            btnCX.classList.add('bg-slate-700');
-
-            const btnCY = document.getElementById('btn-cursor-y');
-            btnCY.classList.remove('bg-purple-700');
-            btnCY.classList.add('bg-slate-700');
-
-            updateCursorReadouts();
-        };
-
+        // --- Layout Resizing ---
         const resizeObserver = new ResizeObserver(entries => {
             for (let entry of entries) {
-                canvas.width = entry.contentRect.width;
-                canvas.height = entry.contentRect.height;
+                const id = entry.target.id.split('-')[1]; // get 'combined', 'left', or 'right'
+                const w = entry.contentRect.width;
+                const h = entry.contentRect.height;
+                
+                displays[id].visCvs.width = w; displays[id].visCvs.height = h;
+                
+                // For the waterfall canvas, preserve data when resizing if possible
+                let oldData;
+                const wfCtx = displays[id].wfCvs.getContext('2d', { willReadFrequently: true });
+                if (displays[id].wfCvs.width > 0 && displays[id].wfCvs.height > 0) {
+                    try { oldData = wfCtx.getImageData(0, 0, displays[id].wfCvs.width, displays[id].wfCvs.height); } catch(e){}
+                }
+                
+                displays[id].wfCvs.width = w; displays[id].wfCvs.height = h;
+                
+                if (viewMode === 'waterfall') {
+                    wfCtx.fillStyle = '#020617'; wfCtx.fillRect(0,0,w,h);
+                    if (oldData) wfCtx.putImageData(oldData, 0, 0);
+                }
             }
         });
-        resizeObserver.observe(canvasContainer);
+        Object.values(displays).forEach(d => resizeObserver.observe(d.container));
 
+        // --- Defaults Reset ---
+        document.getElementById('btn-reset').onclick = () => {
+            isLogScale = false; isFrozen = false; showPeaks = false;
+            averagingAlpha = 0.4; displayMaxDb = -20; displayMinDb = -100;
+            zoomMinFreq = 0; zoomMaxFreq = 20000;
+            cursorsXEnabled = false; cursorsYEnabled = false;
+
+            controls.gain.el.value = 2; controls.gain.disp.textContent = "2.0x";
+            if (gainNode) gainNode.gain.setTargetAtTime(2, audioCtx.currentTime, 0.05);
+            controls.avg.el.value = 0.4; controls.avg.disp.textContent = "40%";
+            controls.bandwidth.el.value = 11; controls.bandwidth.disp.textContent = "2048";
+            Object.values(displays).forEach(d => { if (d.analyser) d.analyser.fftSize = 2048; });
+
+            controls.minFreq.value = 0; controls.maxFreq.value = 20000;
+            controls.minDb.value = -100; controls.maxDb.value = -20;
+
+            const btnFreeze = document.getElementById('btn-freeze');
+            btnFreeze.textContent = "FREEZE: OFF"; btnFreeze.classList.remove('bg-blue-700');
+            const btnPeaks = document.getElementById('btn-peaks');
+            btnPeaks.textContent = "PEAKS: OFF"; btnPeaks.classList.remove('bg-pink-700');
+            document.getElementById('btn-scale').textContent = "X-Axis Scale: Linear";
+
+            const btnCX = document.getElementById('btn-cursor-x');
+            btnCX.classList.remove('bg-green-700'); btnCX.classList.add('bg-slate-700');
+            const btnCY = document.getElementById('btn-cursor-y');
+            btnCY.classList.remove('bg-purple-700'); btnCY.classList.add('bg-slate-700');
+
+            updateCursorReadouts();
+        };
+
+        // --- Start ---
         document.getElementById('btn-mic').onclick = () => initAudio('mic');
         document.getElementById('btn-system').onclick = () => initAudio('system');
         document.getElementById('btn-stop').onclick = stopAudio;
-
-        // Start drawing logic immediately on load to show grid
+        
         drawVisualizer();
     </script>
 </body>
