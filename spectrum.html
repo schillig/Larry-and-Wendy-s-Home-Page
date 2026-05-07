@@ -159,10 +159,11 @@
                     </label>
                     <input type="range" id="scope-trigger-lvl" min="-1" max="1" step="0.01" value="0" class="w-full">
                 </div>
-                <div class="flex gap-2">
-                    <button id="btn-trig-comb" class="flex-1 py-1 rounded bg-pink-700 border border-slate-600 text-[10px] font-bold">TRIG: L+R</button>
-                    <button id="btn-trig-left" class="flex-1 py-1 rounded bg-slate-700 border border-slate-600 text-[10px] font-bold">TRIG: L</button>
-                    <button id="btn-trig-right" class="flex-1 py-1 rounded bg-slate-700 border border-slate-600 text-[10px] font-bold">TRIG: R</button>
+                <div class="flex gap-1">
+                    <button id="btn-trig-comb" class="flex-1 py-1 rounded bg-pink-700 border border-slate-600 text-[10px] font-bold">T: L+R</button>
+                    <button id="btn-trig-left" class="flex-1 py-1 rounded bg-slate-700 border border-slate-600 text-[10px] font-bold">T: L</button>
+                    <button id="btn-trig-right" class="flex-1 py-1 rounded bg-slate-700 border border-slate-600 text-[10px] font-bold">T: R</button>
+                    <button id="btn-trig-oneshot" class="flex-1 py-1 rounded bg-slate-700 border border-slate-600 text-[10px] font-bold text-slate-300">1-SHOT: OFF</button>
                 </div>
             </div>
 
@@ -236,6 +237,7 @@
         let scopeCursorY1Amp = 0.5, scopeCursorY2Amp = -0.5;
         let scopeTriggerSource = 'combined'; // 'combined', 'left', 'right'
         let scopeTriggerLevel = 0.0;
+        let isOneShotArmed = false;
 
         let cursorsXEnabled = false, cursorsYEnabled = false;
         let activeDrag = null;
@@ -471,7 +473,7 @@
 
             // Trigger Level Marker
             const trigY = getScopeYPosition(scopeTriggerLevel, cvs.height);
-            ctx.strokeStyle = '#f472b6'; // pink-400
+            ctx.strokeStyle = '#f472b6'; 
             ctx.setLineDash([4, 4]);
             ctx.beginPath(); ctx.moveTo(p.left, trigY); ctx.lineTo(w, trigY); ctx.stroke();
             ctx.setLineDash([]);
@@ -570,7 +572,7 @@
         function drawVisualizer() {
             animationId = requestAnimationFrame(drawVisualizer);
 
-            // --- OSCILLOSCOPE LOGIC (Phase Aligned Triggering) ---
+            // --- OSCILLOSCOPE LOGIC (Phase Aligned Triggering & One-Shot) ---
             if (viewMode === 'oscilloscope') {
                 if (!isFrozen) {
                     // 1. Fetch current time-domain buffer for all active displays simultaneously
@@ -585,7 +587,9 @@
                 }
 
                 // 2. Scan the selected trigger source for a rising edge crossing the threshold
-                let triggerIndex = 0;
+                let triggerIndex = -1;
+                let triggerFound = false;
+                
                 if (!isFrozen) {
                     let searchData = null;
                     if (scopeTriggerSource === 'combined' && displays.combined.show) searchData = displays.combined.timeData;
@@ -602,17 +606,40 @@
                     if (searchData) {
                         const sampleRate = actualNyquist * 2;
                         const samplesToDraw = Math.floor((scopeTimeWindowMs / 1000) * sampleRate);
-                        // Prevent searching too close to the end of the buffer so we always draw a full screen if possible
                         const searchLimit = Math.max(1, searchData.length - samplesToDraw);
                         
                         for (let i = 0; i < searchLimit - 1; i++) {
                             if (searchData[i] <= scopeTriggerLevel && searchData[i+1] > scopeTriggerLevel) {
                                 triggerIndex = i;
+                                triggerFound = true;
                                 break;
                             }
                         }
                     }
                 }
+
+                // Handling One-Shot behavior
+                if (isOneShotArmed && !isFrozen) {
+                    if (triggerFound) {
+                        // We caught a trigger! Disarm, freeze the screen, and visually update the buttons.
+                        isOneShotArmed = false;
+                        isFrozen = true;
+                        
+                        document.getElementById('btn-freeze').textContent = "FREEZE: ON";
+                        document.getElementById('btn-freeze').classList.add('bg-blue-700');
+                        
+                        const btnOs = document.getElementById('btn-trig-oneshot');
+                        btnOs.textContent = "1-SHOT: CAUGHT";
+                        btnOs.className = "flex-1 py-1 rounded border border-slate-600 text-[10px] font-bold bg-emerald-600 text-white";
+                    } else {
+                        // Armed but no trigger found this frame. 
+                        // Skip rendering this frame to preserve the visual of the last frame while waiting.
+                        return;
+                    }
+                }
+
+                // If not one-shot, and no trigger found, default to start of buffer (free run)
+                if (triggerIndex === -1) triggerIndex = 0;
 
                 // 3. Draw all active displays perfectly synced to the trigger index
                 Object.values(displays).forEach(d => {
@@ -895,7 +922,7 @@
             this.classList.toggle('bg-emerald-700', viewMode === 'both');
             this.classList.toggle('bg-amber-700', viewMode === 'oscilloscope');
             
-            // Clear waterfall canvas when switching to prevent visual ghosting
+            // Clear waterfall canvas & reset one-shot when switching modes
             if (viewMode === 'waterfall' || viewMode === 'spectrum' || viewMode === 'oscilloscope') {
                 Object.values(displays).forEach(d => {
                     const wfCtx = d.wfCvs.getContext('2d');
@@ -903,6 +930,11 @@
                     wfCtx.fillRect(0, 0, d.wfCvs.width, d.wfCvs.height);
                 });
             }
+            
+            isOneShotArmed = false;
+            const btnOs = document.getElementById('btn-trig-oneshot');
+            btnOs.textContent = "1-SHOT: OFF";
+            btnOs.className = "flex-1 py-1 rounded border border-slate-600 text-[10px] font-bold bg-slate-700 text-slate-300";
             
             updateUIControlVisibility();
             clampCursors();
@@ -1001,6 +1033,23 @@
         document.getElementById('btn-trig-comb').onclick = () => setTriggerSource('combined');
         document.getElementById('btn-trig-left').onclick = () => setTriggerSource('left');
         document.getElementById('btn-trig-right').onclick = () => setTriggerSource('right');
+
+        const btnOneShot = document.getElementById('btn-trig-oneshot');
+        btnOneShot.onclick = () => {
+            if (isOneShotArmed) {
+                isOneShotArmed = false;
+                btnOneShot.textContent = "1-SHOT: OFF";
+                btnOneShot.className = "flex-1 py-1 rounded border border-slate-600 text-[10px] font-bold bg-slate-700 text-slate-300";
+            } else {
+                isOneShotArmed = true;
+                isFrozen = false; 
+                document.getElementById('btn-freeze').textContent = "FREEZE: OFF";
+                document.getElementById('btn-freeze').classList.remove('bg-blue-700');
+                
+                btnOneShot.textContent = "1-SHOT: ARMED";
+                btnOneShot.className = "flex-1 py-1 rounded border border-red-500 text-[10px] font-bold bg-red-600 text-white animate-pulse";
+            }
+        };
 
         // Cursor Toggles
         const btnCursorX = document.getElementById('btn-cursor-x');
@@ -1196,6 +1245,7 @@
             scopeTimeWindowMs = 20; scopeMaxAmp = 1.0;
             scopeTriggerLevel = 0.0; setTriggerSource('combined');
             cursorsXEnabled = false; cursorsYEnabled = false;
+            isOneShotArmed = false;
 
             controls.gain.el.value = 2; controls.gain.disp.textContent = "2.0x";
             if (gainNode) gainNode.gain.setTargetAtTime(2, audioCtx.currentTime, 0.05);
@@ -1214,6 +1264,10 @@
             const btnPeaks = document.getElementById('btn-peaks');
             btnPeaks.textContent = "PEAKS: OFF"; btnPeaks.classList.remove('bg-pink-700');
             document.getElementById('btn-scale').textContent = "X-Axis Scale: Linear";
+            
+            const btnOs = document.getElementById('btn-trig-oneshot');
+            btnOs.textContent = "1-SHOT: OFF";
+            btnOs.className = "flex-1 py-1 rounded border border-slate-600 text-[10px] font-bold bg-slate-700 text-slate-300";
 
             const btnCX = document.getElementById('btn-cursor-x');
             btnCX.classList.remove('bg-green-700'); btnCX.classList.add('bg-slate-700');
