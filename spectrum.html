@@ -182,7 +182,7 @@
         // --- State Variables ---
         let audioCtx, gainNode, source, stream, animationId;
         
-        let viewMode = 'spectrum'; // 'spectrum' or 'waterfall'
+        let viewMode = 'spectrum'; // 'spectrum', 'waterfall', or 'both'
         let isLogScale = false;
         let isFrozen = false;
         let showPeaks = false;
@@ -309,7 +309,7 @@
             const gH = cvs.height - p.bottom;
             const freqRange = zoomMaxFreq - zoomMinFreq;
 
-            // Only draw Decibel Labels & Lines if NOT in waterfall mode
+            // Only draw Decibel Labels & Lines if NOT in pure waterfall mode
             if (viewMode !== 'waterfall') {
                 ctx.textAlign = 'right'; ctx.font = '10px monospace';
                 for (let db = -140; db <= 0; db += 10) {
@@ -479,10 +479,8 @@
 
                 if (!d.analyser || isFrozen) {
                     if (d.data) {
-                        if (viewMode === 'spectrum') {
+                        if (viewMode === 'spectrum' || viewMode === 'both') {
                             drawTrace(visCtx, d.visCvs, d.data);
-                        } else {
-                            // In frozen waterfall mode, just show the last state
                         }
                         drawGrid(visCtx, d.visCvs);
                         drawMeasurementTools(visCtx, d.visCvs, d.data);
@@ -502,11 +500,13 @@
                     }
                 }
 
-                if (viewMode === 'waterfall') {
+                if (viewMode === 'waterfall' || viewMode === 'both') {
                     // Shift waterfall down 1 pixel
                     wfCtx.drawImage(d.wfCvs, 0, 1);
                     drawWaterfallRow(wfCtx, d.wfCvs, d.data);
-                } else {
+                } 
+                
+                if (viewMode === 'spectrum' || viewMode === 'both') {
                     drawTrace(visCtx, d.visCvs, d.data);
                 }
 
@@ -582,7 +582,7 @@
             const bufferLength = data.length;
             const binSize = actualNyquist / bufferLength;
 
-            // Peaks don't map to the Y-Axis in Waterfall mode, hide them
+            // Peaks don't map to the Y-Axis in pure Waterfall mode, hide them
             if (showPeaks && viewMode !== 'waterfall') {
                 let localPeaks = [];
                 const startB = Math.max(0, Math.floor(zoomMinFreq / binSize));
@@ -637,7 +637,7 @@
                 });
             }
             
-            // Decibel (Y) Cursors don't map to the Y-Axis in Waterfall mode, hide them
+            // Decibel (Y) Cursors don't map to the Y-Axis in pure Waterfall mode, hide them
             if (cursorsYEnabled && viewMode !== 'waterfall') {
                 [cursorY1Db, cursorY2Db].forEach(db => {
                     const y = getYPosition(db, cvs.height);
@@ -661,14 +661,23 @@
         document.getElementById('btn-show-left').onclick = () => toggleDisplay('left');
         document.getElementById('btn-show-right').onclick = () => toggleDisplay('right');
 
+        // Mode cycler
         document.getElementById('btn-mode').onclick = function() {
-            viewMode = viewMode === 'spectrum' ? 'waterfall' : 'spectrum';
+            if (viewMode === 'spectrum') {
+                viewMode = 'waterfall';
+            } else if (viewMode === 'waterfall') {
+                viewMode = 'both';
+            } else {
+                viewMode = 'spectrum';
+            }
+            
             this.textContent = `MODE: ${viewMode.toUpperCase()}`;
             this.classList.toggle('bg-indigo-700', viewMode === 'spectrum');
             this.classList.toggle('bg-fuchsia-700', viewMode === 'waterfall');
+            this.classList.toggle('bg-emerald-700', viewMode === 'both');
             
-            // Clear waterfall canvas on switch
-            if (viewMode === 'waterfall') {
+            // Clear waterfall canvas when completely entering or leaving pure spectrum mode to prevent ghosting
+            if (viewMode === 'waterfall' || viewMode === 'spectrum') {
                 Object.values(displays).forEach(d => {
                     const wfCtx = d.wfCvs.getContext('2d');
                     wfCtx.fillStyle = '#020617';
@@ -848,9 +857,11 @@
                 
                 displays[id].wfCvs.width = w; displays[id].wfCvs.height = h;
                 
-                if (viewMode === 'waterfall') {
+                if (viewMode === 'waterfall' || viewMode === 'both') {
                     wfCtx.fillStyle = '#020617'; wfCtx.fillRect(0,0,w,h);
                     if (oldData) wfCtx.putImageData(oldData, 0, 0);
+                } else {
+                    wfCtx.fillStyle = '#020617'; wfCtx.fillRect(0,0,w,h);
                 }
             }
         });
