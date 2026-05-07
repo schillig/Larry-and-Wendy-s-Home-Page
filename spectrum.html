@@ -182,7 +182,7 @@
         // --- State Variables ---
         let audioCtx, gainNode, source, stream, animationId;
         
-        let viewMode = 'spectrum'; // 'spectrum', 'waterfall', or 'both'
+        let viewMode = 'spectrum'; // 'spectrum', 'waterfall', 'both', or 'oscilloscope'
         let isLogScale = false;
         let isFrozen = false;
         let showPeaks = false;
@@ -206,28 +206,19 @@
         // Multi-Display Object Tracking
         const displays = {
             combined: {
-                show: true,
-                analyser: null,
-                data: null,
+                show: true, analyser: null, data: null, timeData: null,
                 container: document.getElementById('display-combined'),
-                visCvs: document.getElementById('vis-combined'),
-                wfCvs: document.getElementById('wf-combined')
+                visCvs: document.getElementById('vis-combined'), wfCvs: document.getElementById('wf-combined')
             },
             left: {
-                show: false,
-                analyser: null,
-                data: null,
+                show: false, analyser: null, data: null, timeData: null,
                 container: document.getElementById('display-left'),
-                visCvs: document.getElementById('vis-left'),
-                wfCvs: document.getElementById('wf-left')
+                visCvs: document.getElementById('vis-left'), wfCvs: document.getElementById('wf-left')
             },
             right: {
-                show: false,
-                analyser: null,
-                data: null,
+                show: false, analyser: null, data: null, timeData: null,
                 container: document.getElementById('display-right'),
-                visCvs: document.getElementById('vis-right'),
-                wfCvs: document.getElementById('wf-right')
+                visCvs: document.getElementById('vis-right'), wfCvs: document.getElementById('wf-right')
             }
         };
 
@@ -245,18 +236,14 @@
         const colormap = new Uint8ClampedArray(256 * 4);
         for (let i = 0; i < 256; i++) {
             let t = i / 255;
-            // Turbo / Jet mapping approximation
             let r = Math.max(0, Math.min(1, 1.5 - Math.abs(t * 4 - 3))) * 255;
             let g = Math.max(0, Math.min(1, 1.5 - Math.abs(t * 4 - 2))) * 255;
             let b = Math.max(0, Math.min(1, 1.5 - Math.abs(t * 4 - 1))) * 255;
             if (t < 0.1) {
                 let fade = t / 0.1;
-                b = fade * b + (1 - fade) * 40; // fade to dark blue instead of hard black
+                b = fade * b + (1 - fade) * 40; 
             }
-            colormap[i*4] = r;
-            colormap[i*4+1] = g;
-            colormap[i*4+2] = b;
-            colormap[i*4+3] = 255; // Alpha
+            colormap[i*4] = r; colormap[i*4+1] = g; colormap[i*4+2] = b; colormap[i*4+3] = 255; 
         }
 
         // --- Coordinate Helpers ---
@@ -379,6 +366,27 @@
             }
         }
 
+        function drawOscilloscopeGrid(ctx, cvs) {
+            const p = getPadding();
+            const w = cvs.width;
+            const h = cvs.height - p.bottom;
+            
+            ctx.strokeStyle = 'rgba(56, 189, 248, 0.15)';
+            ctx.beginPath();
+            // Center horizontal line (0 amplitude)
+            ctx.moveTo(p.left, h / 2);
+            ctx.lineTo(w, h / 2);
+            ctx.stroke();
+            
+            // Labels
+            ctx.fillStyle = '#94a3b8';
+            ctx.textAlign = 'right';
+            ctx.font = '10px monospace';
+            ctx.fillText('+1.0', p.left - 8, 10);
+            ctx.fillText(' 0.0', p.left - 8, h / 2 + 4);
+            ctx.fillText('-1.0', p.left - 8, h - 4);
+        }
+
         // --- Audio Logic ---
         async function initAudio(sourceType) {
             messageBox.classList.add('hidden');
@@ -478,7 +486,10 @@
                 visCtx.clearRect(0, 0, d.visCvs.width, d.visCvs.height);
 
                 if (!d.analyser || isFrozen) {
-                    if (d.data) {
+                    if (viewMode === 'oscilloscope') {
+                        if (d.timeData) drawOscilloscope(visCtx, d.visCvs, d.timeData);
+                        drawOscilloscopeGrid(visCtx, d.visCvs);
+                    } else if (d.data) {
                         if (viewMode === 'spectrum' || viewMode === 'both') {
                             drawTrace(visCtx, d.visCvs, d.data);
                         }
@@ -488,30 +499,41 @@
                     return;
                 }
 
-                const bufferLength = d.analyser.frequencyBinCount;
-                const rawData = new Float32Array(bufferLength);
-                d.analyser.getFloatFrequencyData(rawData);
-
-                if (!d.data || d.data.length !== bufferLength) {
-                    d.data = new Float32Array(rawData);
-                } else {
-                    for (let i = 0; i < bufferLength; i++) {
-                        d.data[i] = (averagingAlpha * d.data[i]) + ((1 - averagingAlpha) * rawData[i]);
+                // Data Extraction based on mode
+                if (viewMode === 'oscilloscope') {
+                    if (!d.timeData || d.timeData.length !== d.analyser.fftSize) {
+                        d.timeData = new Float32Array(d.analyser.fftSize);
                     }
-                }
+                    d.analyser.getFloatTimeDomainData(d.timeData);
+                    
+                    drawOscilloscope(visCtx, d.visCvs, d.timeData);
+                    drawOscilloscopeGrid(visCtx, d.visCvs);
+                } else {
+                    // Spectrum Data
+                    const bufferLength = d.analyser.frequencyBinCount;
+                    const rawData = new Float32Array(bufferLength);
+                    d.analyser.getFloatFrequencyData(rawData);
 
-                if (viewMode === 'waterfall' || viewMode === 'both') {
-                    // Shift waterfall down 1 pixel
-                    wfCtx.drawImage(d.wfCvs, 0, 1);
-                    drawWaterfallRow(wfCtx, d.wfCvs, d.data);
-                } 
-                
-                if (viewMode === 'spectrum' || viewMode === 'both') {
-                    drawTrace(visCtx, d.visCvs, d.data);
-                }
+                    if (!d.data || d.data.length !== bufferLength) {
+                        d.data = new Float32Array(rawData);
+                    } else {
+                        for (let i = 0; i < bufferLength; i++) {
+                            d.data[i] = (averagingAlpha * d.data[i]) + ((1 - averagingAlpha) * rawData[i]);
+                        }
+                    }
 
-                drawGrid(visCtx, d.visCvs);
-                drawMeasurementTools(visCtx, d.visCvs, d.data);
+                    if (viewMode === 'waterfall' || viewMode === 'both') {
+                        wfCtx.drawImage(d.wfCvs, 0, 1);
+                        drawWaterfallRow(wfCtx, d.wfCvs, d.data);
+                    } 
+                    
+                    if (viewMode === 'spectrum' || viewMode === 'both') {
+                        drawTrace(visCtx, d.visCvs, d.data);
+                    }
+
+                    drawGrid(visCtx, d.visCvs);
+                    drawMeasurementTools(visCtx, d.visCvs, d.data);
+                }
             });
         }
 
@@ -540,6 +562,33 @@
             ctx.lineTo(p.left, cvs.height - p.bottom);
             ctx.fillStyle = 'rgba(34, 211, 238, 0.1)';
             ctx.fill();
+        }
+
+        function drawOscilloscope(ctx, cvs, timeData) {
+            const p = getPadding();
+            const w = cvs.width - p.left;
+            const h = cvs.height - p.bottom;
+            
+            ctx.lineWidth = 1.5;
+            ctx.strokeStyle = '#fbbf24'; // Amber
+            ctx.beginPath();
+            
+            const sliceWidth = w * 1.0 / timeData.length;
+            let x = p.left;
+            
+            for(let i = 0; i < timeData.length; i++) {
+                const v = timeData[i]; 
+                const y = (h / 2) * (1 - v); 
+                
+                if(i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+                x += sliceWidth;
+            }
+            
+            ctx.stroke();
         }
 
         function drawWaterfallRow(wfCtx, cvs, data) {
@@ -573,16 +622,18 @@
                 buf[pxIdx+2] = colormap[cIdx+2];
                 buf[pxIdx+3] = 255;
             }
-            wfCtx.putImageData(imgData, p.left, 0); // Print entirely across the top row
+            wfCtx.putImageData(imgData, p.left, 0); 
         }
 
         function drawMeasurementTools(ctx, cvs, data) {
+            // Do not draw frequency/db cursors in oscilloscope mode
+            if (viewMode === 'oscilloscope') return;
+
             const p = getPadding();
             const gH = cvs.height - p.bottom;
             const bufferLength = data.length;
             const binSize = actualNyquist / bufferLength;
 
-            // Peaks don't map to the Y-Axis in pure Waterfall mode, hide them
             if (showPeaks && viewMode !== 'waterfall') {
                 let localPeaks = [];
                 const startB = Math.max(0, Math.floor(zoomMinFreq / binSize));
@@ -628,7 +679,6 @@
                 });
             }
 
-            // Frequency (X) Cursors are always valid
             if (cursorsXEnabled) {
                 [cursorX1Freq, cursorX2Freq].forEach(f => {
                     const x = getXPosition(f, cvs.width);
@@ -637,7 +687,6 @@
                 });
             }
             
-            // Decibel (Y) Cursors don't map to the Y-Axis in pure Waterfall mode, hide them
             if (cursorsYEnabled && viewMode !== 'waterfall') {
                 [cursorY1Db, cursorY2Db].forEach(db => {
                     const y = getYPosition(db, cvs.height);
@@ -667,6 +716,8 @@
                 viewMode = 'waterfall';
             } else if (viewMode === 'waterfall') {
                 viewMode = 'both';
+            } else if (viewMode === 'both') {
+                viewMode = 'oscilloscope';
             } else {
                 viewMode = 'spectrum';
             }
@@ -675,15 +726,17 @@
             this.classList.toggle('bg-indigo-700', viewMode === 'spectrum');
             this.classList.toggle('bg-fuchsia-700', viewMode === 'waterfall');
             this.classList.toggle('bg-emerald-700', viewMode === 'both');
+            this.classList.toggle('bg-amber-700', viewMode === 'oscilloscope');
             
-            // Clear waterfall canvas when completely entering or leaving pure spectrum mode to prevent ghosting
-            if (viewMode === 'waterfall' || viewMode === 'spectrum') {
+            // Clear waterfall canvas when switching to prevent visual ghosting
+            if (viewMode === 'waterfall' || viewMode === 'spectrum' || viewMode === 'oscilloscope') {
                 Object.values(displays).forEach(d => {
                     const wfCtx = d.wfCvs.getContext('2d');
                     wfCtx.fillStyle = '#020617';
                     wfCtx.fillRect(0, 0, d.wfCvs.width, d.wfCvs.height);
                 });
             }
+            updateCursorReadouts();
         };
 
         controls.gain.el.oninput = (e) => {
@@ -781,6 +834,16 @@
         };
 
         function updateCursorReadouts() {
+            if (viewMode === 'oscilloscope') {
+                document.getElementById('readout-f1').textContent = '--';
+                document.getElementById('readout-f2').textContent = '--';
+                document.getElementById('readout-df').textContent = '--';
+                document.getElementById('readout-a1').textContent = '--';
+                document.getElementById('readout-a2').textContent = '--';
+                document.getElementById('readout-da').textContent = '--';
+                return;
+            }
+
             document.getElementById('readout-f1').textContent = cursorsXEnabled ? formatFreqLabel(cursorX1Freq) : '--';
             document.getElementById('readout-f2').textContent = cursorsXEnabled ? formatFreqLabel(cursorX2Freq) : '--';
             document.getElementById('readout-df').textContent = cursorsXEnabled ? formatFreqLabel(Math.abs(cursorX2Freq - cursorX1Freq)) : '--';
@@ -791,6 +854,7 @@
 
         // --- Cross-Canvas Pointer Logic ---
         function handlePointerDown(e, cvs) {
+            if (viewMode === 'oscilloscope') return;
             const rect = cvs.getBoundingClientRect();
             const clientX = e.touches && e.touches.length > 0 ? e.touches[0].clientX : e.clientX;
             const clientY = e.touches && e.touches.length > 0 ? e.touches[0].clientY : e.clientY;
@@ -811,7 +875,7 @@
         }
 
         function handlePointerMove(e) {
-            if (!activeDrag) return;
+            if (!activeDrag || viewMode === 'oscilloscope') return;
             if (e.cancelable) e.preventDefault(); 
             
             const rect = activeDrag.cvs.getBoundingClientRect();
