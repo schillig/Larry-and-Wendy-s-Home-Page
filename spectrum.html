@@ -94,14 +94,14 @@
                 <input type="range" id="gain" min="0" max="10" step="0.1" value="2" class="flex-1">
                 <span id="gain-value" class="text-xs font-mono text-cyan-400 w-10 text-right">2.0x</span>
             </div>
-            <div class="flex items-center gap-3">
+            <div id="avg-container" class="flex items-center gap-3 mode-spec">
                 <label for="avg" class="text-xs font-medium text-slate-300 w-20">Average:</label>
                 <input type="range" id="avg" min="0" max="0.98" step="0.02" value="0.4" class="flex-1">
                 <span id="avg-value" class="text-xs font-mono text-cyan-400 w-10 text-right">40%</span>
             </div>
             <div class="flex gap-2">
                 <button id="btn-freeze" class="flex-1 py-1.5 rounded bg-slate-700 hover:bg-slate-600 border border-slate-500 transition-colors text-[11px] font-bold text-slate-300">FREEZE: OFF</button>
-                <button id="btn-peaks" class="flex-1 py-1.5 rounded bg-slate-700 hover:bg-slate-600 border border-slate-500 transition-colors text-[11px] font-bold text-slate-300">PEAKS: OFF</button>
+                <button id="btn-peaks" class="flex-1 py-1.5 rounded bg-slate-700 hover:bg-slate-600 border border-slate-500 transition-colors text-[11px] font-bold text-slate-300 mode-spec">PEAKS: OFF</button>
             </div>
         </div>
 
@@ -112,12 +112,13 @@
                 <input type="range" id="bandwidth" min="5" max="15" step="1" value="11" class="flex-1">
                 <span id="bandwidth-value" class="text-xs font-mono text-cyan-400 w-10 text-right">2048</span>
             </div>
-            <button id="btn-scale" class="py-2 rounded-lg bg-slate-700 text-xs font-medium text-slate-200 w-full shadow-inner border border-slate-600">X-Axis Scale: Linear</button>
+            <button id="btn-scale" class="py-2 rounded-lg bg-slate-700 text-xs font-medium text-slate-200 w-full shadow-inner border border-slate-600 mode-spec">X-Axis Scale: Linear</button>
         </div>
 
         <div class="flex flex-col gap-3">
             <h3 class="text-xs uppercase tracking-wider text-slate-500 font-bold border-b border-slate-700 pb-1">Zoom (X & Y)</h3>
-            <div class="grid grid-cols-2 gap-x-4 gap-y-2">
+            
+            <div id="zoom-spectrum" class="grid grid-cols-2 gap-x-4 gap-y-2 mode-spec">
                 <div class="flex flex-col gap-1">
                     <label class="text-[10px] text-slate-400">Min Hz</label>
                     <input type="range" id="min-freq" min="0" max="20000" step="1" value="0" class="w-full">
@@ -135,6 +136,24 @@
                     <input type="range" id="max-db" min="-60" max="0" step="1" value="-20" class="w-full">
                 </div>
             </div>
+
+            <div id="zoom-scope" class="grid grid-cols-1 gap-y-4 mode-scope" style="display: none;">
+                <div class="flex flex-col gap-1">
+                    <label class="text-[10px] text-slate-400">Time Base (X-Axis)</label>
+                    <div class="flex items-center gap-2">
+                        <input type="range" id="scope-time" min="1" max="500" step="1" value="20" class="w-full flex-1">
+                        <span id="scope-time-val" class="text-[10px] text-cyan-400 font-mono w-10 text-right">20ms</span>
+                    </div>
+                </div>
+                <div class="flex flex-col gap-1">
+                    <label class="text-[10px] text-slate-400">Amplitude Zoom (Y-Axis)</label>
+                    <div class="flex items-center gap-2">
+                        <input type="range" id="scope-amp" min="0.05" max="1" step="0.05" value="1" class="w-full flex-1">
+                        <span id="scope-amp-val" class="text-[10px] text-cyan-400 font-mono w-10 text-right">±1.0</span>
+                    </div>
+                </div>
+            </div>
+
         </div>
 
         <div class="flex flex-col gap-3">
@@ -144,13 +163,13 @@
                 <button id="btn-cursor-y" class="flex-1 py-1 rounded bg-slate-700 border border-slate-600 text-[10px] font-bold">Y CURSOR</button>
             </div>
             <div class="text-[10px] font-mono grid grid-cols-2 gap-1 bg-slate-900/80 p-2 rounded border border-slate-700">
-                <div>F1: <span id="readout-f1" class="text-green-400">--</span></div>
-                <div>A1: <span id="readout-a1" class="text-purple-400">--</span></div>
-                <div>F2: <span id="readout-f2" class="text-green-400">--</span></div>
-                <div>A2: <span id="readout-a2" class="text-purple-400">--</span></div>
+                <div><span id="lbl-f1">F1:</span> <span id="readout-f1" class="text-green-400">--</span></div>
+                <div><span id="lbl-a1">A1:</span> <span id="readout-a1" class="text-purple-400">--</span></div>
+                <div><span id="lbl-f2">F2:</span> <span id="readout-f2" class="text-green-400">--</span></div>
+                <div><span id="lbl-a2">A2:</span> <span id="readout-a2" class="text-purple-400">--</span></div>
                 <div class="col-span-2 pt-1 border-t border-slate-700 flex justify-between">
-                    <span>ΔF: <span id="readout-df" class="text-yellow-400">--</span></span>
-                    <span>ΔA: <span id="readout-da" class="text-yellow-400">--</span></span>
+                    <span><span id="lbl-df">ΔF:</span> <span id="readout-df" class="text-yellow-400">--</span></span>
+                    <span><span id="lbl-da">ΔA:</span> <span id="readout-da" class="text-yellow-400">--</span></span>
                 </div>
             </div>
         </div>
@@ -191,13 +210,20 @@
         // Hack to prevent Chrome/Edge from muting inactive tabs
         let dummyAudioEl = null;
 
+        // Spectrum Config
         let displayMaxDb = -20, displayMinDb = -100;
         let zoomMinFreq = 0, zoomMaxFreq = 20000;
         let actualNyquist = 22050; 
-
-        let cursorsXEnabled = false, cursorsYEnabled = false;
         let cursorX1Freq = 1000, cursorX2Freq = 5000;
         let cursorY1Db = -40, cursorY2Db = -60;
+
+        // Oscilloscope Config
+        let scopeTimeWindowMs = 20; 
+        let scopeMaxAmp = 1.0; 
+        let scopeCursorX1Ms = 5, scopeCursorX2Ms = 15;
+        let scopeCursorY1Amp = 0.5, scopeCursorY2Amp = -0.5;
+
+        let cursorsXEnabled = false, cursorsYEnabled = false;
         let activeDrag = null;
 
         const statusEl = document.getElementById('engine-status');
@@ -226,10 +252,10 @@
             gain: { el: document.getElementById('gain'), disp: document.getElementById('gain-value') },
             avg: { el: document.getElementById('avg'), disp: document.getElementById('avg-value') },
             bandwidth: { el: document.getElementById('bandwidth'), disp: document.getElementById('bandwidth-value') },
-            maxDb: document.getElementById('max-db'),
-            minDb: document.getElementById('min-db'),
-            minFreq: document.getElementById('min-freq'),
-            maxFreq: document.getElementById('max-freq')
+            maxDb: document.getElementById('max-db'), minDb: document.getElementById('min-db'),
+            minFreq: document.getElementById('min-freq'), maxFreq: document.getElementById('max-freq'),
+            scopeTime: { el: document.getElementById('scope-time'), disp: document.getElementById('scope-time-val') },
+            scopeAmp: { el: document.getElementById('scope-amp'), disp: document.getElementById('scope-amp-val') }
         };
 
         // --- Prepare Colormap for Waterfall ---
@@ -239,14 +265,11 @@
             let r = Math.max(0, Math.min(1, 1.5 - Math.abs(t * 4 - 3))) * 255;
             let g = Math.max(0, Math.min(1, 1.5 - Math.abs(t * 4 - 2))) * 255;
             let b = Math.max(0, Math.min(1, 1.5 - Math.abs(t * 4 - 1))) * 255;
-            if (t < 0.1) {
-                let fade = t / 0.1;
-                b = fade * b + (1 - fade) * 40; 
-            }
+            if (t < 0.1) { let fade = t / 0.1; b = fade * b + (1 - fade) * 40; }
             colormap[i*4] = r; colormap[i*4+1] = g; colormap[i*4+2] = b; colormap[i*4+3] = 255; 
         }
 
-        // --- Coordinate Helpers ---
+        // --- Coordinate Helpers (Spectrum) ---
         const getPadding = () => ({ left: 55, bottom: 25 });
         
         function getXPosition(freq, cvsWidth) {
@@ -282,6 +305,31 @@
             return normalizedY * (displayMaxDb - displayMinDb) + displayMinDb;
         }
 
+        // --- Coordinate Helpers (Oscilloscope) ---
+        function getScopeXPosition(ms, cvsWidth) {
+            const p = getPadding();
+            return p.left + (ms / scopeTimeWindowMs) * (cvsWidth - p.left);
+        }
+
+        function getMsFromScopeX(x, cvsWidth) {
+            const p = getPadding();
+            const normalizedX = Math.max(0, Math.min(1, (x - p.left) / (cvsWidth - p.left)));
+            return normalizedX * scopeTimeWindowMs;
+        }
+
+        function getScopeYPosition(amp, cvsHeight) {
+            const p = getPadding();
+            const h = cvsHeight - p.bottom;
+            return (h / 2) - (amp / scopeMaxAmp) * (h / 2);
+        }
+
+        function getAmpFromScopeY(y, cvsHeight) {
+            const p = getPadding();
+            const h = cvsHeight - p.bottom;
+            const normalizedY = ((h / 2) - y) / (h / 2);
+            return normalizedY * scopeMaxAmp;
+        }
+
         function formatFreqLabel(freq) {
             if (freq >= 1000) {
                 let kVal = freq / 1000;
@@ -311,7 +359,7 @@
                 }
             }
 
-            // Draw Frequency Labels & Lines (Always visible)
+            // Draw Frequency Labels & Lines
             ctx.textAlign = 'center';
             let freqStep = 2000;
             if (freqRange <= 50) freqStep = 5;
@@ -371,20 +419,36 @@
             const w = cvs.width;
             const h = cvs.height - p.bottom;
             
-            ctx.strokeStyle = 'rgba(56, 189, 248, 0.15)';
-            ctx.beginPath();
-            // Center horizontal line (0 amplitude)
-            ctx.moveTo(p.left, h / 2);
-            ctx.lineTo(w, h / 2);
-            ctx.stroke();
-            
-            // Labels
-            ctx.fillStyle = '#94a3b8';
-            ctx.textAlign = 'right';
+            // X-axis (Time Lines)
+            const timeSteps = 10;
+            ctx.textAlign = 'center';
             ctx.font = '10px monospace';
-            ctx.fillText('+1.0', p.left - 8, 10);
-            ctx.fillText(' 0.0', p.left - 8, h / 2 + 4);
-            ctx.fillText('-1.0', p.left - 8, h - 4);
+            for (let i = 0; i <= timeSteps; i++) {
+                const ms = (scopeTimeWindowMs / timeSteps) * i;
+                const x = getScopeXPosition(ms, w);
+                
+                ctx.strokeStyle = 'rgba(56, 189, 248, 0.15)';
+                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+                
+                ctx.fillStyle = 'rgba(2, 6, 23, 0.6)';
+                ctx.fillRect(x - 15, h + 2, 30, 14);
+                ctx.fillStyle = '#94a3b8';
+                ctx.fillText(ms.toFixed(1) + 'ms', x, h + 13);
+            }
+            
+            // Y-axis (Amplitude Lines)
+            const ampSteps = [scopeMaxAmp, scopeMaxAmp/2, 0, -scopeMaxAmp/2, -scopeMaxAmp];
+            ctx.textAlign = 'right';
+            ampSteps.forEach(amp => {
+                const y = getScopeYPosition(amp, cvs.height);
+                ctx.strokeStyle = 'rgba(56, 189, 248, 0.15)';
+                ctx.beginPath(); ctx.moveTo(p.left, y); ctx.lineTo(w, y); ctx.stroke();
+                
+                ctx.fillStyle = 'rgba(2, 6, 23, 0.6)';
+                ctx.fillRect(5, y - 6, p.left - 10, 12);
+                ctx.fillStyle = '#94a3b8';
+                ctx.fillText(amp > 0 ? '+' + amp.toFixed(2) : amp.toFixed(2), p.left - 8, y + 4);
+            });
         }
 
         // --- Audio Logic ---
@@ -489,6 +553,7 @@
                     if (viewMode === 'oscilloscope') {
                         if (d.timeData) drawOscilloscope(visCtx, d.visCvs, d.timeData);
                         drawOscilloscopeGrid(visCtx, d.visCvs);
+                        drawMeasurementTools(visCtx, d.visCvs, null);
                     } else if (d.data) {
                         if (viewMode === 'spectrum' || viewMode === 'both') {
                             drawTrace(visCtx, d.visCvs, d.data);
@@ -508,6 +573,7 @@
                     
                     drawOscilloscope(visCtx, d.visCvs, d.timeData);
                     drawOscilloscopeGrid(visCtx, d.visCvs);
+                    drawMeasurementTools(visCtx, d.visCvs, null);
                 } else {
                     // Spectrum Data
                     const bufferLength = d.analyser.frequencyBinCount;
@@ -565,29 +631,24 @@
         }
 
         function drawOscilloscope(ctx, cvs, timeData) {
-            const p = getPadding();
-            const w = cvs.width - p.left;
-            const h = cvs.height - p.bottom;
+            const sampleRate = actualNyquist * 2;
+            // Only draw up to the user-selected time window (or max available in buffer)
+            const samplesToDraw = Math.min(timeData.length, Math.floor((scopeTimeWindowMs / 1000) * sampleRate));
             
             ctx.lineWidth = 1.5;
-            ctx.strokeStyle = '#fbbf24'; // Amber
+            ctx.strokeStyle = '#fbbf24'; // Amber trace for scope
             ctx.beginPath();
             
-            const sliceWidth = w * 1.0 / timeData.length;
-            let x = p.left;
-            
-            for(let i = 0; i < timeData.length; i++) {
-                const v = timeData[i]; 
-                const y = (h / 2) * (1 - v); 
+            let hasMoved = false;
+            for (let i = 0; i < samplesToDraw; i++) {
+                const timeMs = (i / sampleRate) * 1000;
+                const x = getScopeXPosition(timeMs, cvs.width);
+                const val = Math.max(-scopeMaxAmp, Math.min(scopeMaxAmp, timeData[i]));
+                const y = getScopeYPosition(val, cvs.height);
                 
-                if(i === 0) {
-                    ctx.moveTo(x, y);
-                } else {
-                    ctx.lineTo(x, y);
-                }
-                x += sliceWidth;
+                if (!hasMoved) { ctx.moveTo(x, y); hasMoved = true; }
+                else ctx.lineTo(x, y);
             }
-            
             ctx.stroke();
         }
 
@@ -626,11 +687,30 @@
         }
 
         function drawMeasurementTools(ctx, cvs, data) {
-            // Do not draw frequency/db cursors in oscilloscope mode
-            if (viewMode === 'oscilloscope') return;
-
             const p = getPadding();
             const gH = cvs.height - p.bottom;
+
+            // --- OSCILLOSCOPE CURSORS ---
+            if (viewMode === 'oscilloscope') {
+                if (cursorsXEnabled) {
+                    [scopeCursorX1Ms, scopeCursorX2Ms].forEach(ms => {
+                        const x = getScopeXPosition(ms, cvs.width);
+                        ctx.setLineDash([5, 5]); ctx.strokeStyle = '#4ade80';
+                        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, gH); ctx.stroke();
+                    });
+                }
+                if (cursorsYEnabled) {
+                    [scopeCursorY1Amp, scopeCursorY2Amp].forEach(amp => {
+                        const y = getScopeYPosition(amp, cvs.height);
+                        ctx.setLineDash([5, 5]); ctx.strokeStyle = '#c084fc';
+                        ctx.beginPath(); ctx.moveTo(p.left, y); ctx.lineTo(cvs.width, y); ctx.stroke();
+                    });
+                }
+                ctx.setLineDash([]);
+                return; // End of Scope measurement logic
+            }
+
+            // --- SPECTRUM CURSORS & PEAKS ---
             const bufferLength = data.length;
             const binSize = actualNyquist / bufferLength;
 
@@ -698,6 +778,27 @@
         }
 
         // --- Interaction & Toggles ---
+        
+        // Hides or shows UI elements based on the current mode
+        function updateUIControlVisibility() {
+            const isScope = viewMode === 'oscilloscope';
+            const isWaterfall = viewMode === 'waterfall';
+            
+            // Toggle groups
+            document.querySelectorAll('.mode-spec').forEach(el => el.style.display = isScope ? 'none' : '');
+            document.querySelectorAll('.mode-scope').forEach(el => el.style.display = isScope ? '' : 'none');
+
+            // Handle specific overrides for Waterfall
+            document.getElementById('btn-cursor-y').style.display = isWaterfall ? 'none' : 'block';
+            document.getElementById('btn-peaks').style.display = (isScope || isWaterfall) ? 'none' : 'block';
+            
+            // Safety turn-off when entering modes that don't support these tools
+            if (isWaterfall && cursorsYEnabled) document.getElementById('btn-cursor-y').click();
+            if ((isWaterfall || isScope) && showPeaks) document.getElementById('btn-peaks').click();
+
+            updateCursorReadouts();
+        }
+
         function toggleDisplay(key) {
             displays[key].show = !displays[key].show;
             displays[key].container.style.display = displays[key].show ? 'block' : 'none';
@@ -712,15 +813,10 @@
 
         // Mode cycler
         document.getElementById('btn-mode').onclick = function() {
-            if (viewMode === 'spectrum') {
-                viewMode = 'waterfall';
-            } else if (viewMode === 'waterfall') {
-                viewMode = 'both';
-            } else if (viewMode === 'both') {
-                viewMode = 'oscilloscope';
-            } else {
-                viewMode = 'spectrum';
-            }
+            if (viewMode === 'spectrum') viewMode = 'waterfall';
+            else if (viewMode === 'waterfall') viewMode = 'both';
+            else if (viewMode === 'both') viewMode = 'oscilloscope';
+            else viewMode = 'spectrum';
             
             this.textContent = `MODE: ${viewMode.toUpperCase()}`;
             this.classList.toggle('bg-indigo-700', viewMode === 'spectrum');
@@ -736,7 +832,9 @@
                     wfCtx.fillRect(0, 0, d.wfCvs.width, d.wfCvs.height);
                 });
             }
-            updateCursorReadouts();
+            
+            updateUIControlVisibility();
+            clampCursors();
         };
 
         controls.gain.el.oninput = (e) => {
@@ -772,50 +870,68 @@
         };
 
         function clampCursors() {
-            cursorX1Freq = Math.max(zoomMinFreq, Math.min(zoomMaxFreq, cursorX1Freq));
-            cursorX2Freq = Math.max(zoomMinFreq, Math.min(zoomMaxFreq, cursorX2Freq));
-            cursorY1Db = Math.max(displayMinDb, Math.min(displayMaxDb, cursorY1Db));
-            cursorY2Db = Math.max(displayMinDb, Math.min(displayMaxDb, cursorY2Db));
+            if (viewMode === 'oscilloscope') {
+                scopeCursorX1Ms = Math.max(0, Math.min(scopeTimeWindowMs, scopeCursorX1Ms));
+                scopeCursorX2Ms = Math.max(0, Math.min(scopeTimeWindowMs, scopeCursorX2Ms));
+                scopeCursorY1Amp = Math.max(-scopeMaxAmp, Math.min(scopeMaxAmp, scopeCursorY1Amp));
+                scopeCursorY2Amp = Math.max(-scopeMaxAmp, Math.min(scopeMaxAmp, scopeCursorY2Amp));
+            } else {
+                cursorX1Freq = Math.max(zoomMinFreq, Math.min(zoomMaxFreq, cursorX1Freq));
+                cursorX2Freq = Math.max(zoomMinFreq, Math.min(zoomMaxFreq, cursorX2Freq));
+                cursorY1Db = Math.max(displayMinDb, Math.min(displayMaxDb, cursorY1Db));
+                cursorY2Db = Math.max(displayMinDb, Math.min(displayMaxDb, cursorY2Db));
+            }
         }
 
+        // Spectrum Zoom Inputs
         controls.minFreq.oninput = (e) => { 
-            let val = parseInt(e.target.value);
-            if (val >= zoomMaxFreq - 10) val = zoomMaxFreq - 10;
-            zoomMinFreq = val; e.target.value = val;
-            clampCursors(); updateCursorReadouts(); 
+            let val = parseInt(e.target.value); if (val >= zoomMaxFreq - 10) val = zoomMaxFreq - 10;
+            zoomMinFreq = val; e.target.value = val; clampCursors(); updateCursorReadouts(); 
         };
         controls.maxFreq.oninput = (e) => { 
-            let val = parseInt(e.target.value);
-            if (val <= zoomMinFreq + 10) val = zoomMinFreq + 10;
-            zoomMaxFreq = val; e.target.value = val;
-            clampCursors(); updateCursorReadouts(); 
+            let val = parseInt(e.target.value); if (val <= zoomMinFreq + 10) val = zoomMinFreq + 10;
+            zoomMaxFreq = val; e.target.value = val; clampCursors(); updateCursorReadouts(); 
         };
         controls.minDb.oninput = (e) => { 
-            let val = parseInt(e.target.value);
-            if (val >= displayMaxDb - 10) val = displayMaxDb - 10;
-            displayMinDb = val; e.target.value = val;
-            clampCursors(); updateCursorReadouts(); 
+            let val = parseInt(e.target.value); if (val >= displayMaxDb - 10) val = displayMaxDb - 10;
+            displayMinDb = val; e.target.value = val; clampCursors(); updateCursorReadouts(); 
         };
         controls.maxDb.oninput = (e) => { 
-            let val = parseInt(e.target.value);
-            if (val <= displayMinDb + 10) val = displayMinDb + 10;
-            displayMaxDb = val; e.target.value = val;
-            clampCursors(); updateCursorReadouts(); 
+            let val = parseInt(e.target.value); if (val <= displayMinDb + 10) val = displayMinDb + 10;
+            displayMaxDb = val; e.target.value = val; clampCursors(); updateCursorReadouts(); 
         };
 
+        // Scope Zoom Inputs
+        controls.scopeTime.el.oninput = (e) => {
+            scopeTimeWindowMs = parseInt(e.target.value);
+            controls.scopeTime.disp.textContent = scopeTimeWindowMs + "ms";
+            clampCursors(); updateCursorReadouts();
+        };
+        controls.scopeAmp.el.oninput = (e) => {
+            scopeMaxAmp = parseFloat(e.target.value);
+            controls.scopeAmp.disp.textContent = '±' + scopeMaxAmp.toFixed(2);
+            clampCursors(); updateCursorReadouts();
+        };
+
+        // Cursor Toggles
         const btnCursorX = document.getElementById('btn-cursor-x');
         btnCursorX.onclick = () => { 
             cursorsXEnabled = !cursorsXEnabled; 
             btnCursorX.classList.toggle('bg-slate-700', !cursorsXEnabled);
             btnCursorX.classList.toggle('bg-green-700', cursorsXEnabled);
             if (cursorsXEnabled) {
-                if (isLogScale) {
-                    const logMin = Math.log10(Math.max(1, zoomMinFreq)), logMax = Math.log10(zoomMaxFreq);
-                    cursorX1Freq = Math.pow(10, logMin + (logMax - logMin) * 0.33);
-                    cursorX2Freq = Math.pow(10, logMin + (logMax - logMin) * 0.66);
+                if (viewMode === 'oscilloscope') {
+                    scopeCursorX1Ms = scopeTimeWindowMs * 0.33;
+                    scopeCursorX2Ms = scopeTimeWindowMs * 0.66;
                 } else {
-                    cursorX1Freq = zoomMinFreq + (zoomMaxFreq - zoomMinFreq) * 0.33;
-                    cursorX2Freq = zoomMinFreq + (zoomMaxFreq - zoomMinFreq) * 0.66;
+                    if (isLogScale) {
+                        const logMin = Math.log10(Math.max(1, zoomMinFreq)), logMax = Math.log10(zoomMaxFreq);
+                        cursorX1Freq = Math.pow(10, logMin + (logMax - logMin) * 0.33);
+                        cursorX2Freq = Math.pow(10, logMin + (logMax - logMin) * 0.66);
+                    } else {
+                        cursorX1Freq = zoomMinFreq + (zoomMaxFreq - zoomMinFreq) * 0.33;
+                        cursorX2Freq = zoomMinFreq + (zoomMaxFreq - zoomMinFreq) * 0.66;
+                    }
                 }
             }
             updateCursorReadouts(); 
@@ -827,34 +943,51 @@
             btnCursorY.classList.toggle('bg-slate-700', !cursorsYEnabled);
             btnCursorY.classList.toggle('bg-purple-700', cursorsYEnabled);
             if (cursorsYEnabled) {
-                cursorY1Db = displayMaxDb - (displayMaxDb - displayMinDb) * 0.33;
-                cursorY2Db = displayMaxDb - (displayMaxDb - displayMinDb) * 0.66;
+                if (viewMode === 'oscilloscope') {
+                    scopeCursorY1Amp = scopeMaxAmp * 0.33;
+                    scopeCursorY2Amp = -scopeMaxAmp * 0.33;
+                } else {
+                    cursorY1Db = displayMaxDb - (displayMaxDb - displayMinDb) * 0.33;
+                    cursorY2Db = displayMaxDb - (displayMaxDb - displayMinDb) * 0.66;
+                }
             }
             updateCursorReadouts(); 
         };
 
         function updateCursorReadouts() {
             if (viewMode === 'oscilloscope') {
-                document.getElementById('readout-f1').textContent = '--';
-                document.getElementById('readout-f2').textContent = '--';
-                document.getElementById('readout-df').textContent = '--';
-                document.getElementById('readout-a1').textContent = '--';
-                document.getElementById('readout-a2').textContent = '--';
-                document.getElementById('readout-da').textContent = '--';
-                return;
-            }
+                document.getElementById('lbl-f1').textContent = 'T1:';
+                document.getElementById('lbl-f2').textContent = 'T2:';
+                document.getElementById('lbl-df').textContent = 'ΔT:';
+                document.getElementById('lbl-a1').textContent = 'V1:';
+                document.getElementById('lbl-a2').textContent = 'V2:';
+                document.getElementById('lbl-da').textContent = 'ΔV:';
+                
+                document.getElementById('readout-f1').textContent = cursorsXEnabled ? scopeCursorX1Ms.toFixed(2) + 'ms' : '--';
+                document.getElementById('readout-f2').textContent = cursorsXEnabled ? scopeCursorX2Ms.toFixed(2) + 'ms' : '--';
+                document.getElementById('readout-df').textContent = cursorsXEnabled ? Math.abs(scopeCursorX2Ms - scopeCursorX1Ms).toFixed(2) + 'ms' : '--';
+                document.getElementById('readout-a1').textContent = cursorsYEnabled ? (scopeCursorY1Amp > 0 ? '+' : '') + scopeCursorY1Amp.toFixed(3) : '--';
+                document.getElementById('readout-a2').textContent = cursorsYEnabled ? (scopeCursorY2Amp > 0 ? '+' : '') + scopeCursorY2Amp.toFixed(3) : '--';
+                document.getElementById('readout-da').textContent = cursorsYEnabled ? Math.abs(scopeCursorY2Amp - scopeCursorY1Amp).toFixed(3) : '--';
+            } else {
+                document.getElementById('lbl-f1').textContent = 'F1:';
+                document.getElementById('lbl-f2').textContent = 'F2:';
+                document.getElementById('lbl-df').textContent = 'ΔF:';
+                document.getElementById('lbl-a1').textContent = 'A1:';
+                document.getElementById('lbl-a2').textContent = 'A2:';
+                document.getElementById('lbl-da').textContent = 'ΔA:';
 
-            document.getElementById('readout-f1').textContent = cursorsXEnabled ? formatFreqLabel(cursorX1Freq) : '--';
-            document.getElementById('readout-f2').textContent = cursorsXEnabled ? formatFreqLabel(cursorX2Freq) : '--';
-            document.getElementById('readout-df').textContent = cursorsXEnabled ? formatFreqLabel(Math.abs(cursorX2Freq - cursorX1Freq)) : '--';
-            document.getElementById('readout-a1').textContent = cursorsYEnabled ? cursorY1Db.toFixed(1) : '--';
-            document.getElementById('readout-a2').textContent = cursorsYEnabled ? cursorY2Db.toFixed(1) : '--';
-            document.getElementById('readout-da').textContent = cursorsYEnabled ? Math.abs(cursorY2Db - cursorY1Db).toFixed(1) : '--';
+                document.getElementById('readout-f1').textContent = cursorsXEnabled ? formatFreqLabel(cursorX1Freq) : '--';
+                document.getElementById('readout-f2').textContent = cursorsXEnabled ? formatFreqLabel(cursorX2Freq) : '--';
+                document.getElementById('readout-df').textContent = cursorsXEnabled ? formatFreqLabel(Math.abs(cursorX2Freq - cursorX1Freq)) : '--';
+                document.getElementById('readout-a1').textContent = cursorsYEnabled ? cursorY1Db.toFixed(1) : '--';
+                document.getElementById('readout-a2').textContent = cursorsYEnabled ? cursorY2Db.toFixed(1) : '--';
+                document.getElementById('readout-da').textContent = cursorsYEnabled ? Math.abs(cursorY2Db - cursorY1Db).toFixed(1) : '--';
+            }
         }
 
         // --- Cross-Canvas Pointer Logic ---
         function handlePointerDown(e, cvs) {
-            if (viewMode === 'oscilloscope') return;
             const rect = cvs.getBoundingClientRect();
             const clientX = e.touches && e.touches.length > 0 ? e.touches[0].clientX : e.clientX;
             const clientY = e.touches && e.touches.length > 0 ? e.touches[0].clientY : e.clientY;
@@ -864,18 +997,29 @@
             activeDrag = null;
             const hitTest = 25; 
             
-            if (cursorsXEnabled) {
-                if (Math.abs(x - getXPosition(cursorX1Freq, cvs.width)) < hitTest) activeDrag = { id: 'x1', cvs };
-                else if (Math.abs(x - getXPosition(cursorX2Freq, cvs.width)) < hitTest) activeDrag = { id: 'x2', cvs };
-            }
-            if (!activeDrag && cursorsYEnabled) {
-                if (Math.abs(y - getYPosition(cursorY1Db, cvs.height)) < hitTest) activeDrag = { id: 'y1', cvs };
-                else if (Math.abs(y - getYPosition(cursorY2Db, cvs.height)) < hitTest) activeDrag = { id: 'y2', cvs };
+            if (viewMode === 'oscilloscope') {
+                if (cursorsXEnabled) {
+                    if (Math.abs(x - getScopeXPosition(scopeCursorX1Ms, cvs.width)) < hitTest) activeDrag = { id: 'x1s', cvs };
+                    else if (Math.abs(x - getScopeXPosition(scopeCursorX2Ms, cvs.width)) < hitTest) activeDrag = { id: 'x2s', cvs };
+                }
+                if (!activeDrag && cursorsYEnabled) {
+                    if (Math.abs(y - getScopeYPosition(scopeCursorY1Amp, cvs.height)) < hitTest) activeDrag = { id: 'y1s', cvs };
+                    else if (Math.abs(y - getScopeYPosition(scopeCursorY2Amp, cvs.height)) < hitTest) activeDrag = { id: 'y2s', cvs };
+                }
+            } else {
+                if (cursorsXEnabled) {
+                    if (Math.abs(x - getXPosition(cursorX1Freq, cvs.width)) < hitTest) activeDrag = { id: 'x1', cvs };
+                    else if (Math.abs(x - getXPosition(cursorX2Freq, cvs.width)) < hitTest) activeDrag = { id: 'x2', cvs };
+                }
+                if (!activeDrag && cursorsYEnabled) {
+                    if (Math.abs(y - getYPosition(cursorY1Db, cvs.height)) < hitTest) activeDrag = { id: 'y1', cvs };
+                    else if (Math.abs(y - getYPosition(cursorY2Db, cvs.height)) < hitTest) activeDrag = { id: 'y2', cvs };
+                }
             }
         }
 
         function handlePointerMove(e) {
-            if (!activeDrag || viewMode === 'oscilloscope') return;
+            if (!activeDrag) return;
             if (e.cancelable) e.preventDefault(); 
             
             const rect = activeDrag.cvs.getBoundingClientRect();
@@ -884,10 +1028,19 @@
             const x = clientX - rect.left;
             const y = clientY - rect.top;
             
-            if (activeDrag.id === 'x1') cursorX1Freq = getFreqFromX(x, activeDrag.cvs.width);
-            if (activeDrag.id === 'x2') cursorX2Freq = getFreqFromX(x, activeDrag.cvs.width);
-            if (activeDrag.id === 'y1') cursorY1Db = getDbFromY(y, activeDrag.cvs.height);
-            if (activeDrag.id === 'y2') cursorY2Db = getDbFromY(y, activeDrag.cvs.height);
+            if (viewMode === 'oscilloscope') {
+                if (activeDrag.id === 'x1s') scopeCursorX1Ms = getMsFromScopeX(x, activeDrag.cvs.width);
+                if (activeDrag.id === 'x2s') scopeCursorX2Ms = getMsFromScopeX(x, activeDrag.cvs.width);
+                if (activeDrag.id === 'y1s') scopeCursorY1Amp = getAmpFromScopeY(y, activeDrag.cvs.height);
+                if (activeDrag.id === 'y2s') scopeCursorY2Amp = getAmpFromScopeY(y, activeDrag.cvs.height);
+            } else {
+                if (activeDrag.id === 'x1') cursorX1Freq = getFreqFromX(x, activeDrag.cvs.width);
+                if (activeDrag.id === 'x2') cursorX2Freq = getFreqFromX(x, activeDrag.cvs.width);
+                if (activeDrag.id === 'y1') cursorY1Db = getDbFromY(y, activeDrag.cvs.height);
+                if (activeDrag.id === 'y2') cursorY2Db = getDbFromY(y, activeDrag.cvs.height);
+            }
+            
+            clampCursors();
             updateCursorReadouts();
         }
 
@@ -936,6 +1089,7 @@
             isLogScale = false; isFrozen = false; showPeaks = false;
             averagingAlpha = 0.4; displayMaxDb = -20; displayMinDb = -100;
             zoomMinFreq = 0; zoomMaxFreq = 20000;
+            scopeTimeWindowMs = 20; scopeMaxAmp = 1.0;
             cursorsXEnabled = false; cursorsYEnabled = false;
 
             controls.gain.el.value = 2; controls.gain.disp.textContent = "2.0x";
@@ -946,6 +1100,8 @@
 
             controls.minFreq.value = 0; controls.maxFreq.value = 20000;
             controls.minDb.value = -100; controls.maxDb.value = -20;
+            controls.scopeTime.el.value = 20; controls.scopeTime.disp.textContent = "20ms";
+            controls.scopeAmp.el.value = 1; controls.scopeAmp.disp.textContent = "±1.00";
 
             const btnFreeze = document.getElementById('btn-freeze');
             btnFreeze.textContent = "FREEZE: OFF"; btnFreeze.classList.remove('bg-blue-700');
@@ -962,6 +1118,7 @@
         };
 
         // --- Start ---
+        updateUIControlVisibility();
         document.getElementById('btn-mic').onclick = () => initAudio('mic');
         document.getElementById('btn-system').onclick = () => initAudio('system');
         document.getElementById('btn-stop').onclick = stopAudio;
