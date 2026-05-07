@@ -259,7 +259,7 @@
             colormap[i*4+3] = 255; // Alpha
         }
 
-        // --- Coordinate Helpers (Now requires target canvas) ---
+        // --- Coordinate Helpers ---
         const getPadding = () => ({ left: 55, bottom: 25 });
         
         function getXPosition(freq, cvsWidth) {
@@ -309,19 +309,22 @@
             const gH = cvs.height - p.bottom;
             const freqRange = zoomMaxFreq - zoomMinFreq;
 
-            ctx.textAlign = 'right'; ctx.font = '10px monospace';
-            for (let db = -140; db <= 0; db += 10) {
-                if (db < displayMinDb || db > displayMaxDb) continue;
-                const y = getYPosition(db, cvs.height);
-                ctx.strokeStyle = 'rgba(56, 189, 248, 0.15)';
-                ctx.beginPath(); ctx.moveTo(p.left, y); ctx.lineTo(cvs.width, y); ctx.stroke();
-                
-                // Draw solid background for text readability in waterfall mode
-                ctx.fillStyle = 'rgba(2, 6, 23, 0.6)';
-                ctx.fillRect(5, y - 6, p.left - 10, 12);
-                ctx.fillStyle = '#94a3b8'; ctx.fillText(`${db} dB`, p.left - 8, y + 4);
+            // Only draw Decibel Labels & Lines if NOT in waterfall mode
+            if (viewMode !== 'waterfall') {
+                ctx.textAlign = 'right'; ctx.font = '10px monospace';
+                for (let db = -140; db <= 0; db += 10) {
+                    if (db < displayMinDb || db > displayMaxDb) continue;
+                    const y = getYPosition(db, cvs.height);
+                    ctx.strokeStyle = 'rgba(56, 189, 248, 0.15)';
+                    ctx.beginPath(); ctx.moveTo(p.left, y); ctx.lineTo(cvs.width, y); ctx.stroke();
+                    
+                    ctx.fillStyle = 'rgba(2, 6, 23, 0.6)';
+                    ctx.fillRect(5, y - 6, p.left - 10, 12);
+                    ctx.fillStyle = '#94a3b8'; ctx.fillText(`${db} dB`, p.left - 8, y + 4);
+                }
             }
 
+            // Draw Frequency Labels & Lines (Always visible)
             ctx.textAlign = 'center';
             let freqStep = 2000;
             if (freqRange <= 50) freqStep = 5;
@@ -579,7 +582,8 @@
             const bufferLength = data.length;
             const binSize = actualNyquist / bufferLength;
 
-            if (showPeaks) {
+            // Peaks don't map to the Y-Axis in Waterfall mode, hide them
+            if (showPeaks && viewMode !== 'waterfall') {
                 let localPeaks = [];
                 const startB = Math.max(0, Math.floor(zoomMinFreq / binSize));
                 const endB = Math.min(bufferLength, Math.ceil(zoomMaxFreq / binSize));
@@ -624,6 +628,7 @@
                 });
             }
 
+            // Frequency (X) Cursors are always valid
             if (cursorsXEnabled) {
                 [cursorX1Freq, cursorX2Freq].forEach(f => {
                     const x = getXPosition(f, cvs.width);
@@ -631,7 +636,9 @@
                     ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, gH); ctx.stroke();
                 });
             }
-            if (cursorsYEnabled) {
+            
+            // Decibel (Y) Cursors don't map to the Y-Axis in Waterfall mode, hide them
+            if (cursorsYEnabled && viewMode !== 'waterfall') {
                 [cursorY1Db, cursorY2Db].forEach(db => {
                     const y = getYPosition(db, cvs.height);
                     ctx.setLineDash([5, 5]); ctx.strokeStyle = '#c084fc';
