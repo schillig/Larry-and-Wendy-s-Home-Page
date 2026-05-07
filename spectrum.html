@@ -91,7 +91,7 @@
             <h3 class="text-xs uppercase tracking-wider text-slate-500 font-bold border-b border-slate-700 pb-1">Signal & Processing</h3>
             <div class="flex items-center gap-3">
                 <label for="gain" class="text-xs font-medium text-slate-300 w-20">Gain:</label>
-                <input type="range" id="gain" min="0" max="10" step="0.1" value="2" class="flex-1">
+                <input type="range" id="gain" min="0.1" max="10" step="0.1" value="2" class="flex-1">
                 <span id="gain-value" class="text-xs font-mono text-cyan-400 w-10 text-right">2.0x</span>
             </div>
             <div id="avg-container" class="flex items-center gap-3 mode-spec">
@@ -116,7 +116,7 @@
         </div>
 
         <div class="flex flex-col gap-3">
-            <h3 class="text-xs uppercase tracking-wider text-slate-500 font-bold border-b border-slate-700 pb-1">Zoom (X & Y)</h3>
+            <h3 class="text-xs uppercase tracking-wider text-slate-500 font-bold border-b border-slate-700 pb-1">Zoom & Trigger</h3>
             
             <div id="zoom-spectrum" class="grid grid-cols-2 gap-x-4 gap-y-2 mode-spec">
                 <div class="flex flex-col gap-1">
@@ -137,7 +137,7 @@
                 </div>
             </div>
 
-            <div id="zoom-scope" class="grid grid-cols-1 gap-y-4 mode-scope" style="display: none;">
+            <div id="zoom-scope" class="grid grid-cols-1 gap-y-3 mode-scope" style="display: none;">
                 <div class="flex flex-col gap-1">
                     <label class="text-[10px] text-slate-400">Time Base (X-Axis)</label>
                     <div class="flex items-center gap-2">
@@ -146,11 +146,23 @@
                     </div>
                 </div>
                 <div class="flex flex-col gap-1">
-                    <label class="text-[10px] text-slate-400">Amplitude Zoom (Y-Axis)</label>
+                    <label class="text-[10px] text-slate-400">Vertical Zoom (Y-Axis)</label>
                     <div class="flex items-center gap-2">
                         <input type="range" id="scope-amp" min="0.05" max="1" step="0.05" value="1" class="w-full flex-1">
-                        <span id="scope-amp-val" class="text-[10px] text-cyan-400 font-mono w-10 text-right">±1.0</span>
+                        <span id="scope-amp-val" class="text-[10px] text-cyan-400 font-mono w-10 text-right">1.00x</span>
                     </div>
+                </div>
+                <div class="flex flex-col gap-1 border-t border-slate-700 pt-2">
+                    <label class="text-[10px] text-slate-400 flex justify-between">
+                        <span>Trigger Level</span>
+                        <span id="scope-trigger-val" class="text-pink-400 font-mono">0.00</span>
+                    </label>
+                    <input type="range" id="scope-trigger-lvl" min="-1" max="1" step="0.01" value="0" class="w-full">
+                </div>
+                <div class="flex gap-2">
+                    <button id="btn-trig-comb" class="flex-1 py-1 rounded bg-pink-700 border border-slate-600 text-[10px] font-bold">TRIG: L+R</button>
+                    <button id="btn-trig-left" class="flex-1 py-1 rounded bg-slate-700 border border-slate-600 text-[10px] font-bold">TRIG: L</button>
+                    <button id="btn-trig-right" class="flex-1 py-1 rounded bg-slate-700 border border-slate-600 text-[10px] font-bold">TRIG: R</button>
                 </div>
             </div>
 
@@ -222,6 +234,8 @@
         let scopeMaxAmp = 1.0; 
         let scopeCursorX1Ms = 5, scopeCursorX2Ms = 15;
         let scopeCursorY1Amp = 0.5, scopeCursorY2Amp = -0.5;
+        let scopeTriggerSource = 'combined'; // 'combined', 'left', 'right'
+        let scopeTriggerLevel = 0.0;
 
         let cursorsXEnabled = false, cursorsYEnabled = false;
         let activeDrag = null;
@@ -255,7 +269,8 @@
             maxDb: document.getElementById('max-db'), minDb: document.getElementById('min-db'),
             minFreq: document.getElementById('min-freq'), maxFreq: document.getElementById('max-freq'),
             scopeTime: { el: document.getElementById('scope-time'), disp: document.getElementById('scope-time-val') },
-            scopeAmp: { el: document.getElementById('scope-amp'), disp: document.getElementById('scope-amp-val') }
+            scopeAmp: { el: document.getElementById('scope-amp'), disp: document.getElementById('scope-amp-val') },
+            scopeTrigger: { el: document.getElementById('scope-trigger-lvl'), disp: document.getElementById('scope-trigger-val') }
         };
 
         // --- Prepare Colormap for Waterfall ---
@@ -436,7 +451,8 @@
                 ctx.fillText(ms.toFixed(1) + 'ms', x, h + 13);
             }
             
-            // Y-axis (Amplitude Lines)
+            // Y-axis (True Input Amplitude Lines factoring in Gain)
+            const currentGain = gainNode ? gainNode.gain.value : 1.0;
             const ampSteps = [scopeMaxAmp, scopeMaxAmp/2, 0, -scopeMaxAmp/2, -scopeMaxAmp];
             ctx.textAlign = 'right';
             ampSteps.forEach(amp => {
@@ -444,11 +460,25 @@
                 ctx.strokeStyle = 'rgba(56, 189, 248, 0.15)';
                 ctx.beginPath(); ctx.moveTo(p.left, y); ctx.lineTo(w, y); ctx.stroke();
                 
+                // Factor in Gain to show the TRUE input voltage scale
+                const trueVoltage = amp / currentGain;
+                
                 ctx.fillStyle = 'rgba(2, 6, 23, 0.6)';
                 ctx.fillRect(5, y - 6, p.left - 10, 12);
                 ctx.fillStyle = '#94a3b8';
-                ctx.fillText(amp > 0 ? '+' + amp.toFixed(2) : amp.toFixed(2), p.left - 8, y + 4);
+                ctx.fillText(trueVoltage > 0 ? '+' + trueVoltage.toFixed(2) : trueVoltage.toFixed(2), p.left - 8, y + 4);
             });
+
+            // Trigger Level Marker
+            const trigY = getScopeYPosition(scopeTriggerLevel, cvs.height);
+            ctx.strokeStyle = '#f472b6'; // pink-400
+            ctx.setLineDash([4, 4]);
+            ctx.beginPath(); ctx.moveTo(p.left, trigY); ctx.lineTo(w, trigY); ctx.stroke();
+            ctx.setLineDash([]);
+            
+            ctx.fillStyle = '#f472b6';
+            ctx.textAlign = 'left';
+            ctx.fillText('TRIG', p.left + 5, trigY - 4);
         }
 
         // --- Audio Logic ---
@@ -540,6 +570,65 @@
         function drawVisualizer() {
             animationId = requestAnimationFrame(drawVisualizer);
 
+            // --- OSCILLOSCOPE LOGIC (Phase Aligned Triggering) ---
+            if (viewMode === 'oscilloscope') {
+                if (!isFrozen) {
+                    // 1. Fetch current time-domain buffer for all active displays simultaneously
+                    Object.values(displays).forEach(d => {
+                        if (d.show && d.analyser) {
+                            if (!d.timeData || d.timeData.length !== d.analyser.fftSize) {
+                                d.timeData = new Float32Array(d.analyser.fftSize);
+                            }
+                            d.analyser.getFloatTimeDomainData(d.timeData);
+                        }
+                    });
+                }
+
+                // 2. Scan the selected trigger source for a rising edge crossing the threshold
+                let triggerIndex = 0;
+                if (!isFrozen) {
+                    let searchData = null;
+                    if (scopeTriggerSource === 'combined' && displays.combined.show) searchData = displays.combined.timeData;
+                    else if (scopeTriggerSource === 'left' && displays.left.show) searchData = displays.left.timeData;
+                    else if (scopeTriggerSource === 'right' && displays.right.show) searchData = displays.right.timeData;
+                    
+                    // Fallback to whatever is visible if the selected trigger channel is hidden
+                    if (!searchData) {
+                        if (displays.combined.show) searchData = displays.combined.timeData;
+                        else if (displays.left.show) searchData = displays.left.timeData;
+                        else if (displays.right.show) searchData = displays.right.timeData;
+                    }
+
+                    if (searchData) {
+                        const sampleRate = actualNyquist * 2;
+                        const samplesToDraw = Math.floor((scopeTimeWindowMs / 1000) * sampleRate);
+                        // Prevent searching too close to the end of the buffer so we always draw a full screen if possible
+                        const searchLimit = Math.max(1, searchData.length - samplesToDraw);
+                        
+                        for (let i = 0; i < searchLimit - 1; i++) {
+                            if (searchData[i] <= scopeTriggerLevel && searchData[i+1] > scopeTriggerLevel) {
+                                triggerIndex = i;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                // 3. Draw all active displays perfectly synced to the trigger index
+                Object.values(displays).forEach(d => {
+                    if (!d.show) return;
+                    const visCtx = d.visCvs.getContext('2d');
+                    visCtx.clearRect(0, 0, d.visCvs.width, d.visCvs.height);
+                    
+                    if (d.timeData) drawOscilloscope(visCtx, d.visCvs, d.timeData, triggerIndex);
+                    drawOscilloscopeGrid(visCtx, d.visCvs);
+                    drawMeasurementTools(visCtx, d.visCvs, null);
+                });
+
+                return; // End oscilloscope routine
+            }
+
+            // --- SPECTRUM & WATERFALL LOGIC ---
             Object.keys(displays).forEach(key => {
                 const d = displays[key];
                 if (!d.show) return;
@@ -550,11 +639,7 @@
                 visCtx.clearRect(0, 0, d.visCvs.width, d.visCvs.height);
 
                 if (!d.analyser || isFrozen) {
-                    if (viewMode === 'oscilloscope') {
-                        if (d.timeData) drawOscilloscope(visCtx, d.visCvs, d.timeData);
-                        drawOscilloscopeGrid(visCtx, d.visCvs);
-                        drawMeasurementTools(visCtx, d.visCvs, null);
-                    } else if (d.data) {
+                    if (d.data) {
                         if (viewMode === 'spectrum' || viewMode === 'both') {
                             drawTrace(visCtx, d.visCvs, d.data);
                         }
@@ -564,42 +649,29 @@
                     return;
                 }
 
-                // Data Extraction based on mode
-                if (viewMode === 'oscilloscope') {
-                    if (!d.timeData || d.timeData.length !== d.analyser.fftSize) {
-                        d.timeData = new Float32Array(d.analyser.fftSize);
-                    }
-                    d.analyser.getFloatTimeDomainData(d.timeData);
-                    
-                    drawOscilloscope(visCtx, d.visCvs, d.timeData);
-                    drawOscilloscopeGrid(visCtx, d.visCvs);
-                    drawMeasurementTools(visCtx, d.visCvs, null);
+                const bufferLength = d.analyser.frequencyBinCount;
+                const rawData = new Float32Array(bufferLength);
+                d.analyser.getFloatFrequencyData(rawData);
+
+                if (!d.data || d.data.length !== bufferLength) {
+                    d.data = new Float32Array(rawData);
                 } else {
-                    // Spectrum Data
-                    const bufferLength = d.analyser.frequencyBinCount;
-                    const rawData = new Float32Array(bufferLength);
-                    d.analyser.getFloatFrequencyData(rawData);
-
-                    if (!d.data || d.data.length !== bufferLength) {
-                        d.data = new Float32Array(rawData);
-                    } else {
-                        for (let i = 0; i < bufferLength; i++) {
-                            d.data[i] = (averagingAlpha * d.data[i]) + ((1 - averagingAlpha) * rawData[i]);
-                        }
+                    for (let i = 0; i < bufferLength; i++) {
+                        d.data[i] = (averagingAlpha * d.data[i]) + ((1 - averagingAlpha) * rawData[i]);
                     }
-
-                    if (viewMode === 'waterfall' || viewMode === 'both') {
-                        wfCtx.drawImage(d.wfCvs, 0, 1);
-                        drawWaterfallRow(wfCtx, d.wfCvs, d.data);
-                    } 
-                    
-                    if (viewMode === 'spectrum' || viewMode === 'both') {
-                        drawTrace(visCtx, d.visCvs, d.data);
-                    }
-
-                    drawGrid(visCtx, d.visCvs);
-                    drawMeasurementTools(visCtx, d.visCvs, d.data);
                 }
+
+                if (viewMode === 'waterfall' || viewMode === 'both') {
+                    wfCtx.drawImage(d.wfCvs, 0, 1);
+                    drawWaterfallRow(wfCtx, d.wfCvs, d.data);
+                } 
+                
+                if (viewMode === 'spectrum' || viewMode === 'both') {
+                    drawTrace(visCtx, d.visCvs, d.data);
+                }
+
+                drawGrid(visCtx, d.visCvs);
+                drawMeasurementTools(visCtx, d.visCvs, d.data);
             });
         }
 
@@ -630,20 +702,19 @@
             ctx.fill();
         }
 
-        function drawOscilloscope(ctx, cvs, timeData) {
+        function drawOscilloscope(ctx, cvs, timeData, triggerIndex) {
             const sampleRate = actualNyquist * 2;
-            // Only draw up to the user-selected time window (or max available in buffer)
-            const samplesToDraw = Math.min(timeData.length, Math.floor((scopeTimeWindowMs / 1000) * sampleRate));
+            const samplesToDraw = Math.min(timeData.length - triggerIndex, Math.floor((scopeTimeWindowMs / 1000) * sampleRate));
             
             ctx.lineWidth = 1.5;
-            ctx.strokeStyle = '#fbbf24'; // Amber trace for scope
+            ctx.strokeStyle = '#fbbf24'; 
             ctx.beginPath();
             
             let hasMoved = false;
             for (let i = 0; i < samplesToDraw; i++) {
                 const timeMs = (i / sampleRate) * 1000;
                 const x = getScopeXPosition(timeMs, cvs.width);
-                const val = Math.max(-scopeMaxAmp, Math.min(scopeMaxAmp, timeData[i]));
+                const val = Math.max(-scopeMaxAmp, Math.min(scopeMaxAmp, timeData[triggerIndex + i]));
                 const y = getScopeYPosition(val, cvs.height);
                 
                 if (!hasMoved) { ctx.moveTo(x, y); hasMoved = true; }
@@ -901,7 +972,7 @@
             displayMaxDb = val; e.target.value = val; clampCursors(); updateCursorReadouts(); 
         };
 
-        // Scope Zoom Inputs
+        // Scope Zoom & Trigger Inputs
         controls.scopeTime.el.oninput = (e) => {
             scopeTimeWindowMs = parseInt(e.target.value);
             controls.scopeTime.disp.textContent = scopeTimeWindowMs + "ms";
@@ -909,9 +980,27 @@
         };
         controls.scopeAmp.el.oninput = (e) => {
             scopeMaxAmp = parseFloat(e.target.value);
-            controls.scopeAmp.disp.textContent = '±' + scopeMaxAmp.toFixed(2);
+            controls.scopeAmp.disp.textContent = scopeMaxAmp.toFixed(2) + 'x';
             clampCursors(); updateCursorReadouts();
         };
+        controls.scopeTrigger.el.oninput = (e) => {
+            scopeTriggerLevel = parseFloat(e.target.value);
+            controls.scopeTrigger.disp.textContent = scopeTriggerLevel.toFixed(2);
+        };
+
+        // Trigger Source Selectors
+        function setTriggerSource(src) {
+            scopeTriggerSource = src;
+            document.getElementById('btn-trig-comb').classList.toggle('bg-pink-700', src === 'combined');
+            document.getElementById('btn-trig-comb').classList.toggle('bg-slate-700', src !== 'combined');
+            document.getElementById('btn-trig-left').classList.toggle('bg-pink-700', src === 'left');
+            document.getElementById('btn-trig-left').classList.toggle('bg-slate-700', src !== 'left');
+            document.getElementById('btn-trig-right').classList.toggle('bg-pink-700', src === 'right');
+            document.getElementById('btn-trig-right').classList.toggle('bg-slate-700', src !== 'right');
+        }
+        document.getElementById('btn-trig-comb').onclick = () => setTriggerSource('combined');
+        document.getElementById('btn-trig-left').onclick = () => setTriggerSource('left');
+        document.getElementById('btn-trig-right').onclick = () => setTriggerSource('right');
 
         // Cursor Toggles
         const btnCursorX = document.getElementById('btn-cursor-x');
@@ -963,12 +1052,16 @@
                 document.getElementById('lbl-a2').textContent = 'V2:';
                 document.getElementById('lbl-da').textContent = 'ΔV:';
                 
+                const currentGain = gainNode ? gainNode.gain.value : 1.0;
+
                 document.getElementById('readout-f1').textContent = cursorsXEnabled ? scopeCursorX1Ms.toFixed(2) + 'ms' : '--';
                 document.getElementById('readout-f2').textContent = cursorsXEnabled ? scopeCursorX2Ms.toFixed(2) + 'ms' : '--';
                 document.getElementById('readout-df').textContent = cursorsXEnabled ? Math.abs(scopeCursorX2Ms - scopeCursorX1Ms).toFixed(2) + 'ms' : '--';
-                document.getElementById('readout-a1').textContent = cursorsYEnabled ? (scopeCursorY1Amp > 0 ? '+' : '') + scopeCursorY1Amp.toFixed(3) : '--';
-                document.getElementById('readout-a2').textContent = cursorsYEnabled ? (scopeCursorY2Amp > 0 ? '+' : '') + scopeCursorY2Amp.toFixed(3) : '--';
-                document.getElementById('readout-da').textContent = cursorsYEnabled ? Math.abs(scopeCursorY2Amp - scopeCursorY1Amp).toFixed(3) : '--';
+                
+                // Show True Voltage factored by Gain
+                document.getElementById('readout-a1').textContent = cursorsYEnabled ? (scopeCursorY1Amp > 0 ? '+' : '') + (scopeCursorY1Amp / currentGain).toFixed(3) : '--';
+                document.getElementById('readout-a2').textContent = cursorsYEnabled ? (scopeCursorY2Amp > 0 ? '+' : '') + (scopeCursorY2Amp / currentGain).toFixed(3) : '--';
+                document.getElementById('readout-da').textContent = cursorsYEnabled ? Math.abs((scopeCursorY2Amp - scopeCursorY1Amp) / currentGain).toFixed(3) : '--';
             } else {
                 document.getElementById('lbl-f1').textContent = 'F1:';
                 document.getElementById('lbl-f2').textContent = 'F2:';
@@ -1090,6 +1183,7 @@
             averagingAlpha = 0.4; displayMaxDb = -20; displayMinDb = -100;
             zoomMinFreq = 0; zoomMaxFreq = 20000;
             scopeTimeWindowMs = 20; scopeMaxAmp = 1.0;
+            scopeTriggerLevel = 0.0; setTriggerSource('combined');
             cursorsXEnabled = false; cursorsYEnabled = false;
 
             controls.gain.el.value = 2; controls.gain.disp.textContent = "2.0x";
@@ -1101,7 +1195,8 @@
             controls.minFreq.value = 0; controls.maxFreq.value = 20000;
             controls.minDb.value = -100; controls.maxDb.value = -20;
             controls.scopeTime.el.value = 20; controls.scopeTime.disp.textContent = "20ms";
-            controls.scopeAmp.el.value = 1; controls.scopeAmp.disp.textContent = "±1.00";
+            controls.scopeAmp.el.value = 1; controls.scopeAmp.disp.textContent = "1.00x";
+            controls.scopeTrigger.el.value = 0; controls.scopeTrigger.disp.textContent = "0.00";
 
             const btnFreeze = document.getElementById('btn-freeze');
             btnFreeze.textContent = "FREEZE: OFF"; btnFreeze.classList.remove('bg-blue-700');
