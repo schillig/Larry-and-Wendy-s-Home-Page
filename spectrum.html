@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Spectrum Visualizer</title>
+    <!-- Include Tailwind CSS for modern, responsive styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body, html {
+            height: 100%;
+            margin: 0;
+            background-color: #0f172a; 
+            color: #f8fafc; 
+        }
+        .canvas-container {
+            box-shadow: 0 0 40px rgba(56, 189, 248, 0.1);
+            resize: vertical;
+        }
+        input[type=range] {
+            -webkit-appearance: none;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 14px;
+            width: 14px;
+            border-radius: 50%;
+            background: #22d3ee;
+            cursor: pointer;
+            margin-top: -4px;
+            box-shadow: 0 0 5px rgba(34, 211, 238, 0.5);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            height: 6px;
+            background: #334155;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center p-4 md:p-8 font-sans overflow-x-hidden">
+
+    <!-- Header Section -->
+    <header class="text-center mb-6 max-w-2xl">
+        <h1 class="text-4xl font-extrabold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500">
+            Spectrum Analyzer
+        </h1>
+        <p class="text-slate-400 text-sm md:text-base">
+            Status: <span id="engine-status" class="text-yellow-500 font-mono">READY - WAITING FOR INPUT</span>
+        </p>
+    </header>
+
+    <!-- Source Controls Section -->
+    <div class="flex flex-col sm:flex-row gap-4 mb-6">
+        <button id="btn-mic" class="px-6 py-3 rounded-full bg-slate-800 hover:bg-slate-700 border border-slate-600 transition-colors flex items-center justify-center gap-2 font-medium shadow-lg">
+            <svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path></svg>
+            Microphone
+        </button>
+        
+        <button id="btn-system" class="px-6 py-3 rounded-full bg-slate-800 hover:bg-slate-700 border border-slate-600 transition-colors flex items-center justify-center gap-2 font-medium shadow-lg">
+            <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+            System Audio
+        </button>
+
+        <button id="btn-stop" class="hidden px-6 py-3 rounded-full bg-red-900/50 hover:bg-red-800/80 border border-red-700 text-red-200 transition-colors font-medium shadow-lg">
+            Stop Audio
+        </button>
+    </div>
+
+    <!-- Error/Message Display Box -->
+    <div id="message-box" class="hidden mb-6 p-4 rounded-lg bg-red-900/40 border border-red-600 text-red-100 text-sm max-w-xl text-center w-full">
+    </div>
+
+    <!-- Panel Header & Reset -->
+    <div class="w-full max-w-7xl flex justify-between items-end mb-2 px-2">
+        <h2 class="text-slate-400 font-bold text-xs tracking-widest uppercase">Control Panel</h2>
+        <button id="btn-reset" class="text-xs text-cyan-500 hover:text-cyan-300 transition-colors flex items-center gap-1">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+            Restore Defaults
+        </button>
+    </div>
+
+    <!-- Instrument Control Panel -->
+    <div class="bg-slate-800/50 p-5 rounded-2xl border border-slate-700/50 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-6 mb-8 w-full max-w-7xl shadow-xl">
+        
+        <!-- Signal & Processing -->
+        <div class="flex flex-col gap-4">
+            <h3 class="text-xs uppercase tracking-wider text-slate-500 font-bold border-b border-slate-700 pb-1">Signal & Processing</h3>
+            
+            <div class="flex items-center gap-3">
+                <label for="gain" class="text-xs font-medium text-slate-300 w-20">Gain:</label>
+                <input type="range" id="gain" min="0" max="10" step="0.1" value="2" class="flex-1">
+                <span id="gain-value" class="text-xs font-mono text-cyan-400 w-10 text-right">2.0x</span>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                <label for="avg" class="text-xs font-medium text-slate-300 w-20">Average:</label>
+                <input type="range" id="avg" min="0" max="0.98" step="0.02" value="0.4" class="flex-1">
+                <span id="avg-value" class="text-xs font-mono text-cyan-400 w-10 text-right">40%</span>
+            </div>
+
+            <div class="flex gap-2">
+                <button id="btn-freeze" class="flex-1 py-1.5 rounded bg-slate-700 hover:bg-slate-600 border border-slate-500 transition-colors text-[11px] font-bold text-slate-300">FREEZE: OFF</button>
+                <button id="btn-peaks" class="flex-1 py-1.5 rounded bg-slate-700 hover:bg-slate-600 border border-slate-500 transition-colors text-[11px] font-bold text-slate-300">PEAKS: OFF</button>
+            </div>
+        </div>
+
+        <!-- Resolution & Scale -->
+        <div class="flex flex-col gap-4">
+            <h3 class="text-xs uppercase tracking-wider text-slate-500 font-bold border-b border-slate-700 pb-1">Resolution & Scale</h3>
+            <div class="flex items-center gap-3">
+                <label for="bandwidth" class="text-xs font-medium text-slate-300 w-20">FFT Size:</label>
+                <input type="range" id="bandwidth" min="5" max="15" step="1" value="11" class="flex-1">
+                <span id="bandwidth-value" class="text-xs font-mono text-cyan-400 w-10 text-right">2048</span>
+            </div>
+            <button id="btn-scale" class="py-2 rounded-lg bg-slate-700 text-xs font-medium text-slate-200 w-full shadow-inner border border-slate-600">X-Axis Scale: Linear</button>
+        </div>
+
+        <!-- Zoom Controls -->
+        <div class="flex flex-col gap-3">
+            <h3 class="text-xs uppercase tracking-wider text-slate-500 font-bold border-b border-slate-700 pb-1">Zoom (X & Y)</h3>
+            <div class="grid grid-cols-2 gap-x-4 gap-y-2">
+                <div class="flex flex-col gap-1">
+                    <label class="text-[10px] text-slate-400">Min Hz</label>
+                    <input type="range" id="min-freq" min="20" max="20000" step="10" value="20" class="w-full">
+                </div>
+                <div class="flex flex-col gap-1">
+                    <label class="text-[10px] text-slate-400">Max Hz</label>
+                    <input type="range" id="max-freq" min="100" max="24000" step="100" value="20000" class="w-full">
+                </div>
+                <div class="flex flex-col gap-1">
+                    <label class="text-[10px] text-slate-400">Min dB</label>
+                    <input type="range" id="min-db" min="-140" max="-70" step="1" value="-100" class="w-full">
+                </div>
+                <div class="flex flex-col gap-1">
+                    <label class="text-[10px] text-slate-400">Max dB</label>
+                    <input type="range" id="max-db" min="-60" max="0" step="1" value="-20" class="w-full">
+                </div>
+            </div>
+        </div>
+
+        <!-- Measuring Tools -->
+        <div class="flex flex-col gap-3">
+            <h3 class="text-xs uppercase tracking-wider text-slate-500 font-bold border-b border-slate-700 pb-1">Measuring Tools</h3>
+            <div class="flex gap-2">
+                <button id="btn-cursor-x" class="flex-1 py-1 rounded bg-slate-700 border border-slate-600 text-[10px] font-bold">X CURSOR</button>
+                <button id="btn-cursor-y" class="flex-1 py-1 rounded bg-slate-700 border border-slate-600 text-[10px] font-bold">Y CURSOR</button>
+            </div>
+            <div class="text-[10px] font-mono grid grid-cols-2 gap-1 bg-slate-900/80 p-2 rounded border border-slate-700">
+                <div>F1: <span id="readout-f1" class="text-green-400">--</span></div>
+                <div>A1: <span id="readout-a1" class="text-purple-400">--</span></div>
+                <div>F2: <span id="readout-f2" class="text-green-400">--</span></div>
+                <div>A2: <span id="readout-a2" class="text-purple-400">--</span></div>
+                <div class="col-span-2 pt-1 border-t border-slate-700 flex justify-between">
+                    <span>ΔF: <span id="readout-df" class="text-yellow-400">--</span></span>
+                    <span>ΔA: <span id="readout-da" class="text-yellow-400">--</span></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Visualization Canvas -->
+    <div class="w-full max-w-7xl min-h-[250px] h-[450px] bg-slate-950 rounded-xl border border-slate-700 overflow-hidden canvas-container relative shadow-2xl">
+        <canvas id="visualizer" class="absolute inset-0 w-full h-full block"></canvas>
+    </div>
+
+    <script>
+        // --- State Variables ---
+        let audioCtx, analyser, gainNode, source, stream, animationId;
+        
+        let isLogScale = false;
+        let isFrozen = false;
+        let showPeaks = false;
+        let averagingAlpha = 0.4; 
+        let displayDataArray = null;
+
+        // Hack to prevent Chrome/Edge from muting inactive tabs
+        let dummyAudioEl = null;
+
+        let displayMaxDb = -20, displayMinDb = -100;
+        let zoomMinFreq = 0, zoomMaxFreq = 20000;
+        let actualNyquist = 22050; 
+
+        let cursorsXEnabled = false, cursorsYEnabled = false;
+        let cursorX1Freq = 1000, cursorX2Freq = 5000;
+        let cursorY1Db = -40, cursorY2Db = -60;
+        let activeDrag = null;
+
+        const canvasContainer = document.querySelector('.canvas-container');
+        const canvas = document.getElementById('visualizer');
+        const canvasCtx = canvas.getContext('2d');
+        const statusEl = document.getElementById('engine-status');
+        const messageBox = document.getElementById('message-box');
+        
+        const controls = {
+            gain: { el: document.getElementById('gain'), disp: document.getElementById('gain-value') },
+            avg: { el: document.getElementById('avg'), disp: document.getElementById('avg-value') },
+            bandwidth: { el: document.getElementById('bandwidth'), disp: document.getElementById('bandwidth-value') },
+            maxDb: document.getElementById('max-db'),
+            minDb: document.getElementById('min-db'),
+            minFreq: document.getElementById('min-freq'),
+            maxFreq: document.getElementById('max-freq')
+        };
+
+        const getPadding = () => ({ left: 55, bottom: 25 });
+        
+        function getXPosition(freq) {
+            const p = getPadding();
+            const graphWidth = canvas.width - p.left;
+            const freqRange = zoomMaxFreq - zoomMinFreq;
+            if (!isLogScale) return p.left + ((freq - zoomMinFreq) / freqRange) * graphWidth;
+            const logMin = Math.log10(Math.max(1, zoomMinFreq));
+            const logMax = Math.log10(zoomMaxFreq);
+            return p.left + ((Math.log10(freq) - logMin) / (logMax - logMin)) * graphWidth;
+        }
+
+        function getFreqFromX(x) {
+            const p = getPadding();
+            const graphWidth = canvas.width - p.left;
+            const normalizedX = Math.max(0, Math.min(1, (x - p.left) / graphWidth));
+            if (!isLogScale) return normalizedX * (zoomMaxFreq - zoomMinFreq) + zoomMinFreq;
+            const logMin = Math.log10(Math.max(1, zoomMinFreq));
+            const logMax = Math.log10(zoomMaxFreq);
+            return Math.pow(10, normalizedX * (logMax - logMin) + logMin);
+        }
+
+        function getYPosition(db) {
+            const p = getPadding();
+            const graphHeight = canvas.height - p.bottom;
+            return graphHeight - ((db - displayMinDb) / (displayMaxDb - displayMinDb)) * graphHeight;
+        }
+
+        function getDbFromY(y) {
+            const p = getPadding();
+            const graphHeight = canvas.height - p.bottom;
+            const normalizedY = Math.max(0, Math.min(1, (graphHeight - y) / graphHeight));
+            return normalizedY * (displayMaxDb - displayMinDb) + displayMinDb;
+        }
+
+        function formatFreqLabel(freq) {
+            if (freq >= 1000) {
+                let kVal = freq / 1000;
+                return Number.isInteger(kVal) ? kVal + 'k' : kVal.toFixed(2).replace(/0+$/, '').replace(/\.$/, '') + 'k';
+            }
+            return Math.round(freq);
+        }
+
+        // --- Grid Drawing ---
+        function drawGrid() {
+            const p = getPadding();
+            const gW = canvas.width - p.left, gH = canvas.height - p.bottom;
+            const dbRange = displayMaxDb - displayMinDb;
+            const freqRange = zoomMaxFreq - zoomMinFreq;
+
+            // Draw Decibel Labels & Lines
+            canvasCtx.textAlign = 'right'; canvasCtx.font = '10px monospace';
+            for (let db = -140; db <= 0; db += 10) {
+                if (db < displayMinDb || db > displayMaxDb) continue;
+                const y = getYPosition(db);
+                canvasCtx.strokeStyle = 'rgba(56, 189, 248, 0.1)';
+                canvasCtx.beginPath(); canvasCtx.moveTo(p.left, y); canvasCtx.lineTo(canvas.width, y); canvasCtx.stroke();
+                canvasCtx.fillStyle = '#94a3b8'; canvasCtx.fillText(`${db} dB`, p.left - 8, y + 4);
+            }
+
+            // Draw Frequency Labels & Lines
+            canvasCtx.textAlign = 'center';
+            
+            // Dynamic linear steps based on zoom depth to avoid overcrowding but show detail
+            let freqStep = 2000;
+            if (freqRange <= 50) freqStep = 5;
+            else if (freqRange <= 100) freqStep = 10;
+            else if (freqRange <= 250) freqStep = 25;
+            else if (freqRange <= 500) freqStep = 50;
+            else if (freqRange <= 1000) freqStep = 100;
+            else if (freqRange <= 2000) freqStep = 200;
+            else if (freqRange <= 5000) freqStep = 500;
+            else if (freqRange <= 10000) freqStep = 1000;
+            else freqStep = 2000;
+            
+            if (isLogScale) {
+                let logSteps = [];
+                if (freqRange > 8000) {
+                    // Broad log steps
+                    for (let pow = 0; pow <= 5; pow++) {
+                        const base = Math.pow(10, pow);
+                        [1, 2, 5].forEach(m => logSteps.push(base * m));
+                    }
+                } else if (freqRange > 2000) {
+                    // Dense log steps
+                    for (let pow = 0; pow <= 5; pow++) {
+                        const base = Math.pow(10, pow);
+                        for(let i=1; i<=9; i++) logSteps.push(base * i);
+                    }
+                } else {
+                    // Deep zoom fallback
+                    const startFreq = Math.max(0, Math.ceil(zoomMinFreq / freqStep) * freqStep);
+                    for (let freq = startFreq; freq <= zoomMaxFreq; freq += freqStep) {
+                        logSteps.push(freq);
+                    }
+                }
+
+                // Explicitly add 0 for the far left edge if we are zoomed out that far
+                if (zoomMinFreq === 0 && !logSteps.includes(0)) logSteps.unshift(0);
+
+                logSteps.forEach(freq => {
+                    if (freq >= zoomMinFreq && freq <= zoomMaxFreq) {
+                        const x = getXPosition(freq);
+                        canvasCtx.strokeStyle = 'rgba(56, 189, 248, 0.1)';
+                        canvasCtx.beginPath(); canvasCtx.moveTo(x, 0); canvasCtx.lineTo(x, gH); canvasCtx.stroke();
+                        canvasCtx.fillStyle = '#94a3b8'; canvasCtx.fillText(formatFreqLabel(freq), x, gH + 15);
+                    }
+                });
+            } else {
+                const startFreq = Math.max(0, Math.ceil(zoomMinFreq / freqStep) * freqStep);
+                for (let freq = startFreq; freq <= zoomMaxFreq; freq += freqStep) {
+                    const x = getXPosition(freq);
+                    canvasCtx.strokeStyle = 'rgba(56, 189, 248, 0.1)';
+                    canvasCtx.beginPath(); canvasCtx.moveTo(x, 0); canvasCtx.lineTo(x, gH); canvasCtx.stroke();
+                    canvasCtx.fillStyle = '#94a3b8'; canvasCtx.fillText(formatFreqLabel(freq), x, gH + 15);
+                }
+            }
+        }
+
+        // --- Audio Logic ---
+        async function initAudio(sourceType) {
+            messageBox.classList.add('hidden');
+            statusEl.textContent = "INITIALIZING ENGINE...";
+            statusEl.className = "text-yellow-500 font-mono";
+
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') await audioCtx.resume();
+
+            try {
+                if (sourceType === 'mic') {
+                    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                } else {
+                    messageBox.innerHTML = "<strong>CRITICAL:</strong> In the popup, select 'Entire Screen' or a Tab and check the <strong>'Share system audio'</strong> box at the bottom left.";
+                    messageBox.classList.remove('hidden');
+                    
+                    stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+                    const audioTracks = stream.getAudioTracks();
+                    if (!audioTracks.length) throw new Error("No audio track shared. Did you forget to check the 'Share system audio' box?");
+                }
+
+                // Make sure the audio context is fully alive after the async picker
+                if (audioCtx.state === 'suspended') await audioCtx.resume();
+                actualNyquist = audioCtx.sampleRate / 2;
+                controls.maxFreq.max = actualNyquist;
+
+                // --- CRITICAL BROWSER BUG FIX ---
+                // Browsers will often silence a MediaStream track from getDisplayMedia 
+                // if it isn't explicitly consumed by an HTML media element. 
+                dummyAudioEl = new Audio();
+                dummyAudioEl.srcObject = stream;
+                dummyAudioEl.muted = true; // Keep it muted so we don't get an echo
+                dummyAudioEl.play().catch(e => console.warn("Dummy audio workaround blocked:", e));
+                // ---------------------------------
+                
+                analyser = audioCtx.createAnalyser();
+                analyser.fftSize = Math.pow(2, parseInt(controls.bandwidth.el.value)); 
+                analyser.smoothingTimeConstant = 0.8;
+
+                gainNode = audioCtx.createGain();
+                gainNode.gain.value = parseFloat(controls.gain.el.value);
+
+                source = audioCtx.createMediaStreamSource(stream);
+                source.connect(gainNode);
+                gainNode.connect(analyser);
+
+                document.getElementById('btn-mic').classList.add('hidden');
+                document.getElementById('btn-system').classList.add('hidden');
+                document.getElementById('btn-stop').classList.remove('hidden');
+                
+                statusEl.textContent = `LISTENING (${sourceType.toUpperCase()})`;
+                statusEl.className = "text-green-500 font-mono";
+                
+                // Hide the instructional message box upon successful connection
+                messageBox.classList.add('hidden');
+                
+                stream.getTracks().forEach(t => t.onended = () => stopAudio());
+            } catch (err) {
+                messageBox.textContent = "ERROR: " + err.message;
+                messageBox.classList.remove('hidden');
+                stopAudio();
+            }
+        }
+
+        function stopAudio() {
+            if (stream) stream.getTracks().forEach(t => t.stop());
+            if (dummyAudioEl) {
+                dummyAudioEl.srcObject = null;
+                dummyAudioEl = null;
+            }
+            
+            document.getElementById('btn-mic').classList.remove('hidden');
+            document.getElementById('btn-system').classList.remove('hidden');
+            document.getElementById('btn-stop').classList.add('hidden');
+            statusEl.textContent = "STOPPED - WAITING FOR INPUT";
+            statusEl.className = "text-yellow-500 font-mono";
+            
+            // Clean up the warning messages when stopping
+            messageBox.classList.add('hidden');
+        }
+
+        function drawVisualizer() {
+            animationId = requestAnimationFrame(drawVisualizer);
+            canvasCtx.fillStyle = '#020617';
+            canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+            drawGrid();
+
+            if (!analyser || isFrozen) {
+                if (displayDataArray) {
+                    drawTrace(displayDataArray);
+                    drawMeasurementTools(displayDataArray);
+                }
+                return;
+            }
+
+            const bufferLength = analyser.frequencyBinCount;
+            const rawData = new Float32Array(bufferLength);
+            analyser.getFloatFrequencyData(rawData);
+
+            if (!displayDataArray || displayDataArray.length !== bufferLength) {
+                displayDataArray = new Float32Array(rawData);
+            } else {
+                for (let i = 0; i < bufferLength; i++) {
+                    displayDataArray[i] = (averagingAlpha * displayDataArray[i]) + ((1 - averagingAlpha) * rawData[i]);
+                }
+            }
+            drawTrace(displayDataArray);
+            drawMeasurementTools(displayDataArray);
+        }
+
+        function drawTrace(data) {
+            const bufferLength = data.length;
+            const binSize = actualNyquist / bufferLength;
+            const p = getPadding();
+            
+            canvasCtx.lineWidth = 1.5;
+            canvasCtx.strokeStyle = '#22d3ee';
+            canvasCtx.beginPath();
+            
+            let hasMoved = false;
+            const startB = Math.max(0, Math.floor(zoomMinFreq / binSize));
+            const endB = Math.min(bufferLength, Math.ceil(zoomMaxFreq / binSize));
+
+            for (let i = startB; i < endB; i++) {
+                const x = getXPosition(i * binSize);
+                const val = Math.max(displayMinDb, Math.min(displayMaxDb, data[i]));
+                const y = getYPosition(val);
+                if (!hasMoved) { canvasCtx.moveTo(x, y); hasMoved = true; }
+                else canvasCtx.lineTo(x, y);
+            }
+            canvasCtx.stroke();
+            canvasCtx.lineTo(getXPosition(endB * binSize), canvas.height - p.bottom);
+            canvasCtx.lineTo(p.left, canvas.height - p.bottom);
+            canvasCtx.fillStyle = 'rgba(34, 211, 238, 0.1)';
+            canvasCtx.fill();
+        }
+
+        function drawMeasurementTools(data) {
+            const p = getPadding();
+            const gH = canvas.height - p.bottom;
+            const bufferLength = data.length;
+            const binSize = actualNyquist / bufferLength;
+
+            if (showPeaks) {
+                let localPeaks = [];
+                const startB = Math.max(0, Math.floor(zoomMinFreq / binSize));
+                const endB = Math.min(bufferLength, Math.ceil(zoomMaxFreq / binSize));
+                
+                // Find all local maxima
+                for (let i = startB + 1; i < endB - 1; i++) {
+                    if (data[i] > data[i-1] && data[i] > data[i+1] && data[i] > -115) {
+                        localPeaks.push({ i, db: data[i], freq: i * binSize });
+                    }
+                }
+                
+                // Sort by highest amplitude
+                localPeaks.sort((a,b) => b.db - a.db);
+                
+                let distinctPeaks = [];
+                // Require peaks to be separated by at least 2% of the zoomed window width, or 50Hz minimum
+                const minFreqSep = Math.max(50, (zoomMaxFreq - zoomMinFreq) * 0.02);
+
+                for (const peak of localPeaks) {
+                    if (distinctPeaks.length >= 3) break;
+                    
+                    // Check if this peak is too close to an already selected (louder) peak
+                    let tooClose = false;
+                    for (const dp of distinctPeaks) {
+                        if (Math.abs(peak.freq - dp.freq) < minFreqSep) {
+                            tooClose = true;
+                            break;
+                        }
+                    }
+                    
+                    if (!tooClose) distinctPeaks.push(peak);
+                }
+
+                distinctPeaks.forEach((peak, idx) => {
+                    const x = getXPosition(peak.freq), y = getYPosition(peak.db);
+                    
+                    // Draw target reticle
+                    canvasCtx.strokeStyle = '#f472b6'; 
+                    canvasCtx.beginPath(); 
+                    canvasCtx.arc(x, y, 6, 0, Math.PI*2); 
+                    canvasCtx.stroke();
+                    
+                    // Configure text rendering
+                    canvasCtx.font = '10px monospace';
+                    canvasCtx.textAlign = 'left';
+                    canvasCtx.textBaseline = 'middle';
+                    
+                    // Format text and stagger vertically to avoid overlap if peaks are somewhat close
+                    const text = `P${idx+1}:${formatFreqLabel(peak.freq)}`;
+                    const textWidth = canvasCtx.measureText(text).width;
+                    const textY = y - 10 - (idx * 14); 
+                    
+                    // Add dark background pill for text readability
+                    canvasCtx.fillStyle = 'rgba(2, 6, 23, 0.85)';
+                    canvasCtx.fillRect(x + 8, textY - 6, textWidth + 4, 12);
+                    
+                    // Draw Text
+                    canvasCtx.fillStyle = '#f472b6'; 
+                    canvasCtx.fillText(text, x + 10, textY);
+                });
+            }
+
+            if (cursorsXEnabled) {
+                [cursorX1Freq, cursorX2Freq].forEach(f => {
+                    const x = getXPosition(f);
+                    canvasCtx.setLineDash([5, 5]); canvasCtx.strokeStyle = '#4ade80';
+                    canvasCtx.beginPath(); canvasCtx.moveTo(x, 0); canvasCtx.lineTo(x, gH); canvasCtx.stroke();
+                });
+            }
+            if (cursorsYEnabled) {
+                [cursorY1Db, cursorY2Db].forEach(db => {
+                    const y = getYPosition(db);
+                    canvasCtx.setLineDash([5, 5]); canvasCtx.strokeStyle = '#c084fc';
+                    canvasCtx.beginPath(); canvasCtx.moveTo(p.left, y); canvasCtx.lineTo(canvas.width, y); canvasCtx.stroke();
+                });
+            }
+            canvasCtx.setLineDash([]);
+        }
+
+        // --- Interaction ---
+        controls.gain.el.oninput = (e) => {
+            const v = parseFloat(e.target.value);
+            controls.gain.disp.textContent = v.toFixed(1) + 'x';
+            if (gainNode) gainNode.gain.setTargetAtTime(v, audioCtx.currentTime, 0.05);
+        };
+        controls.avg.el.oninput = (e) => {
+            averagingAlpha = parseFloat(e.target.value);
+            controls.avg.disp.textContent = averagingAlpha === 0 ? 'OFF' : Math.round(averagingAlpha * 100) + '%';
+        };
+        controls.bandwidth.el.oninput = (e) => {
+            const sz = Math.pow(2, parseInt(e.target.value));
+            controls.bandwidth.disp.textContent = sz;
+            if (analyser) analyser.fftSize = sz;
+        };
+
+        document.getElementById('btn-freeze').onclick = function() {
+            isFrozen = !isFrozen;
+            this.textContent = `FREEZE: ${isFrozen ? 'ON' : 'OFF'}`;
+            this.classList.toggle('bg-blue-700', isFrozen);
+        };
+        document.getElementById('btn-peaks').onclick = function() {
+            showPeaks = !showPeaks;
+            this.textContent = `PEAKS: ${showPeaks ? 'ON' : 'OFF'}`;
+            this.classList.toggle('bg-pink-700', showPeaks);
+        };
+        document.getElementById('btn-scale').onclick = function() {
+            isLogScale = !isLogScale;
+            this.textContent = `X-Axis Scale: ${isLogScale ? 'Logarithmic' : 'Linear'}`;
+        };
+
+        // Helper to ensure cursors never get left off-screen when zooming
+        function clampCursors() {
+            cursorX1Freq = Math.max(zoomMinFreq, Math.min(zoomMaxFreq, cursorX1Freq));
+            cursorX2Freq = Math.max(zoomMinFreq, Math.min(zoomMaxFreq, cursorX2Freq));
+            cursorY1Db = Math.max(displayMinDb, Math.min(displayMaxDb, cursorY1Db));
+            cursorY2Db = Math.max(displayMinDb, Math.min(displayMaxDb, cursorY2Db));
+        }
+
+        controls.minFreq.oninput = (e) => { 
+            let val = parseInt(e.target.value);
+            if (val >= zoomMaxFreq - 10) val = zoomMaxFreq - 10;
+            zoomMinFreq = val;
+            e.target.value = val;
+            clampCursors(); 
+            updateCursorReadouts(); 
+        };
+        
+        controls.maxFreq.oninput = (e) => { 
+            let val = parseInt(e.target.value);
+            if (val <= zoomMinFreq + 10) val = zoomMinFreq + 10;
+            zoomMaxFreq = val;
+            e.target.value = val;
+            clampCursors(); 
+            updateCursorReadouts(); 
+        };
+        
+        controls.minDb.oninput = (e) => { 
+            let val = parseInt(e.target.value);
+            if (val >= displayMaxDb - 10) val = displayMaxDb - 10;
+            displayMinDb = val;
+            e.target.value = val;
+            clampCursors(); 
+            updateCursorReadouts(); 
+        };
+        
+        controls.maxDb.oninput = (e) => { 
+            let val = parseInt(e.target.value);
+            if (val <= displayMinDb + 10) val = displayMinDb + 10;
+            displayMaxDb = val;
+            e.target.value = val;
+            clampCursors(); 
+            updateCursorReadouts(); 
+        };
+
+        const btnCursorX = document.getElementById('btn-cursor-x');
+        btnCursorX.onclick = () => { 
+            cursorsXEnabled = !cursorsXEnabled; 
+            btnCursorX.classList.toggle('bg-slate-700', !cursorsXEnabled);
+            btnCursorX.classList.toggle('bg-green-700', cursorsXEnabled);
+            
+            // Initialize cursors inside the CURRENT visible bounds
+            if (cursorsXEnabled) {
+                if (isLogScale) {
+                    const logMin = Math.log10(Math.max(1, zoomMinFreq));
+                    const logMax = Math.log10(zoomMaxFreq);
+                    const logRange = logMax - logMin;
+                    cursorX1Freq = Math.pow(10, logMin + logRange * 0.33);
+                    cursorX2Freq = Math.pow(10, logMin + logRange * 0.66);
+                } else {
+                    const fRange = zoomMaxFreq - zoomMinFreq;
+                    cursorX1Freq = zoomMinFreq + fRange * 0.33;
+                    cursorX2Freq = zoomMinFreq + fRange * 0.66;
+                }
+            }
+            updateCursorReadouts(); 
+        };
+
+        const btnCursorY = document.getElementById('btn-cursor-y');
+        btnCursorY.onclick = () => { 
+            cursorsYEnabled = !cursorsYEnabled; 
+            btnCursorY.classList.toggle('bg-slate-700', !cursorsYEnabled);
+            btnCursorY.classList.toggle('bg-purple-700', cursorsYEnabled);
+            
+            // Initialize cursors inside the CURRENT visible bounds
+            if (cursorsYEnabled) {
+                const dbRange = displayMaxDb - displayMinDb;
+                cursorY1Db = displayMaxDb - dbRange * 0.33;
+                cursorY2Db = displayMaxDb - dbRange * 0.66;
+            }
+            updateCursorReadouts(); 
+        };
+
+        function updateCursorReadouts() {
+            document.getElementById('readout-f1').textContent = cursorsXEnabled ? formatFreqLabel(cursorX1Freq) : '--';
+            document.getElementById('readout-f2').textContent = cursorsXEnabled ? formatFreqLabel(cursorX2Freq) : '--';
+            document.getElementById('readout-df').textContent = cursorsXEnabled ? formatFreqLabel(Math.abs(cursorX2Freq - cursorX1Freq)) : '--';
+            document.getElementById('readout-a1').textContent = cursorsYEnabled ? cursorY1Db.toFixed(1) : '--';
+            document.getElementById('readout-a2').textContent = cursorsYEnabled ? cursorY2Db.toFixed(1) : '--';
+            document.getElementById('readout-da').textContent = cursorsYEnabled ? Math.abs(cursorY2Db - cursorY1Db).toFixed(1) : '--';
+        }
+
+        canvas.onmousedown = (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left, y = e.clientY - rect.top;
+            if (cursorsXEnabled) {
+                if (Math.abs(x - getXPosition(cursorX1Freq)) < 15) activeDrag = 'x1';
+                else if (Math.abs(x - getXPosition(cursorX2Freq)) < 15) activeDrag = 'x2';
+            }
+            if (!activeDrag && cursorsYEnabled) {
+                if (Math.abs(y - getYPosition(cursorY1Db)) < 15) activeDrag = 'y1';
+                else if (Math.abs(y - getYPosition(cursorY2Db)) < 15) activeDrag = 'y2';
+            }
+        };
+        window.onmousemove = (e) => {
+            if (!activeDrag) return;
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left, y = e.clientY - rect.top;
+            if (activeDrag === 'x1') cursorX1Freq = getFreqFromX(x);
+            if (activeDrag === 'x2') cursorX2Freq = getFreqFromX(x);
+            if (activeDrag === 'y1') cursorY1Db = getDbFromY(y);
+            if (activeDrag === 'y2') cursorY2Db = getDbFromY(y);
+            updateCursorReadouts();
+        };
+        window.onmouseup = () => activeDrag = null;
+
+        document.getElementById('btn-reset').onclick = () => {
+            // Reset State Variables
+            isLogScale = false;
+            isFrozen = false;
+            showPeaks = false;
+            averagingAlpha = 0.4;
+            displayMaxDb = -20;
+            displayMinDb = -100;
+            zoomMinFreq = 0;
+            zoomMaxFreq = 20000;
+            cursorsXEnabled = false;
+            cursorsYEnabled = false;
+
+            // Reset UI Inputs
+            controls.gain.el.value = 2;
+            controls.gain.disp.textContent = "2.0x";
+            if (gainNode) gainNode.gain.setTargetAtTime(2, audioCtx.currentTime, 0.05);
+
+            controls.avg.el.value = 0.4;
+            controls.avg.disp.textContent = "40%";
+
+            controls.bandwidth.el.value = 11;
+            controls.bandwidth.disp.textContent = "2048";
+            if (analyser) analyser.fftSize = 2048;
+
+            controls.minFreq.value = 0;
+            controls.maxFreq.value = 20000;
+            controls.minDb.value = -100;
+            controls.maxDb.value = -20;
+
+            // Reset UI Buttons
+            const btnFreeze = document.getElementById('btn-freeze');
+            btnFreeze.textContent = "FREEZE: OFF";
+            btnFreeze.classList.remove('bg-blue-700');
+
+            const btnPeaks = document.getElementById('btn-peaks');
+            btnPeaks.textContent = "PEAKS: OFF";
+            btnPeaks.classList.remove('bg-pink-700');
+
+            const btnScale = document.getElementById('btn-scale');
+            btnScale.textContent = "X-Axis Scale: Linear";
+
+            const btnCX = document.getElementById('btn-cursor-x');
+            btnCX.classList.remove('bg-green-700');
+            btnCX.classList.add('bg-slate-700');
+
+            const btnCY = document.getElementById('btn-cursor-y');
+            btnCY.classList.remove('bg-purple-700');
+            btnCY.classList.add('bg-slate-700');
+
+            updateCursorReadouts();
+        };
+
+        const resizeObserver = new ResizeObserver(entries => {
+            for (let entry of entries) {
+                canvas.width = entry.contentRect.width;
+                canvas.height = entry.contentRect.height;
+            }
+        });
+        resizeObserver.observe(canvasContainer);
+
+        document.getElementById('btn-mic').onclick = () => initAudio('mic');
+        document.getElementById('btn-system').onclick = () => initAudio('system');
+        document.getElementById('btn-stop').onclick = stopAudio;
+
+        // Start drawing logic immediately on load to show grid
+        drawVisualizer();
+    </script>
+</body>
+</html>
