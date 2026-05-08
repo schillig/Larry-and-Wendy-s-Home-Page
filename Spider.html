@@ -727,7 +727,24 @@
                     // Pointer was dragged. Use elementFromPoint to see what column lies beneath the cursor
                     // (This works because the dragged cards have `pointer-events: none` applied)
                     const target = document.elementFromPoint(e.clientX, e.clientY);
-                    const targetColumn = target ? target.closest('.tableau-pile') : null;
+                    let targetColumn = target ? target.closest('.tableau-pile') : null;
+
+                    // --- FORGIVING DROP ZONE (MAGNETIC SNAPPING) ---
+                    // If the user drops the card below the physical boundary of an empty column, 
+                    // this dynamically calculates which column they meant to target based on their X-coordinate.
+                    if (!targetColumn) {
+                        const boardRect = els.board.getBoundingClientRect();
+                        // Check if the drop happened horizontally within the board and below the top edge
+                        if (e.clientX >= boardRect.left && e.clientX <= boardRect.right && e.clientY >= boardRect.top) {
+                            // Calculate which of the 10 columns the cursor is hovering over
+                            const columnWidth = boardRect.width / 10;
+                            const estimatedColumnIndex = Math.floor((e.clientX - boardRect.left) / columnWidth);
+                            
+                            if (estimatedColumnIndex >= 0 && estimatedColumnIndex < 10) {
+                                targetColumn = els.board.children[estimatedColumnIndex];
+                            }
+                        }
+                    }
 
                     if (targetColumn) {
                         const targetPileIndex = parseInt(targetColumn.dataset.pile);
