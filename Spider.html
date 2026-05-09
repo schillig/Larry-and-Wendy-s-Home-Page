@@ -6,13 +6,13 @@
     <title>Wendy's Spider Solitaire</title>
     
     <!-- Favicon generated as an inline SVG matching the card icon -->
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22[http://www.w3.org/2000/svg%22](http://www.w3.org/2000/svg%22) viewBox=%220 0 100 100%22><rect x=%2220%22 y=%2215%22 width=%2260%22 height=%2270%22 rx=%228%22 fill=%22white%22 stroke=%22%23d1d5db%22 stroke-width=%224%22 transform=%22rotate(-6 50 50)%22/><text x=%2250%22 y=%2263%22 font-size=%2245%22 fill=%22%23dc2626%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 transform=%22rotate(-6 50 50)%22>♥</text></svg>">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect x=%2220%22 y=%2215%22 width=%2260%22 height=%2270%22 rx=%228%22 fill=%22white%22 stroke=%22%23d1d5db%22 stroke-width=%224%22 transform=%22rotate(-6 50 50)%22/><text x=%2250%22 y=%2263%22 font-size=%2245%22 fill=%22%23dc2626%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 transform=%22rotate(-6 50 50)%22>♥</text></svg>">
     
     <!-- Tailwind CSS for rapid, responsive UI styling -->
-    <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     
     <!-- Canvas Confetti Library for Fireworks -->
-    <script src="[https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js](https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js)"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
     
     <style>
         /* --- GLOBAL & MOBILE FIXES --- */
@@ -189,6 +189,11 @@
         </div>
 
     </main>
+
+    <!-- Version Control Footer -->
+    <footer class="w-full text-center pb-4 pt-2 text-white/40 text-xs font-mono tracking-widest z-10 relative">
+        v1.1.0
+    </footer>
 
     <!-- Game Logic Scripts -->
     <script>
@@ -541,3 +546,430 @@
                 updateUI();
                 autoSave(); 
             }
+
+            // Scans the bottom of a column for a perfect 13-card King-to-Ace matching suit sequence
+            function checkForCompletedSet(pileIndex) {
+                const pile = state.tableaus[pileIndex];
+                if (pile.length < 13) return; // Math failsafe
+
+                const startIndex = pile.length - 13;
+                if (!isValidSequence(pileIndex, startIndex)) return; // Requires strictly matching sequence
+                if (pile[startIndex].rank !== 13 || pile[pile.length - 1].rank !== 1) return; // Requires K -> A bounds
+
+                // Cleanly slice the 13 cards off the board
+                pile.splice(startIndex, 13);
+                state.foundations++;
+                state.score += 100; // Reward
+
+                // Auto-flip card beneath the removed King
+                if (pile.length > 0 && !pile[pile.length - 1].faceUp) {
+                    pile[pile.length - 1].faceUp = true;
+                }
+
+                // Win Condition Evaluation
+                if (state.foundations === 8) {
+                    setTimeout(() => {
+                        // Pass 'true' to explicitly make this message permanent
+                        showMessage("🎉 Great Job Wendy! 🎉", true);
+                        launchFireworks();
+                    }, 500); // UI delay allows the final foundation animation to process
+                }
+            }
+
+            // Triggered via stock click
+            function dealFromStock() {
+                if (state.stock.length === 0) return;
+
+                // Dealing alters all 10 columns simultaneously, so we capture a delta of the entire board
+                saveState([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], true); 
+
+                const dealBatch = state.stock.pop();
+                for (let i = 0; i < 10; i++) {
+                    const card = dealBatch[i];
+                    card.faceUp = true;
+                    state.tableaus[i].push(card);
+                    checkForCompletedSet(i); // Dealing might accidentally finish a sequence!
+                }
+                
+                state.moves++;
+                clearSelection();
+                updateUI();
+                autoSave(); 
+            }
+
+            // --- UI & RENDERING ENGINE ---
+            function getRankDisplay(rank) {
+                return RANK_LABELS[rank] || rank.toString();
+            }
+
+            // Master DOM Rebuild: Obliterates the old DOM and redraws purely based on `state` variables
+            function updateUI() {
+                // Update text tracking
+                els.scoreDisplay.innerText = state.score;
+                els.movesDisplay.innerText = state.moves;
+
+                // Render Top Left Stock (Undealt Cards)
+                els.stock.innerHTML = '';
+                state.stock.forEach((batch, index) => {
+                    const div = document.createElement('div');
+                    div.className = 'w-12 h-16 md:w-16 md:h-24 bg-blue-800 rounded border-2 border-white shadow-md relative flex items-center justify-center overflow-hidden';
+                    div.style.backgroundImage = 'repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(255,255,255,0.1) 5px, rgba(255,255,255,0.1) 10px)';
+                    div.innerHTML = `<span class="text-2xl md:text-4xl drop-shadow-md leading-none">🌴</span>`;
+                    div.style.marginLeft = index > 0 ? '-1rem' : '0'; // Visual stacking via negative margin
+                    div.onclick = dealFromStock;
+                    els.stock.appendChild(div);
+                });
+
+                if (state.stock.length === 0) {
+                    const emptyStock = document.createElement('div');
+                    emptyStock.className = 'w-12 h-16 md:w-16 md:h-24 border-2 border-dashed border-gray-400 rounded opacity-50';
+                    els.stock.appendChild(emptyStock);
+                }
+
+                // Render Top Right Foundations (Completed Sets)
+                els.foundations.innerHTML = '';
+                for(let i=0; i < 8; i++) {
+                    const fDiv = document.createElement('div');
+                    fDiv.className = 'w-12 h-16 md:w-16 md:h-24 border-2 border-dashed border-white/50 rounded flex items-center justify-center text-white/50 text-2xl font-bold';
+                    
+                    if (i < state.foundations) {
+                        // Replaces dotted line with solid K indicating completion
+                        fDiv.className = 'w-12 h-16 md:w-16 md:h-24 bg-white rounded border border-gray-300 shadow-sm flex items-center justify-center text-2xl ' + 
+                                         (state.difficulty === 1 ? 'text-black' : 'text-blue-900'); 
+                        fDiv.innerText = 'K';
+                    }
+                    els.foundations.appendChild(fDiv);
+                }
+
+                // Render Main Board Tableaus
+                els.board.innerHTML = '';
+                state.tableaus.forEach((pile, pileIndex) => {
+                    const column = document.createElement('div');
+                    column.className = 'tableau-pile';
+                    column.dataset.pile = pileIndex;
+                    
+                    // Allows users to click explicitly on the empty column background to drop a card
+                    column.onpointerdown = (e) => {
+                        if(e.target === column) handlePointerDown(e, pileIndex, -1);
+                    };
+
+                    pile.forEach((card, cardIndex) => {
+                        const cardEl = document.createElement('div');
+                        
+                        // NOTE ON CQI FONTS: clamp() and cqi units dynamically resize the text based on the physical pixel width of the card
+                        // ensuring 🌴 and numbers never clip bounds regardless of screen size.
+                        if (!card.faceUp) {
+                            cardEl.className = 'card card-face-down';
+                            cardEl.innerHTML = `<div style="font-size: clamp(2.5rem, 60cqi, 5rem); filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); line-height: 1;">🌴</div>`;
+                        } else {
+                            cardEl.className = `card ${card.suit.color}`;
+                            cardEl.innerHTML = `
+                                <div class="font-bold tracking-tighter" style="font-size: clamp(1rem, 32cqi, 3rem); line-height: 0.8; margin-top: 2px;">${getRankDisplay(card.rank)}</div>
+                                <div class="leading-none text-center flex-grow flex items-center justify-center" style="font-size: clamp(2rem, 60cqi, 5rem);">${card.suit.icon}</div>
+                                <div class="font-bold tracking-tighter self-end rotate-180" style="font-size: clamp(1rem, 32cqi, 3rem); line-height: 0.8; margin-bottom: 2px;">${getRankDisplay(card.rank)}</div>
+                            `;
+                        }
+
+                        // Applies golden glow class to valid click-selections
+                        if (state.selectedPile === pileIndex && cardIndex >= state.selectedCardIndex) {
+                            cardEl.classList.add('selected');
+                        }
+
+                        // Absolute stacking logic via top offset cascade
+                        cardEl.style.top = `${cardIndex * VERTICAL_OFFSET}px`;
+
+                        // Bind the unified pointerdown event for tracking both 'clicks' and the beginning of 'drags'
+                        cardEl.onpointerdown = (e) => {
+                            e.preventDefault();  // Stop default browser touch actions
+                            e.stopPropagation(); // Stop event bubbling
+                            handlePointerDown(e, pileIndex, cardIndex);
+                        };
+
+                        column.appendChild(cardEl);
+                    });
+
+                    // Forces the column to be tall enough to support absolutely positioned cards
+                    if (pile.length > 0) {
+                        column.style.height = `${120 + (pile.length * VERTICAL_OFFSET)}px`;
+                    }
+
+                    els.board.appendChild(column);
+                });
+            }
+
+            // --- ADVANCED POINTER & INTERACTION PHYSICS ---
+            
+            // Step 1: Pointer touches a card
+            function handlePointerDown(e, pileIndex, cardIndex) {
+                if (e.button !== 0 && e.pointerType === 'mouse') return; // Ignore right/middle click
+
+                const clickedCardFaceUp = cardIndex >= 0 ? state.tableaus[pileIndex][cardIndex].faceUp : false;
+
+                if (cardIndex === -1) {
+                    processClick(pileIndex, -1); // Process as a drop on empty column
+                    return;
+                }
+
+                if (!clickedCardFaceUp) return; // Ignore interactions with card backs
+
+                // Evaluate stack validity
+                if (isValidSequence(pileIndex, cardIndex)) {
+                    // Prep drag engine payload, but hold off on dragging visuals until movement occurs
+                    drag.active = true;
+                    drag.isDragging = false;
+                    drag.startX = e.clientX;
+                    drag.startY = e.clientY;
+                    drag.pile = pileIndex;
+                    drag.card = cardIndex;
+                    
+                    // Bundle all sub-cards so they follow the cursor as a group
+                    drag.elements = [];
+                    const columnEl = els.board.children[pileIndex];
+                    for (let i = cardIndex; i < state.tableaus[pileIndex].length; i++) {
+                        drag.elements.push(columnEl.children[i]);
+                    }
+
+                    // Hard lock touch tracking to this element so fast swipes don't break the drag
+                    if (e.target.setPointerCapture) {
+                        try { e.target.setPointerCapture(e.pointerId); } catch(err) {}
+                    }
+                } else {
+                    // Invalid stack selected. Visually pulse.
+                    e.currentTarget.classList.add('animate-pulse', 'border-red-500', 'border-2');
+                    setTimeout(() => updateUI(), 300);
+                }
+            }
+
+            // Step 2: Pointer moves across screen
+            window.addEventListener('pointermove', (e) => {
+                if (!drag.active) return;
+                
+                const dx = e.clientX - drag.startX;
+                const dy = e.clientY - drag.startY;
+
+                // Threshold Check: Pointer must move 5px to convert a 'click' into a 'drag'
+                if (!drag.isDragging && (Math.abs(dx) > 5 || Math.abs(dy) > 5)) {
+                    drag.isDragging = true;
+                    drag.elements.forEach(el => el.classList.add('dragging')); // Removes pointer-events from CSS
+                    
+                    // Cleanup any existing golden-glow selections to keep UI clean during drag
+                    if (state.selectedPile !== drag.pile || state.selectedCardIndex !== drag.card) {
+                         state.selectedPile = null;
+                         state.selectedCardIndex = null;
+                         document.querySelectorAll('.card.selected').forEach(el => el.classList.remove('selected'));
+                    }
+                }
+
+                // Animate DOM node transforms tracking the cursor
+                if (drag.isDragging) {
+                    drag.elements.forEach((el) => {
+                        el.style.transform = `translate(${dx}px, ${dy}px)`;
+                    });
+                }
+            });
+
+            // Step 3: Pointer lifts off screen
+            window.addEventListener('pointerup', (e) => {
+                if (!drag.active) return;
+
+                if (!drag.isDragging) {
+                    // Pointer pressed and released without moving 5px = Pure Click
+                    processClick(drag.pile, drag.card);
+                } else {
+                    // Pointer was dragged. Use elementFromPoint to see what column lies beneath the cursor
+                    // (This works because the dragged cards have `pointer-events: none` applied)
+                    const target = document.elementFromPoint(e.clientX, e.clientY);
+                    let targetColumn = target ? target.closest('.tableau-pile') : null;
+
+                    // --- FORGIVING DROP ZONE (MAGNETIC SNAPPING) ---
+                    // If the user drops the card below the physical boundary of an empty column, 
+                    // this dynamically calculates which column they meant to target based on their X-coordinate.
+                    if (!targetColumn) {
+                        const boardRect = els.board.getBoundingClientRect();
+                        // Check if the drop happened horizontally within the board and below the top edge
+                        if (e.clientX >= boardRect.left && e.clientX <= boardRect.right && e.clientY >= boardRect.top) {
+                            // Calculate which of the 10 columns the cursor is hovering over
+                            const columnWidth = boardRect.width / 10;
+                            const estimatedColumnIndex = Math.floor((e.clientX - boardRect.left) / columnWidth);
+                            
+                            if (estimatedColumnIndex >= 0 && estimatedColumnIndex < 10) {
+                                targetColumn = els.board.children[estimatedColumnIndex];
+                            }
+                        }
+                    }
+
+                    if (targetColumn) {
+                        const targetPileIndex = parseInt(targetColumn.dataset.pile);
+                        
+                        if (targetPileIndex !== drag.pile) {
+                            if (canDrop(drag.pile, drag.card, targetPileIndex)) {
+                                saveState([drag.pile, targetPileIndex]); // Snapshot Delta
+                                moveCards(drag.pile, drag.card, targetPileIndex); // Math execution
+                            } else {
+                                updateUI(); // Drop invalid, redraw to snap cards home
+                            }
+                        } else {
+                             updateUI(); // Dropped on self
+                        }
+                    } else {
+                        updateUI(); // Dropped into the void
+                    }
+                }
+
+                // Flush drag engine payload
+                drag.active = false;
+                drag.isDragging = false;
+                drag.elements.forEach(el => {
+                    el.classList.remove('dragging');
+                    el.style.transform = '';
+                });
+                drag.elements = [];
+            });
+
+            // Failsafe: Intercepts OS-level interruptions (like Android swipe gestures) to prevent cards from getting stuck floating
+            window.addEventListener('pointercancel', (e) => {
+                if (!drag.active) return;
+                drag.active = false;
+                drag.isDragging = false;
+                drag.elements.forEach(el => {
+                    el.classList.remove('dragging');
+                    el.style.transform = '';
+                });
+                drag.elements = [];
+                updateUI(); 
+            });
+
+            // Handles legacy 'Click-to-Move' logic fallback (Accessibility friendly)
+            function processClick(pileIndex, cardIndex) {
+                const clickedCardFaceUp = cardIndex >= 0 ? state.tableaus[pileIndex][cardIndex].faceUp : false;
+
+                // State A: Picking up a stack
+                if (state.selectedPile === null) {
+                    if (cardIndex === -1) return; 
+                    if (!clickedCardFaceUp) return; 
+                    
+                    if (isValidSequence(pileIndex, cardIndex)) {
+                        state.selectedPile = pileIndex;
+                        state.selectedCardIndex = cardIndex;
+                        updateUI();
+                    }
+                } 
+                // State B: Dropping a stack
+                else {
+                    // Clicked same stack twice, clear selection
+                    if (state.selectedPile === pileIndex && state.selectedCardIndex === cardIndex) {
+                        clearSelection();
+                        updateUI();
+                        return;
+                    }
+
+                    if (canDrop(state.selectedPile, state.selectedCardIndex, pileIndex)) {
+                        saveState([state.selectedPile, pileIndex]); 
+                        moveCards(state.selectedPile, state.selectedCardIndex, pileIndex);
+                    } else {
+                        // User clicked a new valid stack instead of dropping, shift selection
+                        if (cardIndex >= 0 && clickedCardFaceUp && isValidSequence(pileIndex, cardIndex)) {
+                            state.selectedPile = pileIndex;
+                            state.selectedCardIndex = cardIndex;
+                            updateUI();
+                        } else {
+                            clearSelection();
+                            updateUI();
+                        }
+                    }
+                }
+            }
+
+            // Flush global click selections
+            function clearSelection() {
+                state.selectedPile = null;
+                state.selectedCardIndex = null;
+            }
+
+            // --- NOTIFICATION UTILITIES ---
+            
+            // Utility to trigger notification banner
+            // Adding a 'permanent' boolean parameter with a default of 'false'
+            function showMessage(text, permanent = false) {
+                els.msgText.innerText = text;
+                els.msgBox.classList.remove('hidden');
+                els.msgBox.classList.add('msg-animate');
+                
+                // Only auto-hide the banner if it is NOT a permanent message
+                if (!permanent) {
+                    setTimeout(() => {
+                        hideMessage();
+                    }, 3000);
+                }
+            }
+
+            // Dedicated function to forcefully hide the message box
+            function hideMessage() {
+                els.msgBox.classList.add('hidden');
+                els.msgBox.classList.remove('msg-animate');
+            }
+
+            // --- MASTER EVENT BINDINGS ---
+            els.newGameBtn.addEventListener('click', () => {
+                if(confirm("Are you sure you want to start a new game? Current progress will be lost.")) {
+                    initGame();
+                }
+            });
+
+            // Restores the pristine initial clone taken after shuffling
+            els.replayBtn.addEventListener('click', () => {
+                if (!initialGameState) return;
+                if(confirm("Are you sure you want to restart this exact game? Current progress will be lost.")) {
+                    state = JSON.parse(JSON.stringify(initialGameState));
+                    history = [];
+                    redoHistory = [];
+                    els.undoBtn.disabled = true;
+                    els.redoBtn.disabled = true;
+                    
+                    // CRITICAL: Clear active win state celebrations before redrawing the replay board
+                    stopFireworks();
+                    hideMessage();
+                    
+                    clearSelection();
+                    updateUI();
+                    autoSave();
+                }
+            });
+
+            els.difficultySel.addEventListener('change', () => {
+                initGame();
+            });
+
+            els.undoBtn.addEventListener('click', undo);
+            els.redoBtn.addEventListener('click', redo);
+
+            // --- BOOT SEQUENCE ---
+            const savedString = localStorage.getItem(SAVE_KEY);
+            if (savedString) {
+                // Parse LocalStorage payload and inject into active state memory
+                try {
+                    const parsed = JSON.parse(savedString);
+                    state = parsed.state;
+                    history = parsed.history || [];
+                    redoHistory = parsed.redoHistory || [];
+                    initialGameState = parsed.initialGameState;
+                    
+                    els.difficultySel.value = state.difficulty;
+                    els.undoBtn.disabled = history.length === 0;
+                    els.redoBtn.disabled = redoHistory.length === 0;
+                    
+                    clearSelection();
+                    updateUI();
+                } catch (e) {
+                    // Corrupted JSON failsafe
+                    console.error("Failed to load save data", e);
+                    initGame();
+                }
+            } else {
+                initGame(); // First time loading the app
+            }
+
+        })();
+    </script>
+</body>
+</html>
