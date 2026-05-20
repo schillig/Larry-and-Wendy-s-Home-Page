@@ -2,86 +2,115 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Location Tracker</title>
+    <!-- Essential for mobile web apps: disables zooming to feel like a native app -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mobile Radar Tracker</title>
+    
     <!-- Tailwind CSS for rapid styling -->
     <script src="https://cdn.tailwindcss.com"></script>
+    
     <!-- Leaflet CSS for the map -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
      crossorigin=""/>
+
     <style>
-        /* Ensure the map container takes up enough space */
-        #map { height: 400px; width: 100%; border-radius: 0.5rem; }
+        /* Force the body to fill the viewport exactly, preventing scrolling */
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+
+        /* The map sits behind everything */
+        #map { 
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100vh; 
+            width: 100vw; 
+            z-index: 0; 
+        }
+
+        /* Hide leaflet attribution on mobile to save space */
+        .leaflet-control-attribution {
+            display: none !important;
+        }
+
+        /* Smooth compass rotation */
+        #compassIcon {
+            transition: transform 0.3s ease-out;
+        }
     </style>
 </head>
-<body class="bg-gray-100 text-gray-800 font-sans p-4 md:p-8 flex flex-col items-center justify-center min-h-screen">
+<body class="relative text-gray-800">
 
-    <div class="max-w-3xl w-full bg-white rounded-xl shadow-lg overflow-hidden">
+    <!-- Map Container -->
+    <div id="map"></div>
+
+    <!-- Top Navigation / Status Overlay -->
+    <div class="absolute top-0 left-0 right-0 z-[1000] p-4 pointer-events-none flex justify-between items-start pt-safe-top">
         
-        <!-- Header Section -->
-        <div class="bg-blue-600 p-6 text-white text-center">
-            <h1 class="text-3xl font-bold">Real-Time Location Tracker</h1>
-            <p class="mt-2 text-blue-100">Monitor your position, speed, and heading</p>
+        <!-- City and Status Card (Glassmorphism) -->
+        <div class="bg-white/85 backdrop-blur-md border border-white/20 shadow-lg rounded-2xl px-5 py-3 max-w-[70%] pointer-events-auto">
+            <h1 id="cityDisplay" class="font-bold text-lg text-gray-900 truncate">Detecting Location...</h1>
+            <div class="flex items-center mt-1 space-x-2">
+                <div id="statusDot" class="w-2.5 h-2.5 rounded-full bg-red-500"></div>
+                <p id="statusDisplay" class="text-xs font-medium text-gray-600 uppercase tracking-wide">Tracking Stopped</p>
+            </div>
         </div>
 
-        <!-- Content Section -->
-        <div class="p-6">
+        <!-- Tracking Toggle Button -->
+        <button id="toggleBtn" class="bg-blue-600 hover:bg-blue-700 active:scale-95 transition-all duration-200 text-white rounded-full p-4 shadow-xl pointer-events-auto flex items-center justify-center">
+            <!-- Play Icon -->
+            <svg id="playIcon" class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path></svg>
+            <!-- Stop Icon (Hidden by default) -->
+            <svg id="stopIcon" class="w-6 h-6 hidden" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z" clip-rule="evenodd"></path></svg>
+        </button>
+    </div>
+
+    <!-- Bottom Dashboard Overlay (Speed & Direction) -->
+    <div class="absolute bottom-6 left-4 right-4 z-[1000] pointer-events-none pb-safe-bottom">
+        <div class="bg-white/90 backdrop-blur-xl border border-white/30 shadow-2xl rounded-3xl p-5 pointer-events-auto flex justify-between items-center relative overflow-hidden">
             
-            <!-- Map Container -->
-            <div id="map" class="mb-6 shadow-inner z-0"></div>
+            <!-- Weather Radar Label Overlay (Subtle) -->
+            <div class="absolute top-0 right-0 bg-indigo-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-xl tracking-wider opacity-80">
+                LIVE RADAR
+            </div>
 
-            <!-- Data Display Grid -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                
-                <!-- Status Card -->
-                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                    <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-1">Status</h2>
-                    <p id="statusDisplay" class="text-lg font-medium text-blue-600">Waiting for permission...</p>
-                </div>
-
-                <!-- City/Location Card -->
-                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                    <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-1">Approximate Location</h2>
-                    <p id="cityDisplay" class="text-lg font-medium">Fetching...</p>
-                </div>
-
-                <!-- Coordinates Card -->
-                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                    <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-1">Coordinates</h2>
-                    <p id="coordsDisplay" class="text-lg font-medium font-mono text-sm">--</p>
-                </div>
-
-                <!-- Speed Card -->
-                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 flex justify-between items-center">
-                    <div>
-                        <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-1">Speed</h2>
-                        <p id="speedDisplay" class="text-2xl font-bold text-green-600">0 <span class="text-base font-normal text-gray-500">km/h</span></p>
-                    </div>
-                </div>
-
-                <!-- Direction Card -->
-                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 col-span-1 md:col-span-2 flex justify-between items-center">
-                    <div>
-                        <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-1">Direction (Heading)</h2>
-                        <p id="directionDisplay" class="text-lg font-medium">--</p>
-                    </div>
-                    <!-- Compass icon placeholder -->
-                    <div id="compassIcon" class="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center transition-transform duration-300">
-                        <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg>
-                    </div>
+            <!-- Speed Section -->
+            <div class="flex-1 flex flex-col justify-center border-r border-gray-200/60 pr-4">
+                <h2 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Speed</h2>
+                <div class="flex items-baseline space-x-1">
+                    <span id="speedDisplay" class="text-4xl md:text-5xl font-black text-gray-800 tracking-tighter">0</span>
+                    <span class="text-sm font-semibold text-gray-500">km/h</span>
                 </div>
             </div>
 
-            <!-- Controls -->
-            <div class="mt-6 flex justify-center space-x-4">
-                <button id="startBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition duration-200 shadow-md">
-                    Start Tracking
-                </button>
-                <button id="stopBtn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-6 rounded-lg transition duration-200 shadow-md hidden">
-                    Stop Tracking
-                </button>
+            <!-- Direction Section -->
+            <div class="flex-1 flex flex-col items-center justify-center pl-4">
+                <h2 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Heading</h2>
+                <div class="flex flex-col items-center justify-center w-full">
+                    <!-- Compass GUI -->
+                    <div class="relative w-14 h-14 bg-gradient-to-br from-gray-100 to-gray-300 rounded-full shadow-inner border border-gray-300 flex items-center justify-center mb-1">
+                        <!-- North Marker -->
+                        <div class="absolute top-1 text-[8px] font-bold text-red-500">N</div>
+                        
+                        <!-- Rotating Arrow -->
+                        <div id="compassIcon" class="w-full h-full flex items-center justify-center text-blue-600">
+                            <svg class="w-8 h-8 drop-shadow-md" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 10l7-7m0 0l7 7m-7-7v18"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <span id="directionDisplay" class="text-lg font-bold text-gray-700">--</span>
+                </div>
             </div>
+
         </div>
     </div>
 
@@ -93,176 +122,236 @@
     <script>
         // DOM Elements
         const statusDisplay = document.getElementById('statusDisplay');
+        const statusDot = document.getElementById('statusDot');
         const cityDisplay = document.getElementById('cityDisplay');
-        const coordsDisplay = document.getElementById('coordsDisplay');
         const speedDisplay = document.getElementById('speedDisplay');
         const directionDisplay = document.getElementById('directionDisplay');
         const compassIcon = document.getElementById('compassIcon');
-        const startBtn = document.getElementById('startBtn');
-        const stopBtn = document.getElementById('stopBtn');
+        const toggleBtn = document.getElementById('toggleBtn');
+        const playIcon = document.getElementById('playIcon');
+        const stopIcon = document.getElementById('stopIcon');
 
-        // Variables for tracking
+        // App State Variables
         let watchId = null;
         let map = null;
         let marker = null;
         let circle = null;
+        let isTracking = false;
+        let radarLayer = null;
 
-        // Initialize Map (Centered on 0,0 initially)
+        // Initialize Map (Centered on US broadly initially)
         function initMap() {
-            // Leaflet map setup
-            map = L.map('map').setView([0, 0], 2);
+            // Leaflet map setup with touch/mobile optimized settings
+            map = L.map('map', {
+                zoomControl: false // Disable default zoom buttons for cleaner mobile UI
+            }).setView([39.8283, -98.5795], 4);
 
-            // Add OpenStreetMap tiles
-            L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            // Add clean OpenStreetMap tiles
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
                 maxZoom: 19,
-                attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                attribution: '&copy; <a href="https://carto.com/">carto.com</a>'
             }).addTo(map);
+
+            // Fetch and add the live weather radar layer
+            fetchWeatherRadar();
+        }
+
+        // Fetch Live Global Weather Radar using free RainViewer API
+        async function fetchWeatherRadar() {
+            try {
+                // Get the latest map timestamps from RainViewer
+                const response = await fetch('https://api.rainviewer.com/public/weather-maps.json');
+                const data = await response.json();
+                
+                // Get the path for the most recent radar data
+                const pastRadar = data.radar.past;
+                const latestRadarPath = pastRadar[pastRadar.length - 1].path;
+                
+                // Configuration: 256px tiles, color scheme 2, smooth 1, snow layer 1
+                const tileUrl = `https://tilecache.rainviewer.com${latestRadarPath}/256/{z}/{x}/{y}/2/1_1.png`;
+
+                // Add to Leaflet map as an overlay
+                radarLayer = L.tileLayer(tileUrl, {
+                    opacity: 0.65, // Semi-transparent to see roads underneath
+                    zIndex: 10,
+                    attribution: 'RainViewer'
+                }).addTo(map);
+
+            } catch (error) {
+                console.error("Failed to load weather radar:", error);
+            }
         }
 
         // Function called every time location updates
         function handlePosition(position) {
             const { latitude, longitude, accuracy, speed, heading } = position.coords;
 
-            // Update Status
-            statusDisplay.textContent = "Tracking active";
-            statusDisplay.className = "text-lg font-medium text-green-600";
-
-            // Update Coordinates
-            coordsDisplay.textContent = `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
+            // Update UI Status
+            statusDisplay.textContent = "Live Tracking";
+            statusDot.classList.replace('bg-yellow-500', 'bg-green-500');
+            statusDot.classList.replace('bg-red-500', 'bg-green-500');
 
             // Update Speed (convert m/s to km/h)
-            if (speed !== null) {
-                const speedKmh = (speed * 3.6).toFixed(1);
-                speedDisplay.innerHTML = `${speedKmh} <span class="text-base font-normal text-gray-500">km/h</span>`;
+            // Note: Speed is null if device lacks GPS hardware or isn't moving
+            if (speed !== null && speed > 0) {
+                const speedKmh = (speed * 3.6).toFixed(0);
+                speedDisplay.textContent = speedKmh;
             } else {
-                speedDisplay.innerHTML = `0 <span class="text-base font-normal text-gray-500">km/h</span>`;
+                speedDisplay.textContent = "0";
             }
 
             // Update Direction (Heading)
+            // Note: Heading is null if stationary
             if (heading !== null && !isNaN(heading)) {
-                // Convert degrees to cardinal direction
                 const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
                 const index = Math.round(((heading %= 360) < 0 ? heading + 360 : heading) / 45) % 8;
                 
-                directionDisplay.textContent = `${heading.toFixed(1)}° ${directions[index]}`;
+                directionDisplay.textContent = `${directions[index]}`;
                 
-                // Rotate compass icon
+                // Rotate compass icon (Arrow starts pointing up, which is 0 deg / North)
                 compassIcon.style.transform = `rotate(${heading}deg)`;
             } else {
-                directionDisplay.textContent = "Unavailable (requires movement)";
+                directionDisplay.textContent = "--";
             }
 
-            // Update Map
+            // Update Map Graphics
             const latLng = [latitude, longitude];
             
             if (!marker) {
-                // First time getting location: zoom in and add marker
-                map.setView(latLng, 15);
-                marker = L.marker(latLng).addTo(map);
-                circle = L.circle(latLng, { radius: accuracy }).addTo(map);
+                // First location fix: create marker, circle, and fetch city
+                map.setView(latLng, 14);
                 
-                // Fetch City Name via Reverse Geocoding once we have initial coords
+                // Custom mobile-friendly marker
+                const customIcon = L.divIcon({
+                    className: 'bg-transparent',
+                    html: `<div class="w-5 h-5 bg-blue-600 border-4 border-white rounded-full shadow-md"></div>`,
+                    iconSize: [20, 20],
+                    iconAnchor: [10, 10]
+                });
+
+                marker = L.marker(latLng, {icon: customIcon}).addTo(map);
+                circle = L.circle(latLng, { 
+                    radius: accuracy,
+                    color: '#3b82f6',
+                    fillColor: '#3b82f6',
+                    fillOpacity: 0.15,
+                    weight: 1
+                }).addTo(map);
+                
                 fetchCityName(latitude, longitude);
             } else {
-                // Subsequent updates: move marker
+                // Subsequent updates: move graphics and pan map
                 marker.setLatLng(latLng);
                 circle.setLatLng(latLng);
                 circle.setRadius(accuracy);
-                // Optionally pan map to follow user
-                // map.panTo(latLng); 
+                map.panTo(latLng); // Keep user centered
             }
         }
 
-        // Function to get City/Location name using Nominatim API (OpenStreetMap)
+        // Function to get City Name via Reverse Geocoding
         async function fetchCityName(lat, lng) {
             try {
-                // Reverse geocoding endpoint
+                // OpenStreetMap Nominatim API
                 const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`);
                 const data = await response.json();
                 
                 if (data.address) {
-                    // Try to find the most relevant location name
-                    const city = data.address.city || data.address.town || data.address.village || data.address.county || "Unknown location";
-                    const state = data.address.state || data.address.country || "";
-                    cityDisplay.textContent = `${city}${state ? ', ' + state : ''}`;
-                } else {
-                    cityDisplay.textContent = "Location name unavailable";
+                    const city = data.address.city || data.address.town || data.address.village || data.address.county || data.address.state || "Unknown Area";
+                    cityDisplay.textContent = city;
                 }
             } catch (error) {
-                console.error("Error fetching city:", error);
-                cityDisplay.textContent = "Error fetching location name";
+                console.error("City fetch error:", error);
+                cityDisplay.textContent = "Location Found";
             }
         }
 
-        // Handle geolocation errors
+        // Handle geolocation errors gracefully
         function handleError(error) {
-            console.warn(`ERROR(${error.code}): ${error.message}`);
-            let errorMsg = "An error occurred.";
+            console.warn(`Geolocation Error (${error.code}): ${error.message}`);
+            
+            statusDot.classList.replace('bg-green-500', 'bg-red-500');
+            statusDot.classList.replace('bg-yellow-500', 'bg-red-500');
+
             switch(error.code) {
                 case error.PERMISSION_DENIED:
-                    errorMsg = "User denied the request for Geolocation.";
+                    cityDisplay.textContent = "Permission Denied";
+                    statusDisplay.textContent = "Enable Location Services";
                     break;
                 case error.POSITION_UNAVAILABLE:
-                    errorMsg = "Location information is unavailable.";
+                    statusDisplay.textContent = "Signal Lost";
                     break;
                 case error.TIMEOUT:
-                    errorMsg = "The request to get user location timed out.";
+                    statusDisplay.textContent = "Request Timed Out";
                     break;
             }
-            statusDisplay.textContent = errorMsg;
-            statusDisplay.className = "text-lg font-medium text-red-600";
-            stopTracking(); // Stop if there's an error
+            toggleTracking(true); // Force stop tracking UI state
         }
 
-        // Start Tracking
-        function startTracking() {
-            if (!navigator.geolocation) {
-                statusDisplay.textContent = "Geolocation is not supported by your browser";
-                statusDisplay.className = "text-lg font-medium text-red-600";
-                return;
-            }
-
-            statusDisplay.textContent = "Locating...";
-            statusDisplay.className = "text-lg font-medium text-yellow-600";
-            
-            // Toggle buttons
-            startBtn.classList.add('hidden');
-            stopBtn.classList.remove('hidden');
-
-            // Start watching position
-            // enableHighAccuracy tries to use GPS if available
-            watchId = navigator.geolocation.watchPosition(
-                handlePosition, 
-                handleError, 
-                {
-                    enableHighAccuracy: true, 
-                    timeout: 10000, 
-                    maximumAge: 0 
+        // Master Toggle for Tracking
+        function toggleTracking(forceStop = false) {
+            if (isTracking || forceStop) {
+                // Stop Tracking
+                if (watchId !== null) {
+                    navigator.geolocation.clearWatch(watchId);
+                    watchId = null;
                 }
-            );
-        }
+                isTracking = false;
+                
+                // UI Updates
+                statusDisplay.textContent = "Tracking Stopped";
+                statusDot.classList.replace('bg-green-500', 'bg-red-500');
+                statusDot.classList.replace('bg-yellow-500', 'bg-red-500');
+                
+                playIcon.classList.remove('hidden');
+                stopIcon.classList.add('hidden');
+                toggleBtn.classList.replace('bg-red-500', 'bg-blue-600');
+                toggleBtn.classList.replace('hover:bg-red-600', 'hover:bg-blue-700');
 
-        // Stop Tracking
-        function stopTracking() {
-            if (watchId !== null) {
-                navigator.geolocation.clearWatch(watchId);
-                watchId = null;
+                // Reset data displays
+                speedDisplay.textContent = "0";
+                directionDisplay.textContent = "--";
+                compassIcon.style.transform = `rotate(0deg)`;
+
+            } else {
+                // Start Tracking
+                if (!navigator.geolocation) {
+                    alert("Geolocation is not supported by your browser");
+                    return;
+                }
+
+                isTracking = true;
+                
+                // UI Updates
+                cityDisplay.textContent = "Connecting to GPS...";
+                statusDisplay.textContent = "Locating...";
+                statusDot.classList.replace('bg-red-500', 'bg-yellow-500');
+                
+                playIcon.classList.add('hidden');
+                stopIcon.classList.remove('hidden');
+                toggleBtn.classList.replace('bg-blue-600', 'bg-red-500');
+                toggleBtn.classList.replace('hover:bg-blue-700', 'hover:bg-red-600');
+
+                // Request location stream
+                watchId = navigator.geolocation.watchPosition(
+                    handlePosition, 
+                    handleError, 
+                    {
+                        enableHighAccuracy: true, // Forces GPS usage for speed/heading
+                        timeout: 15000, 
+                        maximumAge: 0 
+                    }
+                );
             }
-            
-            statusDisplay.textContent = "Tracking stopped";
-            statusDisplay.className = "text-lg font-medium text-gray-600";
-            
-            // Toggle buttons
-            stopBtn.classList.add('hidden');
-            startBtn.classList.remove('hidden');
         }
 
-        // Event Listeners
-        startBtn.addEventListener('click', startTracking);
-        stopBtn.addEventListener('click', stopTracking);
-
-        // Initialize map on load
-        window.onload = initMap;
+        // Initialize App
+        window.onload = () => {
+            initMap();
+            toggleBtn.addEventListener('click', () => toggleTracking());
+            
+            // To ensure UI feels instantly responsive, simulate initial map size validation
+            setTimeout(() => { map.invalidateSize(); }, 200);
+        };
 
     </script>
 </body>
