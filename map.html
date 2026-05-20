@@ -175,8 +175,9 @@
                     opacity: 0.65, // Semi-transparent to see roads underneath
                     zIndex: 10,
                     attribution: 'RainViewer',
-                    maxNativeZoom: 13, // Pro Tip: Forces Leaflet to scale zoom 13 tiles for deeper zoom levels
-                    maxZoom: 19        // Matches the map's max street-level zoom
+                    maxNativeZoom: 11, // Safer native zoom level to guarantee tile availability
+                    maxZoom: 19,       // Allow layer to be visible up to max map zoom
+                    errorTileUrl: 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7' // Transparent pixel to hide any 404 errors silently
                 }).addTo(map);
 
             } catch (error) {
