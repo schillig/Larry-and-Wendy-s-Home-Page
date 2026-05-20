@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Location Tracker</title>
+    <!-- Tailwind CSS for rapid styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Leaflet CSS for the map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+     crossorigin=""/>
+    <style>
+        /* Ensure the map container takes up enough space */
+        #map { height: 400px; width: 100%; border-radius: 0.5rem; }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 font-sans p-4 md:p-8 flex flex-col items-center justify-center min-h-screen">
+
+    <div class="max-w-3xl w-full bg-white rounded-xl shadow-lg overflow-hidden">
+        
+        <!-- Header Section -->
+        <div class="bg-blue-600 p-6 text-white text-center">
+            <h1 class="text-3xl font-bold">Real-Time Location Tracker</h1>
+            <p class="mt-2 text-blue-100">Monitor your position, speed, and heading</p>
+        </div>
+
+        <!-- Content Section -->
+        <div class="p-6">
+            
+            <!-- Map Container -->
+            <div id="map" class="mb-6 shadow-inner z-0"></div>
+
+            <!-- Data Display Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                
+                <!-- Status Card -->
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                    <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-1">Status</h2>
+                    <p id="statusDisplay" class="text-lg font-medium text-blue-600">Waiting for permission...</p>
+                </div>
+
+                <!-- City/Location Card -->
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                    <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-1">Approximate Location</h2>
+                    <p id="cityDisplay" class="text-lg font-medium">Fetching...</p>
+                </div>
+
+                <!-- Coordinates Card -->
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                    <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-1">Coordinates</h2>
+                    <p id="coordsDisplay" class="text-lg font-medium font-mono text-sm">--</p>
+                </div>
+
+                <!-- Speed Card -->
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 flex justify-between items-center">
+                    <div>
+                        <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-1">Speed</h2>
+                        <p id="speedDisplay" class="text-2xl font-bold text-green-600">0 <span class="text-base font-normal text-gray-500">km/h</span></p>
+                    </div>
+                </div>
+
+                <!-- Direction Card -->
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 col-span-1 md:col-span-2 flex justify-between items-center">
+                    <div>
+                        <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-1">Direction (Heading)</h2>
+                        <p id="directionDisplay" class="text-lg font-medium">--</p>
+                    </div>
+                    <!-- Compass icon placeholder -->
+                    <div id="compassIcon" class="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center transition-transform duration-300">
+                        <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Controls -->
+            <div class="mt-6 flex justify-center space-x-4">
+                <button id="startBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition duration-200 shadow-md">
+                    Start Tracking
+                </button>
+                <button id="stopBtn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-6 rounded-lg transition duration-200 shadow-md hidden">
+                    Stop Tracking
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS for the map -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+     crossorigin=""></script>
+
+    <script>
+        // DOM Elements
+        const statusDisplay = document.getElementById('statusDisplay');
+        const cityDisplay = document.getElementById('cityDisplay');
+        const coordsDisplay = document.getElementById('coordsDisplay');
+        const speedDisplay = document.getElementById('speedDisplay');
+        const directionDisplay = document.getElementById('directionDisplay');
+        const compassIcon = document.getElementById('compassIcon');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+
+        // Variables for tracking
+        let watchId = null;
+        let map = null;
+        let marker = null;
+        let circle = null;
+
+        // Initialize Map (Centered on 0,0 initially)
+        function initMap() {
+            // Leaflet map setup
+            map = L.map('map').setView([0, 0], 2);
+
+            // Add OpenStreetMap tiles
+            L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            }).addTo(map);
+        }
+
+        // Function called every time location updates
+        function handlePosition(position) {
+            const { latitude, longitude, accuracy, speed, heading } = position.coords;
+
+            // Update Status
+            statusDisplay.textContent = "Tracking active";
+            statusDisplay.className = "text-lg font-medium text-green-600";
+
+            // Update Coordinates
+            coordsDisplay.textContent = `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
+
+            // Update Speed (convert m/s to km/h)
+            if (speed !== null) {
+                const speedKmh = (speed * 3.6).toFixed(1);
+                speedDisplay.innerHTML = `${speedKmh} <span class="text-base font-normal text-gray-500">km/h</span>`;
+            } else {
+                speedDisplay.innerHTML = `0 <span class="text-base font-normal text-gray-500">km/h</span>`;
+            }
+
+            // Update Direction (Heading)
+            if (heading !== null && !isNaN(heading)) {
+                // Convert degrees to cardinal direction
+                const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+                const index = Math.round(((heading %= 360) < 0 ? heading + 360 : heading) / 45) % 8;
+                
+                directionDisplay.textContent = `${heading.toFixed(1)}° ${directions[index]}`;
+                
+                // Rotate compass icon
+                compassIcon.style.transform = `rotate(${heading}deg)`;
+            } else {
+                directionDisplay.textContent = "Unavailable (requires movement)";
+            }
+
+            // Update Map
+            const latLng = [latitude, longitude];
+            
+            if (!marker) {
+                // First time getting location: zoom in and add marker
+                map.setView(latLng, 15);
+                marker = L.marker(latLng).addTo(map);
+                circle = L.circle(latLng, { radius: accuracy }).addTo(map);
+                
+                // Fetch City Name via Reverse Geocoding once we have initial coords
+                fetchCityName(latitude, longitude);
+            } else {
+                // Subsequent updates: move marker
+                marker.setLatLng(latLng);
+                circle.setLatLng(latLng);
+                circle.setRadius(accuracy);
+                // Optionally pan map to follow user
+                // map.panTo(latLng); 
+            }
+        }
+
+        // Function to get City/Location name using Nominatim API (OpenStreetMap)
+        async function fetchCityName(lat, lng) {
+            try {
+                // Reverse geocoding endpoint
+                const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`);
+                const data = await response.json();
+                
+                if (data.address) {
+                    // Try to find the most relevant location name
+                    const city = data.address.city || data.address.town || data.address.village || data.address.county || "Unknown location";
+                    const state = data.address.state || data.address.country || "";
+                    cityDisplay.textContent = `${city}${state ? ', ' + state : ''}`;
+                } else {
+                    cityDisplay.textContent = "Location name unavailable";
+                }
+            } catch (error) {
+                console.error("Error fetching city:", error);
+                cityDisplay.textContent = "Error fetching location name";
+            }
+        }
+
+        // Handle geolocation errors
+        function handleError(error) {
+            console.warn(`ERROR(${error.code}): ${error.message}`);
+            let errorMsg = "An error occurred.";
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    errorMsg = "User denied the request for Geolocation.";
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    errorMsg = "Location information is unavailable.";
+                    break;
+                case error.TIMEOUT:
+                    errorMsg = "The request to get user location timed out.";
+                    break;
+            }
+            statusDisplay.textContent = errorMsg;
+            statusDisplay.className = "text-lg font-medium text-red-600";
+            stopTracking(); // Stop if there's an error
+        }
+
+        // Start Tracking
+        function startTracking() {
+            if (!navigator.geolocation) {
+                statusDisplay.textContent = "Geolocation is not supported by your browser";
+                statusDisplay.className = "text-lg font-medium text-red-600";
+                return;
+            }
+
+            statusDisplay.textContent = "Locating...";
+            statusDisplay.className = "text-lg font-medium text-yellow-600";
+            
+            // Toggle buttons
+            startBtn.classList.add('hidden');
+            stopBtn.classList.remove('hidden');
+
+            // Start watching position
+            // enableHighAccuracy tries to use GPS if available
+            watchId = navigator.geolocation.watchPosition(
+                handlePosition, 
+                handleError, 
+                {
+                    enableHighAccuracy: true, 
+                    timeout: 10000, 
+                    maximumAge: 0 
+                }
+            );
+        }
+
+        // Stop Tracking
+        function stopTracking() {
+            if (watchId !== null) {
+                navigator.geolocation.clearWatch(watchId);
+                watchId = null;
+            }
+            
+            statusDisplay.textContent = "Tracking stopped";
+            statusDisplay.className = "text-lg font-medium text-gray-600";
+            
+            // Toggle buttons
+            stopBtn.classList.add('hidden');
+            startBtn.classList.remove('hidden');
+        }
+
+        // Event Listeners
+        startBtn.addEventListener('click', startTracking);
+        stopBtn.addEventListener('click', stopTracking);
+
+        // Initialize map on load
+        window.onload = initMap;
+
+    </script>
+</body>
+</html>
