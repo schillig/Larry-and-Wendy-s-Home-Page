@@ -174,7 +174,9 @@
                 radarLayer = L.tileLayer(tileUrl, {
                     opacity: 0.65, // Semi-transparent to see roads underneath
                     zIndex: 10,
-                    attribution: 'RainViewer'
+                    attribution: 'RainViewer',
+                    maxNativeZoom: 13, // Pro Tip: Forces Leaflet to scale zoom 13 tiles for deeper zoom levels
+                    maxZoom: 19        // Matches the map's max street-level zoom
                 }).addTo(map);
 
             } catch (error) {
