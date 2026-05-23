@@ -149,6 +149,9 @@
                     <option value="2">2 Suits (Medium)</option>
                     <option value="4" selected>4 Suits (Expert)</option>
                 </select>
+                <button id="gear-btn" class="bg-gray-800 hover:bg-gray-700 border border-gray-600 text-white px-3 py-1.5 rounded transition-colors shadow-md select-none touch-none" title="Long press for Settings">
+                    ⚙️
+                </button>
                 <button id="undo-btn" class="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-1.5 rounded transition-colors shadow-md" disabled>
                     Undo
                 </button>
@@ -167,6 +170,26 @@
 
     <div id="message-box" class="fixed top-20 left-1/2 hidden z-50 bg-red-600 text-white px-6 py-3 rounded shadow-2xl border border-red-400 text-center font-semibold">
         <span id="message-text"></span>
+    </div>
+
+    <div id="settings-modal" class="fixed inset-0 bg-black/80 z-[9999] hidden flex items-center justify-center backdrop-blur-sm px-4">
+        <div class="bg-[#0f5a2b] border-2 border-[#fbbf24] rounded-xl p-6 shadow-2xl max-w-sm w-full text-center">
+            <h2 class="text-2xl font-bold text-[#fbbf24] mb-4">Settings</h2>
+            <div class="mb-6 text-left">
+                <label class="block text-sm font-semibold mb-2 text-white">Rule Set:</label>
+                <select id="rules-select" class="bg-gray-800 text-white border border-gray-600 rounded px-3 py-2 w-full focus:ring-2 focus:ring-[#fbbf24] outline-none cursor-pointer">
+                    <option value="wendy" selected>Wendy's Rules (Relaxed)</option>
+                    <option value="original">Original Rules (Strict)</option>
+                </select>
+                <p class="text-xs text-gray-300 mt-3 leading-relaxed">
+                    <b class="text-[#fbbf24]">Wendy's Rules:</b> Deal cards from the stock at any time, even with empty columns.<br><br>
+                    <b class="text-red-400">Original Rules:</b> Standard strict rules. You cannot deal new cards if you have any completely empty columns.
+                </p>
+            </div>
+            <button id="close-settings-btn" class="bg-gray-200 text-black font-bold py-2 px-8 rounded hover:bg-white transition-colors shadow-md">
+                Done
+            </button>
+        </div>
     </div>
 
     <main class="flex-grow flex flex-col items-center relative overflow-hidden">
@@ -218,7 +241,8 @@
                 score: 500,     // Starting score, decreases per move
                 selectedPile: null,       // Which column the user currently clicked
                 selectedCardIndex: null,  // Which specific card in that column is highlighted
-                difficulty: 4   // Number of suits in play (1, 2, or 4). Affects rule strictness.
+                difficulty: 4,  // Number of suits in play (1, 2, or 4). Affects rule strictness.
+                rules: 'wendy'  // Default to Wendy's Rules
             };
 
             // --- HISTORY & PERSISTENCE ---
@@ -252,7 +276,11 @@
                 msgText: document.getElementById('message-text'),
                 undoBtn: document.getElementById('undo-btn'),
                 redoBtn: document.getElementById('redo-btn'),
-                replayBtn: document.getElementById('replay-btn')
+                replayBtn: document.getElementById('replay-btn'),
+                gearBtn: document.getElementById('gear-btn'),
+                settingsModal: document.getElementById('settings-modal'),
+                rulesSel: document.getElementById('rules-select'),
+                closeSettingsBtn: document.getElementById('close-settings-btn')
             };
 
             // --- FIREWORKS SYSTEM ---
@@ -571,6 +599,15 @@
             // Triggered via stock click
             function dealFromStock() {
                 if (state.stock.length === 0) return;
+
+                // --- ORIGINAL RULE CHECK ---
+                if (state.rules === 'original') {
+                    const hasEmptyColumns = state.tableaus.some(pile => pile.length === 0);
+                    if (hasEmptyColumns) {
+                        showMessage("Cannot deal cards while there are empty columns.");
+                        return; // Abort the deal
+                    }
+                }
 
                 // Dealing alters all 10 columns simultaneously, so we capture a delta of the entire board
                 saveState([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], true); 
@@ -902,6 +939,50 @@
             }
 
             // --- MASTER EVENT BINDINGS ---
+            
+            // --- SETTINGS (GEAR LONG PRESS) ---
+            let gearPressTimer;
+            let isLongPress = false;
+
+            // Start timer on touch/click
+            els.gearBtn.addEventListener('pointerdown', (e) => {
+                e.preventDefault(); // Stop mobile selection magnifying glass
+                isLongPress = false;
+                gearPressTimer = setTimeout(() => {
+                    isLongPress = true;
+                    // Sync the dropdown to the active state and show modal
+                    els.rulesSel.value = state.rules;
+                    els.settingsModal.classList.remove('hidden');
+                }, 600); // 600ms = Long press threshold
+            });
+
+            // Cancel timer if finger moves away or releases early
+            const cancelGearPress = () => clearTimeout(gearPressTimer);
+            els.gearBtn.addEventListener('pointerleave', cancelGearPress);
+            els.gearBtn.addEventListener('pointercancel', cancelGearPress);
+            
+            els.gearBtn.addEventListener('pointerup', (e) => {
+                clearTimeout(gearPressTimer);
+                // If they just tapped it quickly, tell them how to use it!
+                if (!isLongPress) {
+                    showMessage("Long press the gear ⚙️ for settings!");
+                }
+            });
+
+            // Prevent desktop context menu from interfering with right clicks on the gear
+            els.gearBtn.addEventListener('contextmenu', (e) => e.preventDefault());
+
+            // Handle Settings Modal UI
+            els.rulesSel.addEventListener('change', (e) => {
+                state.rules = e.target.value;
+                autoSave(); // Save preference immediately
+            });
+
+            els.closeSettingsBtn.addEventListener('click', () => {
+                els.settingsModal.classList.add('hidden');
+            });
+
+            // --- EXISTING BINDINGS ---
             els.newGameBtn.addEventListener('click', () => {
                 if(confirm("Are you sure you want to start a new game? Current progress will be lost.")) {
                     initGame();
@@ -942,6 +1023,10 @@
                 try {
                     const parsed = JSON.parse(savedString);
                     state = parsed.state;
+                    
+                    // Default to wendy's rules if loading an older v1.0.0 save file
+                    if (!state.rules) state.rules = 'wendy'; 
+
                     history = parsed.history || [];
                     redoHistory = parsed.redoHistory || [];
                     initialGameState = parsed.initialGameState;
