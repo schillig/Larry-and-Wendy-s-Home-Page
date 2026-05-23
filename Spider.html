@@ -670,6 +670,13 @@
                     els.foundations.appendChild(fDiv);
                 }
 
+                // --- ACCORDION COMPRESSION MATH ---
+                // Calculate exactly how much vertical pixel space we have available on the screen right now
+                const boardTop = els.board.getBoundingClientRect().top || 250; // Distance from top of screen to the game board
+                const maxAvailableHeight = window.innerHeight - boardTop - 20; // 20px padding buffer at the bottom
+                // Estimate physical card height based on fluid CSS Grid width (10 columns) and 2.5/3.5 ratio
+                const estimatedCardHeight = Math.max(60, (els.board.clientWidth / 10) * 1.4); 
+
                 // Render Main Board Tableaus
                 els.board.innerHTML = '';
                 state.tableaus.forEach((pile, pileIndex) => {
@@ -681,6 +688,19 @@
                     column.onpointerdown = (e) => {
                         if(e.target === column) handlePointerDown(e, pileIndex, -1);
                     };
+
+                    // DYNAMIC OFFSET CALCULATION
+                    // Default to the standard 24px drop spacing
+                    let currentOffset = VERTICAL_OFFSET; 
+                    if (pile.length > 1) {
+                        // How tall WOULD this stack be natively?
+                        const requiredHeight = estimatedCardHeight + (pile.length - 1) * VERTICAL_OFFSET;
+                        // If it's taller than the phone screen, squish the cards together!
+                        if (requiredHeight > maxAvailableHeight) {
+                            currentOffset = (maxAvailableHeight - estimatedCardHeight) / (pile.length - 1);
+                            currentOffset = Math.max(8, currentOffset); // Failsafe: Ensure at least 8px of the card is always showing
+                        }
+                    }
 
                     pile.forEach((card, cardIndex) => {
                         const cardEl = document.createElement('div');
@@ -704,8 +724,8 @@
                             cardEl.classList.add('selected');
                         }
 
-                        // Absolute stacking logic via top offset cascade
-                        cardEl.style.top = `${cardIndex * VERTICAL_OFFSET}px`;
+                        // Absolute stacking logic via our new DYNAMIC offset cascade
+                        cardEl.style.top = `${cardIndex * currentOffset}px`;
 
                         // Bind the unified pointerdown event for tracking both 'clicks' and the beginning of 'drags'
                         cardEl.onpointerdown = (e) => {
@@ -717,9 +737,9 @@
                         column.appendChild(cardEl);
                     });
 
-                    // Forces the column to be tall enough to support absolutely positioned cards
+                    // Forces the column to be exactly tall enough to support the dynamically positioned cards
                     if (pile.length > 0) {
-                        column.style.height = `${120 + (pile.length * VERTICAL_OFFSET)}px`;
+                        column.style.height = `${estimatedCardHeight + ((pile.length - 1) * currentOffset)}px`;
                     }
 
                     els.board.appendChild(column);
