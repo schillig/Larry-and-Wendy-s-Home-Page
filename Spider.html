@@ -158,17 +158,17 @@
                 <button id="redo-btn" class="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-1.5 rounded transition-colors shadow-md" disabled>
                     Redo
                 </button>
-                <button id="replay-btn" class="bg-orange-600 hover:bg-orange-500 text-white px-4 py-1.5 rounded transition-colors shadow-md">
+                <button id="replay-btn" class="bg-orange-600 hover:bg-orange-500 text-white px-4 py-1.5 rounded transition-colors shadow-md select-none touch-none" title="Long press to replay">
                     Replay
                 </button>
-                <button id="new-game-btn" class="bg-green-600 hover:bg-green-500 text-white px-4 py-1.5 rounded transition-colors shadow-md">
+                <button id="new-game-btn" class="bg-green-600 hover:bg-green-500 text-white px-4 py-1.5 rounded transition-colors shadow-md select-none touch-none" title="Long press for new game">
                     New Game
                 </button>
             </div>
         </div>
     </header>
 
-    <div id="message-box" class="fixed top-20 left-1/2 hidden z-50 bg-red-600 text-white px-6 py-3 rounded shadow-2xl border border-red-400 text-center font-semibold">
+    <div id="message-box" class="fixed top-20 left-1/2 hidden z-50 bg-red-600 text-white px-6 py-3 rounded shadow-2xl border border-red-400 text-center font-semibold transform -translate-x-1/2">
         <span id="message-text"></span>
     </div>
 
@@ -1002,32 +1002,69 @@
                 els.settingsModal.classList.add('hidden');
             });
 
-            // --- EXISTING BINDINGS ---
-            els.newGameBtn.addEventListener('click', () => {
-                if(confirm("Are you sure you want to start a new game? Current progress will be lost.")) {
-                    initGame();
-                }
+            // --- NEW GAME (LONG PRESS) ---
+            let newGameTimer;
+            let isNewGameLong = false;
+
+            els.newGameBtn.addEventListener('pointerdown', (e) => {
+                e.preventDefault(); 
+                isNewGameLong = false;
+                newGameTimer = setTimeout(() => {
+                    isNewGameLong = true;
+                    initGame(); // Starts the game directly, bypassing the old confirm() box!
+                }, 600); // 600ms long press threshold
             });
 
-            // Restores the pristine initial clone taken after shuffling
-            els.replayBtn.addEventListener('click', () => {
-                if (!initialGameState) return;
-                if(confirm("Are you sure you want to restart this exact game? Current progress will be lost.")) {
+            const cancelNewGame = () => clearTimeout(newGameTimer);
+            els.newGameBtn.addEventListener('pointerleave', cancelNewGame);
+            els.newGameBtn.addEventListener('pointercancel', cancelNewGame);
+            
+            els.newGameBtn.addEventListener('pointerup', (e) => {
+                clearTimeout(newGameTimer);
+                // If they tapped it too fast, guide them:
+                if (!isNewGameLong) showMessage("Long press 'New Game' to restart!");
+            });
+
+            // Prevent desktop context menu on right click
+            els.newGameBtn.addEventListener('contextmenu', (e) => e.preventDefault());
+
+
+            // --- REPLAY (LONG PRESS) ---
+            let replayTimer;
+            let isReplayLong = false;
+
+            els.replayBtn.addEventListener('pointerdown', (e) => {
+                e.preventDefault();
+                if (!initialGameState) return; // Guard clause if game isn't loaded
+                isReplayLong = false;
+                replayTimer = setTimeout(() => {
+                    isReplayLong = true;
+                    // Exact same reset logic as before, but without the confirm() box
                     state = JSON.parse(JSON.stringify(initialGameState));
                     history = [];
                     redoHistory = [];
                     els.undoBtn.disabled = true;
                     els.redoBtn.disabled = true;
                     
-                    // CRITICAL: Clear active win state celebrations before redrawing the replay board
                     stopFireworks();
                     hideMessage();
                     
                     clearSelection();
                     updateUI();
                     autoSave();
-                }
+                }, 600);
             });
+
+            const cancelReplay = () => clearTimeout(replayTimer);
+            els.replayBtn.addEventListener('pointerleave', cancelReplay);
+            els.replayBtn.addEventListener('pointercancel', cancelReplay);
+            
+            els.replayBtn.addEventListener('pointerup', (e) => {
+                clearTimeout(replayTimer);
+                if (!isReplayLong && initialGameState) showMessage("Long press 'Replay' to restart this board!");
+            });
+
+            els.replayBtn.addEventListener('contextmenu', (e) => e.preventDefault());
 
             els.difficultySel.addEventListener('change', () => {
                 initGame();
