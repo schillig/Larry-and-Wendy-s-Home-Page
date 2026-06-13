@@ -208,7 +208,7 @@
     </main>
 
     <footer class="w-full text-center pb-4 pt-2 text-white/40 text-xs font-mono tracking-widest z-10 relative">
-        v1.1.0
+        v1.1.1
     </footer>
 
     <script>
@@ -453,10 +453,29 @@
             // --- SAVE / LOAD SYSTEM ---
             const SAVE_KEY = 'spider_solitaire_save';
 
-            // Silently serializes all game tracking into localStorage so users can refresh without penalty
+            // PERFORMANCE FIX: Asynchronous & Capped saving to prevent mobile lag
             function autoSave() {
-                const saveData = { state, history, redoHistory, initialGameState };
-                localStorage.setItem(SAVE_KEY, JSON.stringify(saveData));
+                // Keep the active history in RAM infinite, but only physically save the last 30 moves.
+                // Stringifying 300+ moves takes too much processor power and causes mobile touch lag.
+                const safeHistory = history.length > 30 ? history.slice(-30) : history;
+                const safeRedo = redoHistory.length > 30 ? redoHistory.slice(-30) : redoHistory;
+                
+                const saveData = { 
+                    state: state, 
+                    history: safeHistory, 
+                    redoHistory: safeRedo, 
+                    initialGameState: initialGameState 
+                };
+
+                // setTimeout pushes this heavy process to the back of the line.
+                // This guarantees the card instantly snaps to the board visually BEFORE the phone freezes to save the file.
+                setTimeout(() => {
+                    try {
+                        localStorage.setItem(SAVE_KEY, JSON.stringify(saveData));
+                    } catch (e) {
+                        console.warn("Storage quota exceeded, skipping background save.");
+                    }
+                }, 10); // 10ms delay gives the UI time to paint the screen
             }
 
             // --- DECK MANAGEMENT ---
