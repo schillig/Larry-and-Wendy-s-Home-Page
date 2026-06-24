@@ -5,10 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Wendy's Spider Solitaire</title>
     
+    <!-- Favicon generated as an inline SVG matching the card icon -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect x=%2220%22 y=%2215%22 width=%2260%22 height=%2270%22 rx=%228%22 fill=%22white%22 stroke=%22%23d1d5db%22 stroke-width=%224%22 transform=%22rotate(-6 50 50)%22/><text x=%2250%22 y=%2263%22 font-size=%2245%22 fill=%22%23dc2626%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 transform=%22rotate(-6 50 50)%22>♥</text></svg>">
     
+    <!-- Tailwind CSS for rapid, responsive UI styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     
+    <!-- Canvas Confetti Library for Fireworks -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
     
     <style>
@@ -19,11 +22,11 @@
             /* CRITICAL: Prevents iOS 'swipe-to-go-back' when dragging cards sideways */
             overscroll-behavior-x: none; 
             
-            /* NEW: Completely locks the viewport to prevent accidental scrolling or bouncing */
+            /* Completely locks the viewport to prevent accidental scrolling or bouncing */
             overflow: hidden;
             touch-action: none; 
             
-            /* NEW: Ensures the body takes up exactly 100% of the screen height, no more, no less */
+            /* Ensures the body takes up exactly 100% of the screen height, no more, no less */
             height: 100%;
             width: 100%;
         }
@@ -129,9 +132,11 @@
 </head>
 <body class="min-h-screen flex flex-col">
 
+    <!-- Top Navigation & Stats Bar -->
     <header class="bg-black/40 p-4 shadow-lg backdrop-blur-sm z-20 relative">
         <div class="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-4">
             <div class="flex items-center gap-3">
+                <!-- Mini Card Icon -->
                 <div class="w-6 h-8 bg-white rounded shadow-sm flex items-center justify-center border border-gray-300 transform -rotate-6">
                     <span class="text-red-600 text-lg leading-none">♥</span>
                 </div>
@@ -149,6 +154,11 @@
                     <option value="2">2 Suits (Medium)</option>
                     <option value="4" selected>4 Suits (Expert)</option>
                 </select>
+                <!-- Help / Instructions Button -->
+                <button id="help-btn" class="bg-blue-800 hover:bg-blue-700 border border-blue-600 text-white px-3 py-1.5 rounded transition-colors shadow-md select-none touch-none font-bold" title="Long press for Instructions">
+                    ❓
+                </button>
+                <!-- Config Gear Button -->
                 <button id="gear-btn" class="bg-gray-800 hover:bg-gray-700 border border-gray-600 text-white px-3 py-1.5 rounded transition-colors shadow-md select-none touch-none" title="Long press for Settings">
                     ⚙️
                 </button>
@@ -168,10 +178,49 @@
         </div>
     </header>
 
+    <!-- Custom Alert Message Box -->
     <div id="message-box" class="fixed top-20 left-1/2 hidden z-50 bg-red-600 text-white px-6 py-3 rounded shadow-2xl border border-red-400 text-center font-semibold transform -translate-x-1/2">
         <span id="message-text"></span>
     </div>
 
+    <!-- Instructions Modal -->
+    <div id="instructions-modal" class="fixed inset-0 bg-black/80 z-[9999] hidden flex items-center justify-center backdrop-blur-sm px-4">
+        <!-- max-h-[80vh] and overflow-y-auto ensures the modal is scrollable on small phone screens -->
+        <div class="bg-[#0f5a2b] border-2 border-blue-400 rounded-xl p-6 shadow-2xl max-w-lg w-full text-left max-h-[80vh] overflow-y-auto">
+            <h2 class="text-3xl font-bold text-white border-b border-gray-400 pb-2 mb-4 text-center">How to Play</h2>
+            
+            <div class="text-gray-100 space-y-4 text-sm leading-relaxed">
+                <p><strong>The Goal:</strong> Assemble 13 cards of a suit, in descending sequence from King to Ace. Once a full sequence is built, it will automatically move to the foundations. Build 8 foundations to win!</p>
+                
+                <h3 class="text-lg font-bold text-[#fbbf24] mt-4 border-b border-[#fbbf24]/30 pb-1">General Rules</h3>
+                <ul class="list-disc pl-5 space-y-2">
+                    <li>You can move a single card to another pile if it is exactly one rank lower than the card it lands on (e.g., place a 7 on an 8).</li>
+                    <li>You can move a stack of cards <em>only</em> if they are of the <strong>same suit</strong> and in proper descending order.</li>
+                    <li>Any face-up card or valid sequence can be moved into an empty column.</li>
+                </ul>
+
+                <h3 class="text-lg font-bold text-[#fbbf24] mt-4 border-b border-[#fbbf24]/30 pb-1">Game Modes (Configurable in Settings ⚙️)</h3>
+                
+                <div class="bg-black/30 p-3 rounded border border-[#fbbf24]/50">
+                    <p class="font-bold text-[#fbbf24] mb-1">👑 Wendy's Rules (Default)</p>
+                    <p>A relaxed, modern way to play! You may tap the Stock (top left) to deal a new row of cards at <em>any time</em>, regardless of the board state. This keeps the game flowing and fun.</p>
+                </div>
+
+                <div class="bg-black/30 p-3 rounded border border-red-400/50">
+                    <p class="font-bold text-red-400 mb-1">⚖️ Original Rules</p>
+                    <p>The strict, traditional challenge. You <strong>cannot</strong> deal a new row of cards from the Stock if you have any completely empty columns on the board. You must fill all spaces first!</p>
+                </div>
+            </div>
+
+            <div class="mt-6 text-center">
+                <button id="close-instructions-btn" class="bg-gray-200 text-black font-bold py-2 px-8 rounded hover:bg-white transition-colors shadow-md">
+                    Got it!
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
     <div id="settings-modal" class="fixed inset-0 bg-black/80 z-[9999] hidden flex items-center justify-center backdrop-blur-sm px-4">
         <div class="bg-[#0f5a2b] border-2 border-[#fbbf24] rounded-xl p-6 shadow-2xl max-w-sm w-full text-center">
             <h2 class="text-2xl font-bold text-[#fbbf24] mb-4">Settings</h2>
@@ -192,25 +241,35 @@
         </div>
     </div>
 
+    <!-- Main Game Area -->
     <main class="flex-grow flex flex-col items-center relative overflow-hidden">
         
+        <!-- Top Board Section: Stock and Foundations -->
         <div class="w-full max-w-[1200px] px-4 py-6 flex justify-between items-end">
+            <!-- Stock Piles (Left) -->
             <div class="flex gap-2 cursor-pointer group" id="stock-container" title="Deal Cards">
-                </div>
+                <!-- Generated dynamically via JS -->
+            </div>
 
+            <!-- Foundations / Completed Sets (Right) -->
             <div class="flex gap-2" id="foundations-container">
-                </div>
+                <!-- Generated dynamically via JS -->
+            </div>
         </div>
 
+        <!-- The 10 Tableau Columns -->
         <div id="game-board">
-            </div>
+            <!-- Columns generated via JS -->
+        </div>
 
     </main>
 
+    <!-- Version Control Footer -->
     <footer class="w-full text-center pb-4 pt-2 text-white/40 text-xs font-mono tracking-widest z-10 relative">
-        v1.1.2
+        v1.1.3
     </footer>
 
+    <!-- Game Logic Scripts -->
     <script>
         // Self-Executing Anonymous Function (IIFE)
         // Keeps all game variables tightly scoped to prevent memory leaks and global browser collisions.
@@ -280,7 +339,10 @@
                 gearBtn: document.getElementById('gear-btn'),
                 settingsModal: document.getElementById('settings-modal'),
                 rulesSel: document.getElementById('rules-select'),
-                closeSettingsBtn: document.getElementById('close-settings-btn')
+                closeSettingsBtn: document.getElementById('close-settings-btn'),
+                helpBtn: document.getElementById('help-btn'),
+                instructionsModal: document.getElementById('instructions-modal'),
+                closeInstructionsBtn: document.getElementById('close-instructions-btn')
             };
 
             // --- FIREWORKS SYSTEM ---
@@ -978,6 +1040,36 @@
             }
 
             // --- MASTER EVENT BINDINGS ---
+
+            // --- INSTRUCTIONS (HELP LONG PRESS) ---
+            let helpPressTimer;
+            let isHelpLongPress = false;
+
+            els.helpBtn.addEventListener('pointerdown', (e) => {
+                e.preventDefault(); 
+                isHelpLongPress = false;
+                helpPressTimer = setTimeout(() => {
+                    isHelpLongPress = true;
+                    els.instructionsModal.classList.remove('hidden');
+                }, 600);
+            });
+
+            const cancelHelpPress = () => clearTimeout(helpPressTimer);
+            els.helpBtn.addEventListener('pointerleave', cancelHelpPress);
+            els.helpBtn.addEventListener('pointercancel', cancelHelpPress);
+            
+            els.helpBtn.addEventListener('pointerup', (e) => {
+                clearTimeout(helpPressTimer);
+                if (!isHelpLongPress) {
+                    showMessage("Long press the ❓ for Instructions!");
+                }
+            });
+
+            els.helpBtn.addEventListener('contextmenu', (e) => e.preventDefault());
+
+            els.closeInstructionsBtn.addEventListener('click', () => {
+                els.instructionsModal.classList.add('hidden');
+            });
             
             // --- SETTINGS (GEAR LONG PRESS) ---
             let gearPressTimer;
