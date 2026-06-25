@@ -148,16 +148,8 @@
                 <div>MOVES: <span id="moves-display" class="text-white">0</span></div>
             </div>
 
+            <!-- Cleaned up HUD - Only core gameplay buttons remain -->
             <div class="flex flex-wrap items-center gap-3 mt-2 md:mt-0">
-                <select id="difficulty-select" class="bg-gray-800 text-white border border-gray-600 rounded px-3 py-1.5 focus:ring-2 focus:ring-green-500 outline-none cursor-pointer">
-                    <option value="1">1 Suit (Easy)</option>
-                    <option value="2">2 Suits (Medium)</option>
-                    <option value="4" selected>4 Suits (Expert)</option>
-                </select>
-                <!-- Help / Instructions Button -->
-                <button id="help-btn" class="bg-blue-800 hover:bg-blue-700 border border-blue-600 text-white px-3 py-1.5 rounded transition-colors shadow-md select-none touch-none font-bold" title="Long press for Instructions">
-                    ❓
-                </button>
                 <!-- Config Gear Button -->
                 <button id="gear-btn" class="bg-gray-800 hover:bg-gray-700 border border-gray-600 text-white px-3 py-1.5 rounded transition-colors shadow-md select-none touch-none" title="Long press for Settings">
                     ⚙️
@@ -213,29 +205,46 @@
             </div>
 
             <div class="mt-6 text-center">
-                <button id="close-instructions-btn" class="bg-gray-200 text-black font-bold py-2 px-8 rounded hover:bg-white transition-colors shadow-md">
+                <button id="close-instructions-btn" class="bg-gray-200 text-black font-bold py-2 px-8 rounded hover:bg-white transition-colors shadow-md w-full">
                     Got it!
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- Settings Modal -->
+    <!-- Enhanced Settings Modal -->
     <div id="settings-modal" class="fixed inset-0 bg-black/80 z-[9999] hidden flex items-center justify-center backdrop-blur-sm px-4">
         <div class="bg-[#0f5a2b] border-2 border-[#fbbf24] rounded-xl p-6 shadow-2xl max-w-sm w-full text-center">
             <h2 class="text-2xl font-bold text-[#fbbf24] mb-4">Settings</h2>
-            <div class="mb-6 text-left">
+            
+            <div class="mb-4 text-left">
+                <label class="block text-sm font-semibold mb-2 text-white">Difficulty (Suits):</label>
+                <select id="difficulty-select" class="bg-gray-800 text-white border border-gray-600 rounded px-3 py-2 w-full focus:ring-2 focus:ring-[#fbbf24] outline-none cursor-pointer">
+                    <option value="1">1 Suit (Easy)</option>
+                    <option value="2">2 Suits (Medium)</option>
+                    <option value="4" selected>4 Suits (Expert)</option>
+                </select>
+            </div>
+
+            <div class="mb-5 text-left">
                 <label class="block text-sm font-semibold mb-2 text-white">Rule Set:</label>
                 <select id="rules-select" class="bg-gray-800 text-white border border-gray-600 rounded px-3 py-2 w-full focus:ring-2 focus:ring-[#fbbf24] outline-none cursor-pointer">
                     <option value="wendy" selected>Wendy's Rules (Relaxed)</option>
                     <option value="original">Original Rules (Strict)</option>
                 </select>
-                <p class="text-xs text-gray-300 mt-3 leading-relaxed">
-                    <b class="text-[#fbbf24]">Wendy's Rules:</b> Deal cards from the stock at any time, even with empty columns.<br><br>
-                    <b class="text-red-400">Original Rules:</b> Standard strict rules. You cannot deal new cards if you have any completely empty columns.
+                <p class="text-xs text-gray-300 mt-2 leading-relaxed">
+                    <b class="text-[#fbbf24]">Wendy's:</b> Deal anytime.<br>
+                    <b class="text-red-400">Original:</b> Must fill empty slots to deal.
                 </p>
             </div>
-            <button id="close-settings-btn" class="bg-gray-200 text-black font-bold py-2 px-8 rounded hover:bg-white transition-colors shadow-md">
+
+            <div class="mb-6">
+                <button id="help-btn" class="w-full bg-blue-800 hover:bg-blue-700 border border-blue-600 text-white px-4 py-2 rounded transition-colors shadow-md font-bold text-sm">
+                    ❓ Read Instructions
+                </button>
+            </div>
+
+            <button id="close-settings-btn" class="bg-gray-200 text-black font-bold py-2 px-8 rounded hover:bg-white transition-colors shadow-md w-full">
                 Done
             </button>
         </div>
@@ -266,7 +275,7 @@
 
     <!-- Version Control Footer -->
     <footer class="w-full text-center pb-4 pt-2 text-white/40 text-xs font-mono tracking-widest z-10 relative">
-        v1.1.3
+        v1.1.4
     </footer>
 
     <!-- Game Logic Scripts -->
@@ -1041,31 +1050,12 @@
 
             // --- MASTER EVENT BINDINGS ---
 
-            // --- INSTRUCTIONS (HELP LONG PRESS) ---
-            let helpPressTimer;
-            let isHelpLongPress = false;
-
-            els.helpBtn.addEventListener('pointerdown', (e) => {
+            // --- INSTRUCTIONS BUTTON (INSIDE SETTINGS) ---
+            els.helpBtn.addEventListener('click', (e) => {
                 e.preventDefault(); 
-                isHelpLongPress = false;
-                helpPressTimer = setTimeout(() => {
-                    isHelpLongPress = true;
-                    els.instructionsModal.classList.remove('hidden');
-                }, 600);
+                els.settingsModal.classList.add('hidden'); // Hide settings
+                els.instructionsModal.classList.remove('hidden'); // Show instructions
             });
-
-            const cancelHelpPress = () => clearTimeout(helpPressTimer);
-            els.helpBtn.addEventListener('pointerleave', cancelHelpPress);
-            els.helpBtn.addEventListener('pointercancel', cancelHelpPress);
-            
-            els.helpBtn.addEventListener('pointerup', (e) => {
-                clearTimeout(helpPressTimer);
-                if (!isHelpLongPress) {
-                    showMessage("Long press the ❓ for Instructions!");
-                }
-            });
-
-            els.helpBtn.addEventListener('contextmenu', (e) => e.preventDefault());
 
             els.closeInstructionsBtn.addEventListener('click', () => {
                 els.instructionsModal.classList.add('hidden');
@@ -1081,8 +1071,9 @@
                 isLongPress = false;
                 gearPressTimer = setTimeout(() => {
                     isLongPress = true;
-                    // Sync the dropdown to the active state and show modal
+                    // Sync the dropdowns to the active state and show modal
                     els.rulesSel.value = state.rules;
+                    els.difficultySel.value = state.difficulty;
                     els.settingsModal.classList.remove('hidden');
                 }, 600); // 600ms = Long press threshold
             });
@@ -1103,10 +1094,21 @@
             // Prevent desktop context menu from interfering with right clicks on the gear
             els.gearBtn.addEventListener('contextmenu', (e) => e.preventDefault());
 
-            // Handle Settings Modal UI
+            // Handle Rule Settings
             els.rulesSel.addEventListener('change', (e) => {
                 state.rules = e.target.value;
                 autoSave(); // Save preference immediately
+            });
+
+            // Handle Difficulty Settings
+            els.difficultySel.addEventListener('change', (e) => {
+                if(confirm("Changing the difficulty will instantly start a new game. Are you sure?")) {
+                    initGame();
+                    els.settingsModal.classList.add('hidden');
+                } else {
+                    // Revert the visual dropdown back to whatever state is currently active
+                    e.target.value = state.difficulty;
+                }
             });
 
             els.closeSettingsBtn.addEventListener('click', () => {
@@ -1177,10 +1179,6 @@
 
             els.replayBtn.addEventListener('contextmenu', (e) => e.preventDefault());
 
-            els.difficultySel.addEventListener('change', () => {
-                initGame();
-            });
-
             els.undoBtn.addEventListener('click', undo);
             els.redoBtn.addEventListener('click', redo);
 
@@ -1199,7 +1197,9 @@
                     redoHistory = parsed.redoHistory || [];
                     initialGameState = parsed.initialGameState;
                     
-                    els.difficultySel.value = state.difficulty;
+                    // The difficulty sync is now handled in the settings modal event listener, 
+                    // but we still want to track it internally on boot.
+                    
                     els.undoBtn.disabled = history.length === 0;
                     els.redoBtn.disabled = redoHistory.length === 0;
                     
