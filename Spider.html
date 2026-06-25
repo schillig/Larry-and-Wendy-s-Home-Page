@@ -136,11 +136,12 @@
     <header class="bg-black/40 p-4 shadow-lg backdrop-blur-sm z-20 relative">
         <div class="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-4">
             <div class="flex items-center gap-3">
-                <!-- Mini Card Icon -->
-                <div class="w-6 h-8 bg-white rounded shadow-sm flex items-center justify-center border border-gray-300 transform -rotate-6">
+                <!-- Mini Card Icon - Added shrink-0 to protect it from being squished -->
+                <div class="w-6 h-8 shrink-0 bg-white rounded shadow-sm flex items-center justify-center border border-gray-300 transform -rotate-6">
                     <span class="text-red-600 text-lg leading-none">♥</span>
                 </div>
-                <h1 class="text-2xl md:text-3xl font-bold tracking-wider">WENDY'S SPIDER SOLITAIRE</h1>
+                <!-- FLUID TYPOGRAPHY: Forces 1 line, smoothly scales font between 1.1rem and 1.875rem based on screen width -->
+                <h1 class="font-bold tracking-wider whitespace-nowrap text-[clamp(1.1rem,4.5vw,1.875rem)]">WENDY'S SPIDER SOLITAIRE</h1>
             </div>
             
             <div class="flex items-center gap-6 text-sm md:text-base font-semibold text-gray-200">
@@ -275,7 +276,7 @@
 
     <!-- Version Control Footer -->
     <footer class="w-full text-center pb-4 pt-2 text-white/40 text-xs font-mono tracking-widest z-10 relative">
-        v1.1.4
+        v1.1.5
     </footer>
 
     <!-- Game Logic Scripts -->
