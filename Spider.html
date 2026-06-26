@@ -5,13 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Wendy's Spider Solitaire</title>
     
-    <!-- Favicon generated as an inline SVG matching the card icon -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect x=%2220%22 y=%2215%22 width=%2260%22 height=%2270%22 rx=%228%22 fill=%22white%22 stroke=%22%23d1d5db%22 stroke-width=%224%22 transform=%22rotate(-6 50 50)%22/><text x=%2250%22 y=%2263%22 font-size=%2245%22 fill=%22%23dc2626%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 transform=%22rotate(-6 50 50)%22>♥</text></svg>">
     
-    <!-- Tailwind CSS for rapid, responsive UI styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Canvas Confetti Library for Fireworks -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
     
     <style>
@@ -132,26 +129,27 @@
 </head>
 <body class="min-h-screen flex flex-col">
 
-    <!-- Top Navigation & Stats Bar -->
-    <header class="bg-black/40 p-4 shadow-lg backdrop-blur-sm z-20 relative">
-        <div class="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-4">
-            <div class="flex items-center gap-3">
-                <!-- Mini Card Icon - Added shrink-0 to protect it from being squished -->
+    <header class="bg-black/40 p-3 md:p-4 shadow-lg backdrop-blur-sm z-20 relative">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row md:flex-wrap justify-between items-start md:items-center gap-3 md:gap-4">
+            
+            <div class="flex items-center gap-3 w-full md:w-auto">
                 <div class="w-6 h-8 shrink-0 bg-white rounded shadow-sm flex items-center justify-center border border-gray-300 transform -rotate-6">
                     <span class="text-red-600 text-lg leading-none">♥</span>
                 </div>
-                <!-- FLUID TYPOGRAPHY: Forces 1 line, smoothly scales font between 1.1rem and 1.875rem based on screen width -->
                 <h1 class="font-bold tracking-wider whitespace-nowrap text-[clamp(1.1rem,4.5vw,1.875rem)]">WENDY'S SPIDER SOLITAIRE</h1>
             </div>
             
-            <div class="flex items-center gap-6 text-sm md:text-base font-semibold text-gray-200">
-                <div>SCORE: <span id="score-display" class="text-white">500</span></div>
-                <div>MOVES: <span id="moves-display" class="text-white">0</span></div>
+            <div class="flex items-center justify-between w-full md:w-auto gap-4">
+                <div class="flex items-center gap-4 md:gap-6 text-sm md:text-base font-semibold text-gray-200">
+                    <div>SCORE: <span id="score-display" class="text-white">500</span></div>
+                    <div>MOVES: <span id="moves-display" class="text-white">0</span></div>
+                </div>
+                <button id="new-game-btn" class="bg-green-600 hover:bg-green-500 text-white px-3 md:px-4 py-1.5 rounded transition-colors shadow-md select-none touch-none text-sm md:text-base whitespace-nowrap" title="Long press for new game">
+                    New Game
+                </button>
             </div>
 
-            <!-- Cleaned up HUD - Only core gameplay buttons remain -->
-            <div class="flex flex-wrap items-center gap-3 mt-2 md:mt-0">
-                <!-- Config Gear Button -->
+            <div class="flex flex-wrap items-center gap-2 md:gap-3 w-full md:w-auto">
                 <button id="gear-btn" class="bg-gray-800 hover:bg-gray-700 border border-gray-600 text-white px-3 py-1.5 rounded transition-colors shadow-md select-none touch-none" title="Long press for Settings">
                     ⚙️
                 </button>
@@ -164,21 +162,15 @@
                 <button id="replay-btn" class="bg-orange-600 hover:bg-orange-500 text-white px-4 py-1.5 rounded transition-colors shadow-md select-none touch-none" title="Long press to replay">
                     Replay
                 </button>
-                <button id="new-game-btn" class="bg-green-600 hover:bg-green-500 text-white px-4 py-1.5 rounded transition-colors shadow-md select-none touch-none" title="Long press for new game">
-                    New Game
-                </button>
             </div>
         </div>
     </header>
 
-    <!-- Custom Alert Message Box -->
     <div id="message-box" class="fixed top-20 left-1/2 hidden z-50 bg-red-600 text-white px-6 py-3 rounded shadow-2xl border border-red-400 text-center font-semibold transform -translate-x-1/2">
         <span id="message-text"></span>
     </div>
 
-    <!-- Instructions Modal -->
     <div id="instructions-modal" class="fixed inset-0 bg-black/80 z-[9999] hidden flex items-center justify-center backdrop-blur-sm px-4">
-        <!-- max-h-[80vh] and overflow-y-auto ensures the modal is scrollable on small phone screens -->
         <div class="bg-[#0f5a2b] border-2 border-blue-400 rounded-xl p-6 shadow-2xl max-w-lg w-full text-left max-h-[80vh] overflow-y-auto">
             <h2 class="text-3xl font-bold text-white border-b border-gray-400 pb-2 mb-4 text-center">How to Play</h2>
             
@@ -213,7 +205,6 @@
         </div>
     </div>
 
-    <!-- Enhanced Settings Modal -->
     <div id="settings-modal" class="fixed inset-0 bg-black/80 z-[9999] hidden flex items-center justify-center backdrop-blur-sm px-4">
         <div class="bg-[#0f5a2b] border-2 border-[#fbbf24] rounded-xl p-6 shadow-2xl max-w-sm w-full text-center">
             <h2 class="text-2xl font-bold text-[#fbbf24] mb-4">Settings</h2>
@@ -251,35 +242,25 @@
         </div>
     </div>
 
-    <!-- Main Game Area -->
     <main class="flex-grow flex flex-col items-center relative overflow-hidden">
         
-        <!-- Top Board Section: Stock and Foundations -->
         <div class="w-full max-w-[1200px] px-4 py-6 flex justify-between items-end">
-            <!-- Stock Piles (Left) -->
             <div class="flex gap-2 cursor-pointer group" id="stock-container" title="Deal Cards">
-                <!-- Generated dynamically via JS -->
-            </div>
+                </div>
 
-            <!-- Foundations / Completed Sets (Right) -->
             <div class="flex gap-2" id="foundations-container">
-                <!-- Generated dynamically via JS -->
-            </div>
+                </div>
         </div>
 
-        <!-- The 10 Tableau Columns -->
         <div id="game-board">
-            <!-- Columns generated via JS -->
-        </div>
+            </div>
 
     </main>
 
-    <!-- Version Control Footer -->
     <footer class="w-full text-center pb-4 pt-2 text-white/40 text-xs font-mono tracking-widest z-10 relative">
-        v1.1.5
+        v1.1.6
     </footer>
 
-    <!-- Game Logic Scripts -->
     <script>
         // Self-Executing Anonymous Function (IIFE)
         // Keeps all game variables tightly scoped to prevent memory leaks and global browser collisions.
