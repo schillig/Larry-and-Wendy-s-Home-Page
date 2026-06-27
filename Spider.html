@@ -155,7 +155,8 @@
     </div>
 
     <!-- MAIN GAME WRAPPER -->
-    <div id="game-wrapper" class="min-h-screen flex flex-col w-full h-full relative">
+    <!-- FIX: Replaced min-h-screen with h-[100dvh] to use Dynamic Viewport Height, fixing mobile UI clipping -->
+    <div id="game-wrapper" class="h-[100dvh] flex flex-col w-full relative">
         
         <!-- Top Navigation & Stats Bar -->
         <header class="bg-black/40 p-3 md:p-4 shadow-lg backdrop-blur-sm z-20 relative shrink-0">
@@ -309,7 +310,7 @@
         <!-- Version Control Footer -->
         <!-- Added shrink-0 and pb-[env(...)] to ensure it never gets cut off by mobile browser bottom bars -->
         <footer class="w-full text-center pt-2 pb-[calc(1rem+env(safe-area-inset-bottom))] text-white/50 text-sm font-mono tracking-widest z-10 relative shrink-0">
-            v1.1.7
+            v1.1.8
         </footer>
 
     </div> <!-- End Main Game Wrapper -->
