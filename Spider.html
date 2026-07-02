@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Wendy's Spider Solitaire</title>
     
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect x=%2220%22 y=%2215%22 width=%2260%22 height=%2270%22 rx=%228%22 fill=%22white%22 stroke=%22%23d1d5db%22 stroke-width=%224%22 transform=%22rotate(-6 50 50)%22/><text x=%2250%22 y=%2263%22 font-size=%2245%22 fill=%22%23dc2626%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 transform=%22rotate(-6 50 50)%22>♥</text></svg>">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect x='20' y='15' width='60' height='70' rx='8' fill='white' stroke='%23d1d5db' stroke-width='4' transform='rotate(-6 50 50)'/%3E%3Ctext x='50' y='63' font-size='45' fill='%23dc2626' text-anchor='middle' font-family='sans-serif' transform='rotate(-6 50 50)'%3E%E2%99%A5%3C/text%3E%3C/svg%3E">
     
     <script src="https://cdn.tailwindcss.com"></script>
     
@@ -278,7 +278,7 @@
         </main>
 
         <footer class="w-full text-center pt-2 pb-[calc(1rem+env(safe-area-inset-bottom))] text-white/50 text-sm font-mono tracking-widest z-10 relative shrink-0">
-            v1.1.9
+            v1.1.10
         </footer>
 
     </div> <script>
@@ -740,11 +740,9 @@
                 els.movesDisplay.innerText = state.moves;
 
                 // Render Top Left Stock (Undealt Cards)
-                // DELETED placeholder box generation to reclaim space!
                 els.stock.innerHTML = '';
                 state.stock.forEach((batch, index) => {
                     const div = document.createElement('div');
-                    // NEW: Overlap the stock piles aggressively on mobile to save horizontal screen real estate
                     const overlap = index > 0 ? ' -ml-8 md:-ml-4' : '';
                     div.className = 'w-12 h-16 md:w-16 md:h-24 bg-blue-800 rounded border-2 border-white shadow-md relative flex items-center justify-center overflow-hidden' + overlap;
                     div.style.backgroundImage = 'repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(255,255,255,0.1) 5px, rgba(255,255,255,0.1) 10px)';
@@ -757,7 +755,6 @@
                 els.foundations.innerHTML = '';
                 for(let i=0; i < 8; i++) {
                     const fDiv = document.createElement('div');
-                    // NEW: Overlap the foundations dynamically so 8 sets fit perfectly on tiny mobile screens
                     const overlap = i > 0 ? ' -ml-8 md:-ml-4' : '';
                     
                     if (i < state.foundations) {
