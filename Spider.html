@@ -272,9 +272,16 @@
                     </p>
                 </div>
 
-                <div class="mb-6">
+                <div class="mb-3">
                     <button id="help-btn" class="w-full bg-blue-800 hover:bg-blue-700 border border-blue-600 text-white px-4 py-2 rounded transition-colors shadow-md font-bold text-sm">
                         ❓ Read Instructions
+                    </button>
+                </div>
+
+                <!-- ADDED: Diagnostic Tool -->
+                <div class="mb-6">
+                    <button id="diag-btn" class="w-full bg-purple-800 hover:bg-purple-700 border border-purple-600 text-white px-4 py-2 rounded transition-colors shadow-md font-bold text-sm">
+                        🛠️ Run Diagnostics
                     </button>
                 </div>
 
@@ -284,7 +291,7 @@
                 
                 <!-- Version Number moved here to free up main board space -->
                 <div class="mt-4 text-white/30 text-xs font-mono tracking-widest">
-                    v1.1.11
+                    v1.1.12
                 </div>
             </div>
         </div>
@@ -397,7 +404,8 @@
                 closeSettingsBtn: document.getElementById('close-settings-btn'),
                 helpBtn: document.getElementById('help-btn'),
                 instructionsModal: document.getElementById('instructions-modal'),
-                closeInstructionsBtn: document.getElementById('close-instructions-btn')
+                closeInstructionsBtn: document.getElementById('close-instructions-btn'),
+                diagBtn: document.getElementById('diag-btn') // Added Diagnostic Button
             };
 
             // --- FIREWORKS SYSTEM ---
@@ -785,6 +793,12 @@
                     els.stock.appendChild(div);
                 });
 
+                if (state.stock.length === 0) {
+                    const emptyStock = document.createElement('div');
+                    emptyStock.className = 'w-12 h-16 md:w-16 md:h-24 border-2 border-dashed border-gray-400 rounded opacity-50';
+                    els.stock.appendChild(emptyStock);
+                }
+
                 // Render Top Right Foundations (Completed Sets)
                 els.foundations.innerHTML = '';
                 for(let i=0; i < 8; i++) {
@@ -1151,6 +1165,26 @@
                     // Revert the visual dropdown back to whatever state is currently active
                     e.target.value = state.difficulty;
                 }
+            });
+
+            // --- DIAGNOSTIC TOOL BINDING ---
+            els.diagBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                
+                // Calculate rough byte size of arrays in memory
+                const historyBytes = JSON.stringify(history).length;
+                const redoBytes = JSON.stringify(redoHistory).length;
+                
+                const report = `--- DIAGNOSTIC STATE DUMP ---\n\n` +
+                               `Total Moves: ${state.moves}\n` +
+                               `Active Undos Available: ${history.length}\n` +
+                               `Active Redos Available: ${redoHistory.length}\n` +
+                               `History Memory Footprint: ~${(historyBytes / 1024).toFixed(2)} KB\n` +
+                               `Redo Memory Footprint: ~${(redoBytes / 1024).toFixed(2)} KB\n` +
+                               `Undo Button Disabled: ${els.undoBtn.disabled}\n\n` +
+                               `If 'Active Undos' is 0, the button is correctly disabled.`;
+                               
+                alert(report);
             });
 
             els.closeSettingsBtn.addEventListener('click', () => {
