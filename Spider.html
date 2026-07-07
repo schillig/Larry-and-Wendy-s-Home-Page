@@ -5,13 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Wendy's Spider Solitaire</title>
     
-    <!-- Favicon generated as a fully URL-encoded inline SVG to pass strict W3C validation -->
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect x='20' y='15' width='60' height='70' rx='8' fill='white' stroke='%23d1d5db' stroke-width='4' transform='rotate(-6 50 50)'/%3E%3Ctext x='50' y='63' font-size='45' fill='%23dc2626' text-anchor='middle' font-family='sans-serif' transform='rotate(-6 50 50)'%3E%E2%99%A5%3C/text%3E%3C/svg%3E">
     
-    <!-- Tailwind CSS for rapid, responsive UI styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Canvas Confetti Library for Fireworks -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
     
     <style>
@@ -141,11 +138,7 @@
         .msg-animate { animation: slideDown 0.3s ease-out forwards; }
     </style>
 </head>
-<body class="bg-black"> <!-- Black background fallback for safe areas -->
-
-    <!-- LANDSCAPE WARNING OVERLAY -->
-    <!-- This div is completely hidden unless the phone is turned sideways (handled via CSS media query) -->
-    <div id="landscape-warning" class="fixed inset-0 z-[10000] hidden flex-col items-center justify-center text-center p-6 bg-[#0f5a2b] bg-[radial-gradient(circle,#157338_0%,#0a3d1c_100%)]">
+<body class="bg-black"> <div id="landscape-warning" class="fixed inset-0 z-[10000] hidden flex-col items-center justify-center text-center p-6 bg-[#0f5a2b] bg-[radial-gradient(circle,#157338_0%,#0a3d1c_100%)]">
         <div class="text-7xl mb-6 animate-bounce">📱</div>
         <h2 class="text-3xl font-bold text-[#fbbf24] mb-4 tracking-wider">Portrait Mode Required</h2>
         <p class="text-white text-lg max-w-md leading-relaxed">
@@ -154,40 +147,29 @@
         </p>
     </div>
 
-    <!-- MAIN GAME WRAPPER -->
-    <!-- Replaced min-h-screen with h-[100dvh] to use Dynamic Viewport Height, fixing mobile UI clipping -->
     <div id="game-wrapper" class="h-[100dvh] flex flex-col w-full relative">
         
-        <!-- Top Navigation & Stats Bar -->
         <header class="bg-black/40 p-3 md:p-4 shadow-lg backdrop-blur-sm z-20 relative shrink-0">
-            <!-- Reorganized layout into logical rows for better mobile space management -->
             <div class="max-w-7xl mx-auto flex flex-col md:flex-row md:flex-wrap justify-between items-start md:items-center gap-3 md:gap-4">
                 
-                <!-- Row 1: Title -->
                 <div class="flex items-center gap-3 w-full md:w-auto">
-                    <!-- Mini Card Icon - Added shrink-0 to protect it from being squished -->
                     <div class="w-6 h-8 shrink-0 bg-white rounded shadow-sm flex items-center justify-center border border-gray-300 transform -rotate-6">
                         <span class="text-red-600 text-lg leading-none">♥</span>
                     </div>
-                    <!-- FLUID TYPOGRAPHY: Forces 1 line, smoothly scales font -->
                     <h1 class="font-bold tracking-wider whitespace-nowrap text-[clamp(1.1rem,4.5vw,1.875rem)] text-white">WENDY'S SPIDER SOLITAIRE</h1>
                 </div>
                 
-                <!-- Row 2: Score, Moves, and New Game (Pushed up to save vertical space) -->
                 <div class="flex items-center justify-between w-full md:w-auto gap-4">
                     <div class="flex items-center gap-4 md:gap-6 text-sm md:text-base font-semibold text-gray-200">
                         <div>SCORE: <span id="score-display" class="text-white">500</span></div>
                         <div>MOVES: <span id="moves-display" class="text-white">0</span></div>
                     </div>
-                    <!-- New Game button moved into the Stats container -->
                     <button id="new-game-btn" class="bg-green-600 hover:bg-green-500 text-white px-3 md:px-4 py-1.5 rounded transition-colors shadow-md select-none touch-none text-sm md:text-base whitespace-nowrap" title="Long press for new game">
                         New Game
                     </button>
                 </div>
 
-                <!-- Row 3: Gameplay Controls -->
                 <div class="flex flex-wrap items-center gap-2 md:gap-3 w-full md:w-auto">
-                    <!-- Config Gear Button -->
                     <button id="gear-btn" class="bg-gray-800 hover:bg-gray-700 border border-gray-600 text-white px-3 py-1.5 rounded transition-colors shadow-md select-none touch-none" title="Long press for Settings">
                         ⚙️
                     </button>
@@ -204,14 +186,11 @@
             </div>
         </header>
 
-        <!-- Custom Alert Message Box -->
         <div id="message-box" class="fixed top-20 left-1/2 hidden z-50 bg-red-600 text-white px-6 py-3 rounded shadow-2xl border border-red-400 text-center font-semibold transform -translate-x-1/2">
             <span id="message-text"></span>
         </div>
 
-        <!-- Instructions Modal -->
         <div id="instructions-modal" class="fixed inset-0 bg-black/80 z-[9999] hidden flex items-center justify-center backdrop-blur-sm px-4">
-            <!-- max-h-[80vh] and overflow-y-auto ensures the modal is scrollable on small phone screens -->
             <div class="bg-[#0f5a2b] border-2 border-blue-400 rounded-xl p-6 shadow-2xl max-w-lg w-full text-left max-h-[80vh] overflow-y-auto">
                 <h2 class="text-3xl font-bold text-white border-b border-gray-400 pb-2 mb-4 text-center">How to Play</h2>
                 
@@ -246,7 +225,6 @@
             </div>
         </div>
 
-        <!-- Enhanced Settings Modal -->
         <div id="settings-modal" class="fixed inset-0 bg-black/80 z-[9999] hidden flex items-center justify-center backdrop-blur-sm px-4">
             <div class="bg-[#0f5a2b] border-2 border-[#fbbf24] rounded-xl p-6 shadow-2xl max-w-sm w-full text-center">
                 <h2 class="text-2xl font-bold text-[#fbbf24] mb-4">Settings</h2>
@@ -278,7 +256,6 @@
                     </button>
                 </div>
 
-                <!-- ADDED: Diagnostic Tool -->
                 <div class="mb-6">
                     <button id="diag-btn" class="w-full bg-purple-800 hover:bg-purple-700 border border-purple-600 text-white px-4 py-2 rounded transition-colors shadow-md font-bold text-sm">
                         🛠️ Run Diagnostics
@@ -289,40 +266,28 @@
                     Done
                 </button>
                 
-                <!-- Version Number moved here to free up main board space -->
                 <div class="mt-4 text-white/30 text-xs font-mono tracking-widest">
-                    v1.1.12
+                    v1.1.14
                 </div>
             </div>
         </div>
 
-        <!-- Main Game Area -->
         <main class="flex-grow flex flex-col items-center relative overflow-hidden pb-4">
             
-            <!-- Top Board Section: Stock and Foundations -->
             <div class="w-full max-w-[1200px] px-4 py-6 flex justify-between items-end">
-                <!-- Stock Piles (Left) -->
                 <div class="flex gap-2 cursor-pointer group" id="stock-container" title="Deal Cards">
-                    <!-- Generated dynamically via JS -->
-                </div>
+                    </div>
 
-                <!-- Foundations / Completed Sets (Right) -->
                 <div class="flex gap-2" id="foundations-container">
-                    <!-- Generated dynamically via JS -->
-                </div>
+                    </div>
             </div>
 
-            <!-- The 10 Tableau Columns -->
             <div id="game-board">
-                <!-- Columns generated via JS -->
-            </div>
+                </div>
 
         </main>
 
-    </div> <!-- End Main Game Wrapper -->
-
-    <!-- Game Logic Scripts -->
-    <script>
+    </div> <script>
         // --- SCREEN ORIENTATION LOCK ATTEMPT ---
         // Will silently fail on standard browsers, but activates if saved as a PWA app
         try {
@@ -405,7 +370,7 @@
                 helpBtn: document.getElementById('help-btn'),
                 instructionsModal: document.getElementById('instructions-modal'),
                 closeInstructionsBtn: document.getElementById('close-instructions-btn'),
-                diagBtn: document.getElementById('diag-btn') // Added Diagnostic Button
+                diagBtn: document.getElementById('diag-btn') // Diagnostic Button
             };
 
             // --- FIREWORKS SYSTEM ---
@@ -497,6 +462,9 @@
                 });
                 
                 history.push(delta);
+                // V1.1.14 FIX: Hard cap the RAM array at 75 elements to prevent background save crashes on iOS
+                if (history.length > 75) history.shift();
+                
                 els.undoBtn.disabled = false;
             }
 
@@ -516,7 +484,11 @@
                 for (const index in previousState.tableaus) {
                     redoDelta.tableaus[index] = JSON.parse(JSON.stringify(state.tableaus[index]));
                 }
+                
                 redoHistory.push(redoDelta);
+                // Hard cap Redo RAM history as well
+                if (redoHistory.length > 75) redoHistory.shift();
+                
                 els.redoBtn.disabled = false;
                 
                 // 2. Restore previous state (only the specific columns that were changed)
@@ -555,6 +527,9 @@
                     undoDelta.tableaus[index] = JSON.parse(JSON.stringify(state.tableaus[index]));
                 }
                 history.push(undoDelta);
+                // Hard cap History RAM tracking during redos
+                if (history.length > 75) history.shift();
+                
                 els.undoBtn.disabled = false;
 
                 // 2. Fast forward the column state based on payload
@@ -578,29 +553,22 @@
             // --- SAVE / LOAD SYSTEM ---
             const SAVE_KEY = 'spider_solitaire_save';
 
-            // PERFORMANCE FIX: Asynchronous & Capped saving to prevent mobile lag
+            // V1.1.14 FIX: Synchronous Saving to prevent Mobile Browser Sleep state corruption.
+            // By permanently restricting the RAM history to exactly 75 elements using .shift() above, 
+            // the JSON stringification is guaranteed to execute instantly without causing UI lag.
             function autoSave() {
-                // Keep the active history in RAM infinite, but only physically save the last 75 moves.
-                // Stringifying 300+ moves takes too much processor power and causes mobile touch lag.
-                const safeHistory = history.length > 75 ? history.slice(-75) : history;
-                const safeRedo = redoHistory.length > 75 ? redoHistory.slice(-75) : redoHistory;
-                
                 const saveData = { 
                     state: state, 
-                    history: safeHistory, 
-                    redoHistory: safeRedo, 
+                    history: history, 
+                    redoHistory: redoHistory, 
                     initialGameState: initialGameState 
                 };
 
-                // setTimeout pushes this heavy process to the back of the line.
-                // This guarantees the card instantly snaps to the board visually BEFORE the phone freezes to save the file.
-                setTimeout(() => {
-                    try {
-                        localStorage.setItem(SAVE_KEY, JSON.stringify(saveData));
-                    } catch (e) {
-                        console.warn("Storage quota exceeded, skipping background save.");
-                    }
-                }, 10); // 10ms delay gives the UI time to paint the screen
+                try {
+                    localStorage.setItem(SAVE_KEY, JSON.stringify(saveData));
+                } catch (e) {
+                    console.warn("Storage quota exceeded, skipping background save.");
+                }
             }
 
             // --- DECK MANAGEMENT ---
@@ -792,12 +760,6 @@
                     div.onclick = dealFromStock;
                     els.stock.appendChild(div);
                 });
-
-                if (state.stock.length === 0) {
-                    const emptyStock = document.createElement('div');
-                    emptyStock.className = 'w-12 h-16 md:w-16 md:h-24 border-2 border-dashed border-gray-400 rounded opacity-50';
-                    els.stock.appendChild(emptyStock);
-                }
 
                 // Render Top Right Foundations (Completed Sets)
                 els.foundations.innerHTML = '';
