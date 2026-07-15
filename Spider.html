@@ -267,7 +267,7 @@
                 </button>
                 
                 <div class="mt-4 text-white/30 text-xs font-mono tracking-widest">
-                    v1.1.14
+                    v1.1.16
                 </div>
             </div>
         </div>
@@ -462,8 +462,8 @@
                 });
                 
                 history.push(delta);
-                // V1.1.14 FIX: Hard cap the RAM array at 75 elements to prevent background save crashes on iOS
-                if (history.length > 75) history.shift();
+                
+                // V1.1.15 FIX: Removed the RAM cap so the active playing session has INFINITE UNDOS.
                 
                 els.undoBtn.disabled = false;
             }
@@ -486,8 +486,6 @@
                 }
                 
                 redoHistory.push(redoDelta);
-                // Hard cap Redo RAM history as well
-                if (redoHistory.length > 75) redoHistory.shift();
                 
                 els.redoBtn.disabled = false;
                 
@@ -526,10 +524,8 @@
                 for (const index in nextState.tableaus) {
                     undoDelta.tableaus[index] = JSON.parse(JSON.stringify(state.tableaus[index]));
                 }
-                history.push(undoDelta);
-                // Hard cap History RAM tracking during redos
-                if (history.length > 75) history.shift();
                 
+                history.push(undoDelta);
                 els.undoBtn.disabled = false;
 
                 // 2. Fast forward the column state based on payload
@@ -553,14 +549,16 @@
             // --- SAVE / LOAD SYSTEM ---
             const SAVE_KEY = 'spider_solitaire_save';
 
-            // V1.1.14 FIX: Synchronous Saving to prevent Mobile Browser Sleep state corruption.
-            // By permanently restricting the RAM history to exactly 75 elements using .shift() above, 
-            // the JSON stringification is guaranteed to execute instantly without causing UI lag.
+            // V1.1.15 FIX: Active session has infinite RAM undos, but the background save 
+            // process silently slices it to exactly 75 to guarantee the phone never lags.
             function autoSave() {
+                const safeHistory = history.length > 75 ? history.slice(-75) : history;
+                const safeRedo = redoHistory.length > 75 ? redoHistory.slice(-75) : redoHistory;
+                
                 const saveData = { 
                     state: state, 
-                    history: history, 
-                    redoHistory: redoHistory, 
+                    history: safeHistory, 
+                    redoHistory: safeRedo, 
                     initialGameState: initialGameState 
                 };
 
@@ -1217,8 +1215,23 @@
 
             els.replayBtn.addEventListener('contextmenu', (e) => e.preventDefault());
 
-            els.undoBtn.addEventListener('click', undo);
-            els.redoBtn.addEventListener('click', redo);
+            // V1.1.16 FIX: Throttle Function to ignore accidental rapid-fire mobile taps
+            function throttle(func, limit) {
+                let inThrottle;
+                return function() {
+                    const args = arguments;
+                    const context = this;
+                    if (!inThrottle) {
+                        func.apply(context, args);
+                        inThrottle = true;
+                        setTimeout(() => inThrottle = false, limit);
+                    }
+                }
+            }
+
+            // Apply a 300ms cooldown to the Undo and Redo buttons to protect the memory array
+            els.undoBtn.addEventListener('click', throttle(undo, 300));
+            els.redoBtn.addEventListener('click', throttle(redo, 300));
 
             // --- BOOT SEQUENCE ---
             const savedString = localStorage.getItem(SAVE_KEY);
