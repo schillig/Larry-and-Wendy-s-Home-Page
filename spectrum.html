@@ -66,7 +66,7 @@
         <h1 class="text-4xl font-extrabold mb-1 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500">
             Spectrum Analyzer
         </h1>
-        <p class="text-slate-500 text-xs font-mono font-bold mb-3 tracking-widest">REV 1.8.0</p>
+        <p class="text-slate-500 text-xs font-mono font-bold mb-3 tracking-widest">REV 1.9.0</p>
         <p class="text-slate-400 text-sm md:text-base">
             Status: <span id="engine-status" class="text-yellow-500 font-mono">READY - WAITING FOR INPUT</span>
         </p>
@@ -223,7 +223,7 @@
             <button id="btn-mem-capture" class="w-full py-1.5 rounded bg-indigo-700 hover:bg-indigo-600 border border-slate-500 transition-colors text-[11px] font-bold text-white shadow-inner">📸 CAPTURE TO MEM</button>
             <div class="flex gap-2">
                 <button id="btn-mem-overlay" class="flex-1 py-1 rounded bg-slate-700 border border-slate-600 text-[10px] font-bold text-slate-300">OVERLAY: OFF</button>
-                <button id="btn-mem-restore" class="flex-1 py-1 rounded bg-slate-700 border border-slate-600 text-[10px] font-bold text-slate-300">RESTORE & FREEZE</button>
+                <button id="btn-mem-restore" class="flex-1 py-1 rounded bg-slate-700 border border-slate-600 text-[10px] font-bold text-slate-300 transition-colors duration-300">RESTORE & FREEZE</button>
             </div>
             <div class="flex gap-2 mt-1">
                 <button id="btn-mem-save" class="flex-1 py-1 rounded bg-slate-800 hover:bg-slate-700 border border-slate-600 text-[10px] font-bold text-cyan-400">💾 SAVE FILE</button>
@@ -865,7 +865,6 @@
         }
 
         // --- Extracted Drawing Primitives ---
-        // Dash array parameters have been removed per Rev 1.8.0 specs for Solid lines
         function drawTrace(ctx, cvs, data, strokeColor = '#22d3ee', doFill = true, lineWidth = 1.5) {
             const bufferLength = data.length;
             const binSize = actualNyquist / bufferLength;
@@ -1117,7 +1116,7 @@
 
         document.getElementById('btn-mem-overlay').onclick = function() {
             if (!memorySnapshot) {
-                showToast("Please capture or load a memory snapshot first.", true);
+                showToast("⚠️ Please capture or load a memory snapshot first.", true);
                 return;
             }
             isMemOverlay = !isMemOverlay;
@@ -1126,8 +1125,19 @@
             this.classList.toggle('bg-slate-700', !isMemOverlay);
         };
 
+        // BUGFIX REV 1.9.0: Smart UX Toggle handling for the Restore button.
         document.getElementById('btn-mem-restore').onclick = function() {
-            if (!memorySnapshot) return;
+            if (!memorySnapshot) {
+                showToast("⚠️ No memory captured yet! Please click 📸 CAPTURE TO MEM first.", true);
+                return;
+            }
+            
+            // If the user clicks RESTORE again while it is already frozen, intelligently toggle the unfreeze.
+            if (isFrozen) {
+                document.getElementById('btn-freeze').click(); 
+                return;
+            }
+
             actualNyquist = memorySnapshot.nyquist;
             
             Object.keys(displays).forEach(key => {
@@ -1135,9 +1145,7 @@
                 const mem = memorySnapshot.displays[key];
                 if (!mem) return;
                 
-                // Bugfix 1.8.0: Explicitly overwrite the live data arrays with the memory arrays.
-                // Because we now safely sanitize Infinity math locally in the draw loop,
-                // restoring these matrices allows the EMA to seamlessly transition if Unfrozen.
+                // Explicitly overwrite the live arrays so the frozen frame matches memory exactly.
                 if (mem.data) d.data = new Float32Array(mem.data);
                 if (mem.timeData) d.timeData = new Float32Array(mem.timeData);
                 
@@ -1157,10 +1165,15 @@
             document.getElementById('btn-freeze').textContent = "FREEZE: ON";
             document.getElementById('btn-freeze').classList.add('bg-blue-700');
             
-            // Turning off the overlay logically aligns since the restored line perfectly matches the live canvas now
             isMemOverlay = false;
             document.getElementById('btn-mem-overlay').textContent = "OVERLAY: OFF";
             document.getElementById('btn-mem-overlay').classList.replace('bg-red-700', 'bg-slate-700');
+            
+            // UX Update: Change button state so user knows clicking it again unfreezes
+            this.textContent = "UNFREEZE (RESUME)";
+            this.classList.add('bg-emerald-700');
+            
+            showToast("Memory Restored. Screen Frozen for analysis.", false);
         };
 
         document.getElementById('btn-mem-save').onclick = function() {
@@ -1256,6 +1269,9 @@
             
             updateUIControlVisibility();
             clampCursors();
+            
+            // Clean up UX state if switching modes
+            if (isFrozen) document.getElementById('btn-freeze').click(); 
         };
 
         controls.gain.el.oninput = (e) => {
@@ -1279,6 +1295,13 @@
             isFrozen = !isFrozen;
             this.textContent = `FREEZE: ${isFrozen ? 'ON' : 'OFF'}`;
             this.classList.toggle('bg-blue-700', isFrozen);
+            
+            // Reset the Smart Toggle Restore button UX
+            if (!isFrozen) {
+                const btnRes = document.getElementById('btn-mem-restore');
+                btnRes.textContent = "RESTORE & FREEZE";
+                btnRes.classList.remove('bg-emerald-700');
+            }
         };
         document.getElementById('btn-peaks').onclick = function() {
             showPeaks = !showPeaks;
@@ -1592,6 +1615,10 @@
             
             document.getElementById('btn-mem-overlay').textContent = "OVERLAY: OFF";
             document.getElementById('btn-mem-overlay').classList.replace('bg-red-700', 'bg-slate-700');
+            
+            const btnRes = document.getElementById('btn-mem-restore');
+            btnRes.textContent = "RESTORE & FREEZE";
+            btnRes.classList.remove('bg-emerald-700');
 
             updateCursorReadouts();
         };
