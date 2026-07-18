@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Professional Web-Based Audio Spectrum Analyzer and Oscilloscope">
-    <title>Audio Spectrum Visualizer - REV 1.11.0</title>
+    <title>Audio Spectrum Visualizer - REV 1.12.0</title>
     
     <!-- Pro Tip: Inline SVG Favicons are a zero-latency way to brand web apps without external image requests -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎛️</text></svg>">
@@ -71,7 +71,7 @@
         <h1 class="text-4xl font-extrabold mb-1 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500">
             Spectrum Analyzer
         </h1>
-        <p class="text-slate-500 text-xs font-mono font-bold mb-3 tracking-widest">REV 1.11.0</p>
+        <p class="text-slate-500 text-xs font-mono font-bold mb-3 tracking-widest">REV 1.12.0</p>
         <p class="text-slate-400 text-sm md:text-base">
             Status: <span id="engine-status" class="text-yellow-500 font-mono">READY - WAITING FOR INPUT</span>
         </p>
@@ -151,22 +151,34 @@
         <div class="flex flex-col gap-3">
             <h3 class="text-xs uppercase tracking-wider text-slate-500 font-bold border-b border-slate-700 pb-1">Zoom & Trigger</h3>
             
-            <!-- Spectrum Zoom Panel -->
+            <!-- Spectrum Zoom Panel (Updated in REV 1.12.0) -->
             <div id="zoom-spectrum" class="grid grid-cols-2 gap-x-4 gap-y-2 mode-spec">
                 <div class="flex flex-col gap-1" title="Scroll to adjust">
-                    <label class="text-[10px] text-slate-400">Min Hz</label>
+                    <label class="text-[10px] text-slate-400 flex justify-between">
+                        <span>Min Hz</span>
+                        <span id="min-freq-val" class="text-cyan-400 font-mono">0</span>
+                    </label>
                     <input type="range" id="min-freq" min="0" max="20000" step="1" value="0" class="w-full">
                 </div>
                 <div class="flex flex-col gap-1" title="Scroll to adjust">
-                    <label class="text-[10px] text-slate-400">Max Hz</label>
+                    <label class="text-[10px] text-slate-400 flex justify-between">
+                        <span>Max Hz</span>
+                        <span id="max-freq-val" class="text-cyan-400 font-mono">20000</span>
+                    </label>
                     <input type="range" id="max-freq" min="100" max="24000" step="100" value="20000" class="w-full">
                 </div>
                 <div class="flex flex-col gap-1" title="Scroll to adjust">
-                    <label class="text-[10px] text-slate-400">Min dB</label>
+                    <label class="text-[10px] text-slate-400 flex justify-between">
+                        <span>Min dB</span>
+                        <span id="min-db-val" class="text-cyan-400 font-mono">-100</span>
+                    </label>
                     <input type="range" id="min-db" min="-140" max="-70" step="1" value="-100" class="w-full">
                 </div>
                 <div class="flex flex-col gap-1" title="Scroll to adjust">
-                    <label class="text-[10px] text-slate-400">Max dB</label>
+                    <label class="text-[10px] text-slate-400 flex justify-between">
+                        <span>Max dB</span>
+                        <span id="max-db-val" class="text-cyan-400 font-mono">-20</span>
+                    </label>
                     <input type="range" id="max-db" min="-60" max="0" step="1" value="-20" class="w-full">
                 </div>
             </div>
@@ -334,8 +346,11 @@
             gain: { el: document.getElementById('gain'), disp: document.getElementById('gain-value') },
             avg: { el: document.getElementById('avg'), disp: document.getElementById('avg-value') },
             bandwidth: { el: document.getElementById('bandwidth'), disp: document.getElementById('bandwidth-value') },
-            maxDb: document.getElementById('max-db'), minDb: document.getElementById('min-db'),
-            minFreq: document.getElementById('min-freq'), maxFreq: document.getElementById('max-freq'),
+            // REV 1.12.0: Added references to the new display spans for frequency/db sliders
+            minFreq: { el: document.getElementById('min-freq'), disp: document.getElementById('min-freq-val') },
+            maxFreq: { el: document.getElementById('max-freq'), disp: document.getElementById('max-freq-val') },
+            minDb: { el: document.getElementById('min-db'), disp: document.getElementById('min-db-val') },
+            maxDb: { el: document.getElementById('max-db'), disp: document.getElementById('max-db-val') },
             scopeTime: { el: document.getElementById('scope-time'), disp: document.getElementById('scope-time-val') },
             scopeAmp: { el: document.getElementById('scope-amp'), disp: document.getElementById('scope-amp-val') },
             scopeTrigger: { el: document.getElementById('scope-trigger-lvl'), disp: document.getElementById('scope-trigger-val') }
@@ -637,7 +652,7 @@
 
                 if (audioCtx.state === 'suspended') await audioCtx.resume();
                 actualNyquist = audioCtx.sampleRate / 2;
-                controls.maxFreq.max = actualNyquist;
+                controls.maxFreq.el.max = actualNyquist;
 
                 // Essential hack for Chrome: Audio won't stream without an actively playing HTML node.
                 dummyAudioEl = new Audio();
@@ -1351,21 +1366,22 @@
             }
         }
 
-        controls.minFreq.oninput = (e) => { 
+        // REV 1.12.0: Added updating of the DOM spans for immediate visual feedback
+        controls.minFreq.el.oninput = (e) => { 
             let val = parseInt(e.target.value); if (val >= zoomMaxFreq - 10) val = zoomMaxFreq - 10;
-            zoomMinFreq = val; e.target.value = val; clampCursors(); updateCursorReadouts(); 
+            zoomMinFreq = val; e.target.value = val; controls.minFreq.disp.textContent = val; clampCursors(); updateCursorReadouts(); 
         };
-        controls.maxFreq.oninput = (e) => { 
+        controls.maxFreq.el.oninput = (e) => { 
             let val = parseInt(e.target.value); if (val <= zoomMinFreq + 10) val = zoomMinFreq + 10;
-            zoomMaxFreq = val; e.target.value = val; clampCursors(); updateCursorReadouts(); 
+            zoomMaxFreq = val; e.target.value = val; controls.maxFreq.disp.textContent = val; clampCursors(); updateCursorReadouts(); 
         };
-        controls.minDb.oninput = (e) => { 
+        controls.minDb.el.oninput = (e) => { 
             let val = parseInt(e.target.value); if (val >= displayMaxDb - 10) val = displayMaxDb - 10;
-            displayMinDb = val; e.target.value = val; clampCursors(); updateCursorReadouts(); 
+            displayMinDb = val; e.target.value = val; controls.minDb.disp.textContent = val; clampCursors(); updateCursorReadouts(); 
         };
-        controls.maxDb.oninput = (e) => { 
+        controls.maxDb.el.oninput = (e) => { 
             let val = parseInt(e.target.value); if (val <= displayMinDb + 10) val = displayMinDb + 10;
-            displayMaxDb = val; e.target.value = val; clampCursors(); updateCursorReadouts(); 
+            displayMaxDb = val; e.target.value = val; controls.maxDb.disp.textContent = val; clampCursors(); updateCursorReadouts(); 
         };
 
         controls.scopeTime.el.oninput = (e) => {
@@ -1599,7 +1615,7 @@
         Object.values(displays).forEach(d => resizeObserver.observe(d.container));
 
         // ==========================================
-        // 9. NEW FEATURE: SCROLL WHEEL FINE-TUNING
+        // 9. SCROLL WHEEL FINE-TUNING
         // ==========================================
         // Binds a wheel listener to all range inputs for precision adjustments
         document.querySelectorAll('input[type="range"]').forEach(input => {
@@ -1628,6 +1644,60 @@
                 }
             }, { passive: false }); // IMPORTANT: Required by modern browsers to allow e.preventDefault()
         });
+
+        // --- Defaults Reset ---
+        document.getElementById('btn-reset').onclick = () => {
+            isLogScale = false; isFrozen = false; showPeaks = false;
+            averagingAlpha = 0.4; displayMaxDb = -20; displayMinDb = -100;
+            zoomMinFreq = 0; zoomMaxFreq = 20000;
+            scopeTimeWindowMs = 20; scopeMaxAmp = 1.0;
+            scopeTriggerLevel = 0.0; setTriggerSource('combined');
+            cursorsXEnabled = false; cursorsYEnabled = false;
+            isOneShotArmed = false;
+            isMemOverlay = false;
+            memorySnapshot = null;
+
+            controls.gain.el.value = 2; controls.gain.disp.textContent = "2.0x";
+            if (gainNode) gainNode.gain.setTargetAtTime(2, audioCtx.currentTime, 0.05);
+            controls.avg.el.value = 0.4; controls.avg.disp.textContent = "40%";
+            controls.bandwidth.el.value = 11; controls.bandwidth.disp.textContent = "2048";
+            
+            applyFftSize(); 
+
+            // REV 1.12.0: Reset the exact numerical displays
+            controls.minFreq.el.value = 0; controls.minFreq.disp.textContent = "0";
+            controls.maxFreq.el.value = 20000; controls.maxFreq.disp.textContent = "20000";
+            controls.minDb.el.value = -100; controls.minDb.disp.textContent = "-100";
+            controls.maxDb.el.value = -20; controls.maxDb.disp.textContent = "-20";
+            
+            controls.scopeTime.el.value = 20; controls.scopeTime.disp.textContent = "20ms";
+            controls.scopeAmp.el.value = 1; controls.scopeAmp.disp.textContent = "1.00x";
+            controls.scopeTrigger.el.value = 0; controls.scopeTrigger.disp.textContent = "0.00";
+
+            const btnFreeze = document.getElementById('btn-freeze');
+            btnFreeze.textContent = "FREEZE: OFF"; btnFreeze.classList.remove('bg-blue-700');
+            const btnPeaks = document.getElementById('btn-peaks');
+            btnPeaks.textContent = "PEAKS: OFF"; btnPeaks.classList.remove('bg-pink-700');
+            document.getElementById('btn-scale').textContent = "X-Axis Scale: Linear";
+            
+            const btnOs = document.getElementById('btn-trig-oneshot');
+            btnOs.textContent = "1-SHOT: OFF";
+            btnOs.className = "flex-1 py-1 rounded border border-slate-600 text-[10px] font-bold bg-slate-700 text-slate-300";
+
+            const btnCX = document.getElementById('btn-cursor-x');
+            btnCX.classList.remove('bg-green-700'); btnCX.classList.add('bg-slate-700');
+            const btnCY = document.getElementById('btn-cursor-y');
+            btnCY.classList.remove('bg-purple-700'); btnCY.classList.add('bg-slate-700');
+            
+            document.getElementById('btn-mem-overlay').textContent = "OVERLAY: OFF";
+            document.getElementById('btn-mem-overlay').classList.replace('bg-red-700', 'bg-slate-700');
+            
+            const btnRes = document.getElementById('btn-mem-restore');
+            btnRes.textContent = "RESTORE & FREEZE";
+            btnRes.classList.remove('bg-emerald-700');
+
+            updateCursorReadouts();
+        };
 
         // --- Start Application ---
         updateUIControlVisibility();
