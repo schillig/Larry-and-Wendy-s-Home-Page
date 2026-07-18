@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Audio Spectrum Visualizer</title>
+    <meta name="description" content="Professional Web-Based Audio Spectrum Analyzer and Oscilloscope">
+    <title>Audio Spectrum Visualizer - REV 1.10.0</title>
     
     <!-- Pro Tip: Inline SVG Favicons are a zero-latency way to brand web apps without external image requests -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎛️</text></svg>">
@@ -66,7 +67,7 @@
         <h1 class="text-4xl font-extrabold mb-1 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500">
             Spectrum Analyzer
         </h1>
-        <p class="text-slate-500 text-xs font-mono font-bold mb-3 tracking-widest">REV 1.9.0</p>
+        <p class="text-slate-500 text-xs font-mono font-bold mb-3 tracking-widest">REV 1.10.0</p>
         <p class="text-slate-400 text-sm md:text-base">
             Status: <span id="engine-status" class="text-yellow-500 font-mono">READY - WAITING FOR INPUT</span>
         </p>
@@ -369,6 +370,27 @@
             colormap[i*4] = r; colormap[i*4+1] = g; colormap[i*4+2] = b; colormap[i*4+3] = 255; 
         }
 
+        /**
+         * REV 1.10.0: DYNAMIC FFT SIZING
+         * Automatically pushes the analyser's buffer size to the max limit (32768)
+         * when switching to Scope modes to guarantee up to ~680ms of time-domain data.
+         * Restores user preference for Spectrum modes.
+         */
+        function applyFftSize() {
+            let targetSize;
+            if (viewMode === 'oscilloscope' || viewMode === 'lissajous') {
+                targetSize = 32768; // W3C Max allowed fftSize
+            } else {
+                targetSize = Math.pow(2, parseInt(controls.bandwidth.el.value));
+            }
+            
+            Object.values(displays).forEach(d => {
+                if (d.analyser && d.analyser.fftSize !== targetSize) {
+                    d.analyser.fftSize = targetSize;
+                }
+            });
+        }
+
         // --- Grid Coordinates Helpers ---
         const getPadding = () => ({ left: 55, bottom: 25 });
         
@@ -635,11 +657,7 @@
                 splitter.connect(displays.left.analyser, 0); 
                 splitter.connect(displays.right.analyser, 1); 
 
-                const fftSz = Math.pow(2, parseInt(controls.bandwidth.el.value));
-                Object.values(displays).forEach(d => {
-                    d.analyser.fftSize = fftSz;
-                    d.analyser.smoothingTimeConstant = 0.8;
-                });
+                applyFftSize(); // Uses Dynamic Context Sizing from Rev 1.10.0
 
                 document.getElementById('btn-mic').classList.add('hidden');
                 document.getElementById('btn-system').classList.add('hidden');
@@ -739,6 +757,9 @@
                     if (searchData) {
                         const sampleRate = actualNyquist * 2;
                         const samplesToDraw = Math.floor((scopeTimeWindowMs / 1000) * sampleRate);
+                        
+                        // Prevents looking for a trigger too late in the buffer, ensuring full trace draws.
+                        // With fftSize forced to 32768, we have up to ~682ms of buffer at 48kHz.
                         const searchLimit = Math.max(1, searchData.length - samplesToDraw);
                         
                         lastTriggerIndex = -1;
@@ -1125,7 +1146,7 @@
             this.classList.toggle('bg-slate-700', !isMemOverlay);
         };
 
-        // BUGFIX REV 1.9.0: Smart UX Toggle handling for the Restore button.
+        // Smart UX Toggle handling for the Restore button.
         document.getElementById('btn-mem-restore').onclick = function() {
             if (!memorySnapshot) {
                 showToast("⚠️ No memory captured yet! Please click 📸 CAPTURE TO MEM first.", true);
@@ -1268,6 +1289,7 @@
             btnOs.className = "flex-1 py-1 rounded border border-slate-600 text-[10px] font-bold bg-slate-700 text-slate-300";
             
             updateUIControlVisibility();
+            applyFftSize(); // Adjust underlying buffer length per context
             clampCursors();
             
             // Clean up UX state if switching modes
@@ -1286,9 +1308,7 @@
         controls.bandwidth.el.oninput = (e) => {
             const sz = Math.pow(2, parseInt(e.target.value));
             controls.bandwidth.disp.textContent = sz;
-            Object.values(displays).forEach(d => {
-                if (d.analyser) d.analyser.fftSize = sz;
-            });
+            applyFftSize(); // Safe update
         };
 
         document.getElementById('btn-freeze').onclick = function() {
@@ -1590,7 +1610,8 @@
             if (gainNode) gainNode.gain.setTargetAtTime(2, audioCtx.currentTime, 0.05);
             controls.avg.el.value = 0.4; controls.avg.disp.textContent = "40%";
             controls.bandwidth.el.value = 11; controls.bandwidth.disp.textContent = "2048";
-            Object.values(displays).forEach(d => { if (d.analyser) d.analyser.fftSize = 2048; });
+            
+            applyFftSize(); // Uses Dynamic Context Switcher
 
             controls.minFreq.value = 0; controls.maxFreq.value = 20000;
             controls.minDb.value = -100; controls.maxDb.value = -20;
