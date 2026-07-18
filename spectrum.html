@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Professional Web-Based Audio Spectrum Analyzer and Oscilloscope">
-    <title>Audio Spectrum Visualizer - REV 1.12.0</title>
+    <title>Audio Spectrum Visualizer - REV 1.13.0</title>
     
     <!-- Pro Tip: Inline SVG Favicons are a zero-latency way to brand web apps without external image requests -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎛️</text></svg>">
@@ -53,7 +53,7 @@
         }
     </style>
 </head>
-<body class="flex flex-col items-center p-4 md:p-8 font-sans overflow-x-hidden relative">
+<body class="flex flex-col items-center p-3 md:p-4 font-sans overflow-x-hidden relative">
 
     <!-- 
       Fixed Toast Notification Container
@@ -66,33 +66,39 @@
         </div>
     </div>
 
-    <!-- Header Section -->
-    <header class="text-center mb-6 max-w-2xl relative mt-4">
-        <h1 class="text-4xl font-extrabold mb-1 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500">
-            Spectrum Analyzer
-        </h1>
-        <p class="text-slate-500 text-xs font-mono font-bold mb-3 tracking-widest">REV 1.12.0</p>
-        <p class="text-slate-400 text-sm md:text-base">
-            Status: <span id="engine-status" class="text-yellow-500 font-mono">READY - WAITING FOR INPUT</span>
-        </p>
-    </header>
-
-    <!-- Source Controls Section -->
-    <div class="flex flex-col sm:flex-row gap-4 mb-6">
-        <button id="btn-mic" class="px-6 py-3 rounded-full bg-slate-800 hover:bg-slate-700 border border-slate-600 transition-colors flex items-center justify-center gap-2 font-medium shadow-lg">
-            <svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path></svg>
-            Microphone
-        </button>
+    <!-- 
+      REV 1.13.0: Compact App-Bar Header
+      Combines Title, Status, and Controls into a single responsive flex container to save vertical space.
+    -->
+    <header class="w-full max-w-7xl flex flex-col md:flex-row justify-between items-center bg-slate-800/40 p-3 md:px-5 rounded-xl border border-slate-700/50 mb-4 shadow-md gap-3 md:gap-0">
         
-        <button id="btn-system" class="px-6 py-3 rounded-full bg-slate-800 hover:bg-slate-700 border border-slate-600 transition-colors flex items-center justify-center gap-2 font-medium shadow-lg">
-            <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
-            System Audio
-        </button>
+        <!-- Branding & Status (Left Side) -->
+        <div class="flex flex-col sm:flex-row items-center sm:gap-4 text-center sm:text-left">
+            <h1 class="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500 whitespace-nowrap">
+                Spectrum Analyzer <span class="text-slate-500 text-[10px] font-mono tracking-widest uppercase ml-1 align-top">Rev 1.13.0</span>
+            </h1>
+            <div class="text-slate-400 text-xs sm:border-l sm:border-slate-600 sm:pl-4 mt-1 sm:mt-0">
+                Status: <span id="engine-status" class="text-yellow-500 font-mono">READY</span>
+            </div>
+        </div>
 
-        <button id="btn-stop" class="hidden px-6 py-3 rounded-full bg-red-900/50 hover:bg-red-800/80 border border-red-700 text-red-200 transition-colors font-medium shadow-lg">
-            Stop Audio
-        </button>
-    </div>
+        <!-- Source Controls (Right Side) -->
+        <div class="flex gap-2">
+            <button id="btn-mic" class="px-4 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 transition-colors flex items-center justify-center gap-2 text-sm font-medium shadow-lg">
+                <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path></svg>
+                Mic
+            </button>
+            
+            <button id="btn-system" class="px-4 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 transition-colors flex items-center justify-center gap-2 text-sm font-medium shadow-lg">
+                <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                System
+            </button>
+
+            <button id="btn-stop" class="hidden px-4 py-1.5 rounded-lg bg-red-900/50 hover:bg-red-800/80 border border-red-700 text-red-200 transition-colors text-sm font-medium shadow-lg">
+                Stop Audio
+            </button>
+        </div>
+    </header>
 
     <!-- Panel Header & Reset -->
     <div class="w-full max-w-7xl flex justify-between items-end mb-2 px-2">
@@ -104,7 +110,7 @@
     </div>
 
     <!-- Instrument Control Panel (CSS Grid Layout) -->
-    <div class="bg-slate-800/50 p-5 rounded-2xl border border-slate-700/50 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-x-8 gap-y-6 mb-8 w-full max-w-7xl shadow-xl">
+    <div class="bg-slate-800/50 p-4 md:p-5 rounded-2xl border border-slate-700/50 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-x-8 gap-y-6 mb-6 w-full max-w-7xl shadow-xl">
         
         <!-- Display & Mode -->
         <div class="flex flex-col gap-3">
@@ -151,7 +157,7 @@
         <div class="flex flex-col gap-3">
             <h3 class="text-xs uppercase tracking-wider text-slate-500 font-bold border-b border-slate-700 pb-1">Zoom & Trigger</h3>
             
-            <!-- Spectrum Zoom Panel (Updated in REV 1.12.0) -->
+            <!-- Spectrum Zoom Panel -->
             <div id="zoom-spectrum" class="grid grid-cols-2 gap-x-4 gap-y-2 mode-spec">
                 <div class="flex flex-col gap-1" title="Scroll to adjust">
                     <label class="text-[10px] text-slate-400 flex justify-between">
@@ -251,7 +257,7 @@
     </div>
 
     <!-- Visualization Canvases Wrapper -->
-    <div id="displays-wrapper" class="w-full max-w-7xl flex flex-col gap-4 mb-10">
+    <div id="displays-wrapper" class="w-full max-w-7xl flex flex-col gap-4 mb-8">
         
         <!-- Combined Display -->
         <div id="display-combined" class="canvas-container w-full min-h-[200px] h-[350px] bg-slate-950 rounded-xl border border-slate-700 overflow-hidden relative shadow-2xl">
@@ -346,7 +352,6 @@
             gain: { el: document.getElementById('gain'), disp: document.getElementById('gain-value') },
             avg: { el: document.getElementById('avg'), disp: document.getElementById('avg-value') },
             bandwidth: { el: document.getElementById('bandwidth'), disp: document.getElementById('bandwidth-value') },
-            // REV 1.12.0: Added references to the new display spans for frequency/db sliders
             minFreq: { el: document.getElementById('min-freq'), disp: document.getElementById('min-freq-val') },
             maxFreq: { el: document.getElementById('max-freq'), disp: document.getElementById('max-freq-val') },
             minDb: { el: document.getElementById('min-db'), disp: document.getElementById('min-db-val') },
@@ -634,7 +639,7 @@
         // ==========================================
         async function initAudio(sourceType) {
             showToast("INITIALIZING ENGINE...", false);
-            statusEl.textContent = "INITIALIZING ENGINE...";
+            statusEl.textContent = "INITIALIZING...";
             statusEl.className = "text-yellow-500 font-mono";
 
             if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -702,7 +707,7 @@
             document.getElementById('btn-mic').classList.remove('hidden');
             document.getElementById('btn-system').classList.remove('hidden');
             document.getElementById('btn-stop').classList.add('hidden');
-            statusEl.textContent = "STOPPED - WAITING FOR INPUT";
+            statusEl.textContent = "READY";
             statusEl.className = "text-yellow-500 font-mono";
         }
 
@@ -1366,7 +1371,6 @@
             }
         }
 
-        // REV 1.12.0: Added updating of the DOM spans for immediate visual feedback
         controls.minFreq.el.oninput = (e) => { 
             let val = parseInt(e.target.value); if (val >= zoomMaxFreq - 10) val = zoomMaxFreq - 10;
             zoomMinFreq = val; e.target.value = val; controls.minFreq.disp.textContent = val; clampCursors(); updateCursorReadouts(); 
@@ -1664,7 +1668,6 @@
             
             applyFftSize(); 
 
-            // REV 1.12.0: Reset the exact numerical displays
             controls.minFreq.el.value = 0; controls.minFreq.disp.textContent = "0";
             controls.maxFreq.el.value = 20000; controls.maxFreq.disp.textContent = "20000";
             controls.minDb.el.value = -100; controls.minDb.disp.textContent = "-100";
