@@ -45,7 +45,7 @@
         <h1 class="text-4xl font-extrabold mb-1 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500">
             Spectrum Analyzer
         </h1>
-        <p class="text-slate-500 text-xs font-mono font-bold mb-3 tracking-widest">REV 1.6.0</p>
+        <p class="text-slate-500 text-xs font-mono font-bold mb-3 tracking-widest">REV 1.7.0</p>
         <p class="text-slate-400 text-sm md:text-base">
             Status: <span id="engine-status" class="text-yellow-500 font-mono">READY - WAITING FOR INPUT</span>
         </p>
@@ -206,7 +206,7 @@
             <button id="btn-mem-capture" class="w-full py-1.5 rounded bg-indigo-700 hover:bg-indigo-600 border border-slate-500 transition-colors text-[11px] font-bold text-white shadow-inner">📸 CAPTURE TO MEM</button>
             <div class="flex gap-2">
                 <button id="btn-mem-overlay" class="flex-1 py-1 rounded bg-slate-700 border border-slate-600 text-[10px] font-bold text-slate-300">OVERLAY: OFF</button>
-                <button id="btn-mem-restore" class="flex-1 py-1 rounded bg-slate-700 border border-slate-600 text-[10px] font-bold text-slate-300">RESTORE & FREE</button>
+                <button id="btn-mem-restore" class="flex-1 py-1 rounded bg-slate-700 border border-slate-600 text-[10px] font-bold text-slate-300">RESTORE & FREEZE</button>
             </div>
             <div class="flex gap-2 mt-1">
                 <button id="btn-mem-save" class="flex-1 py-1 rounded bg-slate-800 hover:bg-slate-700 border border-slate-600 text-[10px] font-bold text-cyan-400">💾 SAVE FILE</button>
@@ -283,19 +283,20 @@
         const messageBox = document.getElementById('message-box');
         
         // Multi-Display Object Tracking
+        // Added 'rawData' cache arrays to prevent GC stuttering
         const displays = {
             combined: {
-                show: true, analyser: null, data: null, timeData: null,
+                show: true, analyser: null, data: null, timeData: null, rawData: null, rawTimeData: null,
                 container: document.getElementById('display-combined'),
                 visCvs: document.getElementById('vis-combined'), wfCvs: document.getElementById('wf-combined')
             },
             left: {
-                show: false, analyser: null, data: null, timeData: null,
+                show: false, analyser: null, data: null, timeData: null, rawData: null, rawTimeData: null,
                 container: document.getElementById('display-left'),
                 visCvs: document.getElementById('vis-left'), wfCvs: document.getElementById('wf-left')
             },
             right: {
-                show: false, analyser: null, data: null, timeData: null,
+                show: false, analyser: null, data: null, timeData: null, rawData: null, rawTimeData: null,
                 container: document.getElementById('display-right'),
                 visCvs: document.getElementById('vis-right'), wfCvs: document.getElementById('wf-right')
             }
@@ -323,7 +324,7 @@
             colormap[i*4] = r; colormap[i*4+1] = g; colormap[i*4+2] = b; colormap[i*4+3] = 255; 
         }
 
-        // --- Coordinate Helpers (Spectrum) ---
+        // --- Coordinate Helpers ---
         const getPadding = () => ({ left: 55, bottom: 25 });
         
         function getXPosition(freq, cvsWidth) {
@@ -359,7 +360,6 @@
             return normalizedY * (displayMaxDb - displayMinDb) + displayMinDb;
         }
 
-        // --- Coordinate Helpers (Oscilloscope) ---
         function getScopeXPosition(ms, cvsWidth) {
             const p = getPadding();
             return p.left + (ms / scopeTimeWindowMs) * (cvsWidth - p.left);
@@ -627,13 +627,15 @@
             // --- LISSAJOUS (X-Y) LOGIC ---
             if (viewMode === 'lissajous') {
                 if (!isFrozen) {
-                    // Always poll analyzers directly to ensure we have Left and Right data even if their displays are hidden
                     Object.values(displays).forEach(d => {
                         if (d.analyser) {
-                            if (!d.timeData || d.timeData.length !== d.analyser.fftSize) {
-                                d.timeData = new Float32Array(d.analyser.fftSize);
+                            if (!d.rawTimeData || d.rawTimeData.length !== d.analyser.fftSize) {
+                                d.rawTimeData = new Float32Array(d.analyser.fftSize);
+                                d.timeData = new Float32Array(d.analyser.fftSize); // Persist live trace
                             }
-                            d.analyser.getFloatTimeDomainData(d.timeData);
+                            d.analyser.getFloatTimeDomainData(d.rawTimeData);
+                            // Copy to safe buffer for freeze mode
+                            for(let i=0; i<d.rawTimeData.length; i++) d.timeData[i] = d.rawTimeData[i];
                         }
                     });
                 }
@@ -646,12 +648,14 @@
                     
                     drawLissajousGrid(visCtx, d.visCvs, scopeMaxAmp);
 
-                    if (isMemOverlay && memorySnapshot && memorySnapshot.displays['left'] && memorySnapshot.displays['right']) {
-                        drawLissajous(visCtx, d.visCvs, memorySnapshot.displays['left'].timeData, memorySnapshot.displays['right'].timeData, scopeMaxAmp, '#ef4444');
-                    }
-
+                    // 1. Draw Live Lissajous (Rose)FIRST
                     if (displays.left.timeData && displays.right.timeData) {
-                        drawLissajous(visCtx, d.visCvs, displays.left.timeData, displays.right.timeData, scopeMaxAmp, '#f43f5e'); // Rose-500
+                        drawLissajous(visCtx, d.visCvs, displays.left.timeData, displays.right.timeData, scopeMaxAmp, '#f43f5e'); 
+                    }
+                    
+                    // 2. Draw Overlay Lissajous (Red dashed) LAST to ensure visibility over Live
+                    if (isMemOverlay && memorySnapshot && memorySnapshot.displays['left'] && memorySnapshot.displays['right']) {
+                        drawLissajous(visCtx, d.visCvs, memorySnapshot.displays['left'].timeData, memorySnapshot.displays['right'].timeData, scopeMaxAmp, '#ef4444', 2, [5,5]);
                     }
                 });
                 return;
@@ -662,10 +666,12 @@
                 if (!isFrozen) {
                     Object.values(displays).forEach(d => {
                         if (d.analyser) {
-                            if (!d.timeData || d.timeData.length !== d.analyser.fftSize) {
+                            if (!d.rawTimeData || d.rawTimeData.length !== d.analyser.fftSize) {
+                                d.rawTimeData = new Float32Array(d.analyser.fftSize);
                                 d.timeData = new Float32Array(d.analyser.fftSize);
                             }
-                            d.analyser.getFloatTimeDomainData(d.timeData);
+                            d.analyser.getFloatTimeDomainData(d.rawTimeData);
+                            for(let i=0; i<d.rawTimeData.length; i++) d.timeData[i] = d.rawTimeData[i];
                         }
                     });
                 }
@@ -717,12 +723,14 @@
                     const visCtx = d.visCvs.getContext('2d');
                     visCtx.clearRect(0, 0, d.visCvs.width, d.visCvs.height);
                     
-                    // Draw Memory Overlay (behind live)
+                    // 1. Draw Live Trace FIRST
+                    if (d.timeData) drawOscilloscope(visCtx, d.visCvs, d.timeData, lastTriggerIndex, '#fbbf24');
+                    
+                    // 2. Draw Overlay (Red dashed) LAST to ensure visibility over Live
                     if (isMemOverlay && memorySnapshot && memorySnapshot.displays[key] && memorySnapshot.displays[key].timeData) {
-                        drawOscilloscope(visCtx, d.visCvs, memorySnapshot.displays[key].timeData, 0, '#ef4444');
+                        drawOscilloscope(visCtx, d.visCvs, memorySnapshot.displays[key].timeData, 0, '#ef4444', 2.5, [5,5]);
                     }
 
-                    if (d.timeData) drawOscilloscope(visCtx, d.visCvs, d.timeData, lastTriggerIndex, '#fbbf24');
                     drawOscilloscopeGrid(visCtx, d.visCvs);
                     drawMeasurementTools(visCtx, d.visCvs, null);
                 });
@@ -737,17 +745,19 @@
 
                 const visCtx = d.visCvs.getContext('2d');
                 const wfCtx = d.wfCvs.getContext('2d');
-                
                 visCtx.clearRect(0, 0, d.visCvs.width, d.visCvs.height);
 
                 if (!d.analyser || isFrozen) {
                     if (d.data) {
-                        if (isMemOverlay && memorySnapshot && memorySnapshot.displays[key] && memorySnapshot.displays[key].data) {
-                            drawTrace(visCtx, d.visCvs, memorySnapshot.displays[key].data, '#ef4444', false);
-                        }
                         if (viewMode === 'spectrum' || viewMode === 'both') {
-                            drawTrace(visCtx, d.visCvs, d.data, '#22d3ee', true);
+                            drawTrace(visCtx, d.visCvs, d.data, '#22d3ee', true); // Live trace First
                         }
+                        
+                        // Z-INDEX FIX: Overlay trace drawn LAST with dashed stroke so it slices through the blue trace
+                        if (isMemOverlay && memorySnapshot && memorySnapshot.displays[key] && memorySnapshot.displays[key].data) {
+                            drawTrace(visCtx, d.visCvs, memorySnapshot.displays[key].data, '#ef4444', false, 2, [5, 5]);
+                        }
+                        
                         drawGrid(visCtx, d.visCvs);
                         drawMeasurementTools(visCtx, d.visCvs, d.data);
                     }
@@ -755,22 +765,23 @@
                 }
 
                 const bufferLength = d.analyser.frequencyBinCount;
-                const rawData = new Float32Array(bufferLength);
-                d.analyser.getFloatFrequencyData(rawData);
+                
+                // GC Optimization: Cached buffer prevents Garbage Collection micro-stutters
+                if (!d.rawData || d.rawData.length !== bufferLength) {
+                    d.rawData = new Float32Array(bufferLength);
+                }
+                d.analyser.getFloatFrequencyData(d.rawData);
 
                 if (!d.data || d.data.length !== bufferLength) {
-                    d.data = new Float32Array(rawData);
-                    // Sanitize the newly created array to avoid -Infinity bugs
+                    d.data = new Float32Array(d.rawData);
                     for(let i = 0; i < bufferLength; i++) {
                         if (!isFinite(d.data[i])) d.data[i] = -200;
                     }
                 } else {
                     for (let i = 0; i < bufferLength; i++) {
-                        // Validate data before calculating the Moving Average.
-                        // Absolute silence returns -Infinity. If -Infinity multiplies into the average, 
-                        // it "poisons" the array slot forever, trapping the trace off-screen.
+                        // EMA Array Poisoning Fix: Clamps Infinity to -200, protecting averaging math.
                         let oldVal = isFinite(d.data[i]) ? d.data[i] : -200;
-                        let newVal = isFinite(rawData[i]) ? rawData[i] : -200;
+                        let newVal = isFinite(d.rawData[i]) ? d.rawData[i] : -200;
                         d.data[i] = (averagingAlpha * oldVal) + ((1 - averagingAlpha) * newVal);
                     }
                 }
@@ -780,12 +791,14 @@
                     drawWaterfallRow(wfCtx, d.wfCvs, d.data);
                 } 
                 
-                if (isMemOverlay && memorySnapshot && memorySnapshot.displays[key] && memorySnapshot.displays[key].data) {
-                    drawTrace(visCtx, d.visCvs, memorySnapshot.displays[key].data, '#ef4444', false);
-                }
-
+                // 1. Draw Live Trace (Blue) FIRST
                 if (viewMode === 'spectrum' || viewMode === 'both') {
-                    drawTrace(visCtx, d.visCvs, d.data, '#22d3ee', true);
+                    drawTrace(visCtx, d.visCvs, d.data, '#22d3ee', true, 1.5, []);
+                }
+                
+                // 2. Draw Overlay (Red) LAST so it floats on top of the live fill
+                if (isMemOverlay && memorySnapshot && memorySnapshot.displays[key] && memorySnapshot.displays[key].data) {
+                    drawTrace(visCtx, d.visCvs, memorySnapshot.displays[key].data, '#ef4444', false, 2.5, [5, 5]);
                 }
 
                 drawGrid(visCtx, d.visCvs);
@@ -793,13 +806,15 @@
             });
         }
 
-        function drawTrace(ctx, cvs, data, strokeColor = '#22d3ee', doFill = true) {
+        // Updated drawing functions to support dashed lines to visually differentiate Overlay
+        function drawTrace(ctx, cvs, data, strokeColor = '#22d3ee', doFill = true, lineWidth = 1.5, dash = []) {
             const bufferLength = data.length;
             const binSize = actualNyquist / bufferLength;
             const p = getPadding();
             
-            ctx.lineWidth = 1.5;
+            ctx.lineWidth = lineWidth;
             ctx.strokeStyle = strokeColor;
+            if (dash.length > 0) ctx.setLineDash(dash);
             ctx.beginPath();
             
             let hasMoved = false;
@@ -814,6 +829,7 @@
                 else ctx.lineTo(x, y);
             }
             ctx.stroke();
+            if (dash.length > 0) ctx.setLineDash([]);
             
             if (doFill) {
                 ctx.lineTo(getXPosition(endB * binSize, cvs.width), cvs.height - p.bottom);
@@ -823,12 +839,13 @@
             }
         }
 
-        function drawOscilloscope(ctx, cvs, timeData, triggerIndex, strokeColor = '#fbbf24') {
+        function drawOscilloscope(ctx, cvs, timeData, triggerIndex, strokeColor = '#fbbf24', lineWidth = 1.5, dash = []) {
             const sampleRate = actualNyquist * 2;
             const samplesToDraw = Math.min(timeData.length - triggerIndex, Math.floor((scopeTimeWindowMs / 1000) * sampleRate));
             
-            ctx.lineWidth = 1.5;
+            ctx.lineWidth = lineWidth;
             ctx.strokeStyle = strokeColor; 
+            if (dash.length > 0) ctx.setLineDash(dash);
             ctx.beginPath();
             
             let hasMoved = false;
@@ -842,9 +859,10 @@
                 else ctx.lineTo(x, y);
             }
             ctx.stroke();
+            if (dash.length > 0) ctx.setLineDash([]);
         }
         
-        function drawLissajous(ctx, cvs, leftData, rightData, maxAmp, strokeColor) {
+        function drawLissajous(ctx, cvs, leftData, rightData, maxAmp, strokeColor, lineWidth = 1.5, dash = []) {
             if (!leftData || !rightData) return;
             const p = getPadding();
             const w = cvs.width - p.left;
@@ -855,8 +873,9 @@
             const scaleX = (w / 2) / maxAmp;
             const scaleY = (h / 2) / maxAmp;
 
-            ctx.lineWidth = 1.5;
+            ctx.lineWidth = lineWidth;
             ctx.strokeStyle = strokeColor; 
+            if (dash.length > 0) ctx.setLineDash(dash);
             ctx.beginPath();
             
             let hasMoved = false;
@@ -873,6 +892,7 @@
                 else ctx.lineTo(x, y);
             }
             ctx.stroke();
+            if (dash.length > 0) ctx.setLineDash([]);
         }
 
         function drawWaterfallRow(wfCtx, cvs, data) {
@@ -932,7 +952,7 @@
                 return;
             }
 
-            if (viewMode === 'lissajous') return; // Hide measurement cursors in Lissajous mode
+            if (viewMode === 'lissajous') return; 
 
             const bufferLength = data.length;
             const binSize = actualNyquist / bufferLength;
@@ -1008,10 +1028,26 @@
             };
             Object.keys(displays).forEach(key => {
                 const d = displays[key];
-                // Deep copy the typed arrays securely
+                
+                // Polling Optimization: If a canvas is hidden, the engine skips polling it to save CPU. 
+                // We MUST force a manual poll here so the memory capture isn't blank, ensuring the Overlay 
+                // works correctly when the user toggles that channel back on.
+                let tempSpec = d.data;
+                if (!tempSpec && d.analyser) {
+                    tempSpec = new Float32Array(d.analyser.frequencyBinCount);
+                    d.analyser.getFloatFrequencyData(tempSpec);
+                }
+                
+                let tempTime = d.timeData;
+                if (!tempTime && d.analyser) {
+                    tempTime = new Float32Array(d.analyser.fftSize);
+                    d.analyser.getFloatTimeDomainData(tempTime);
+                }
+
                 memorySnapshot.displays[key] = {
-                    data: d.data ? Array.from(d.data) : null,
-                    timeData: d.timeData ? Array.from(d.timeData.slice(lastTriggerIndex)) : null,
+                    // JSON Pre-Sanitization: Convert -Infinity to -200 BEFORE saving to prevent `null` corruption
+                    data: tempSpec ? Array.from(tempSpec).map(v => isFinite(v) ? v : -200) : null,
+                    timeData: tempTime ? Array.from(tempTime.slice(lastTriggerIndex)) : null,
                     wfImage: d.wfCvs.toDataURL('image/png')
                 };
             });
@@ -1048,8 +1084,9 @@
                 const mem = memorySnapshot.displays[key];
                 if (!mem) return;
                 
-                if (mem.data) d.data = new Float32Array(mem.data);
-                if (mem.timeData) d.timeData = new Float32Array(mem.timeData);
+                // Do NOT overwrite d.data or d.timeData here! Let the draw loop selectively pull 
+                // from the memory array while frozen. This prevents permanent EMA data corruption 
+                // when unfreezing.
                 
                 if (mem.wfImage) {
                     const img = new Image();
@@ -1108,7 +1145,6 @@
             document.querySelectorAll('.mode-spec').forEach(el => el.style.display = (isScope || isLissajous) ? 'none' : '');
             document.querySelectorAll('.mode-scope').forEach(el => el.style.display = (isScope || isLissajous) ? '' : 'none');
 
-            // Lissajous hides trigger and time-base elements within the scope panel
             document.getElementById('scope-time-container').style.display = isLissajous ? 'none' : 'flex';
             document.getElementById('scope-trigger-container').style.display = isLissajous ? 'none' : 'flex';
             document.getElementById('scope-trigger-btns').style.display = isLissajous ? 'none' : 'flex';
@@ -1117,7 +1153,6 @@
             document.getElementById('btn-cursor-x').style.display = isLissajous ? 'none' : 'block';
             document.getElementById('btn-peaks').style.display = (isScope || isWaterfall || isLissajous) ? 'none' : 'block';
             
-            // Safety shutoffs
             if ((isWaterfall || isLissajous) && cursorsYEnabled) document.getElementById('btn-cursor-y').click();
             if (isLissajous && cursorsXEnabled) document.getElementById('btn-cursor-x').click();
             if ((isWaterfall || isScope || isLissajous) && showPeaks) document.getElementById('btn-peaks').click();
@@ -1278,7 +1313,7 @@
 
         const btnCursorX = document.getElementById('btn-cursor-x');
         btnCursorX.onclick = () => { 
-            if (viewMode === 'lissajous') return; // disabled
+            if (viewMode === 'lissajous') return; 
             cursorsXEnabled = !cursorsXEnabled; 
             btnCursorX.classList.toggle('bg-slate-700', !cursorsXEnabled);
             btnCursorX.classList.toggle('bg-green-700', cursorsXEnabled);
@@ -1302,7 +1337,7 @@
 
         const btnCursorY = document.getElementById('btn-cursor-y');
         btnCursorY.onclick = () => { 
-            if (viewMode === 'waterfall' || viewMode === 'lissajous') return; // disabled
+            if (viewMode === 'waterfall' || viewMode === 'lissajous') return; 
             cursorsYEnabled = !cursorsYEnabled; 
             btnCursorY.classList.toggle('bg-slate-700', !cursorsYEnabled);
             btnCursorY.classList.toggle('bg-purple-700', cursorsYEnabled);
