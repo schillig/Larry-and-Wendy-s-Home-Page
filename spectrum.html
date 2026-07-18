@@ -7,7 +7,6 @@
     <!-- Include Tailwind CSS for modern, responsive styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Pro Tip: Using CSS custom variables and standard HTML5 semantic tags improves maintainability */
         body, html {
             height: 100%;
             margin: 0;
@@ -46,7 +45,7 @@
         <h1 class="text-4xl font-extrabold mb-1 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500">
             Spectrum Analyzer
         </h1>
-        <p class="text-slate-500 text-xs font-mono font-bold mb-3 tracking-widest">REV 1.5.0</p>
+        <p class="text-slate-500 text-xs font-mono font-bold mb-3 tracking-widest">REV 1.6.0</p>
         <p class="text-slate-400 text-sm md:text-base">
             Status: <span id="engine-status" class="text-yellow-500 font-mono">READY - WAITING FOR INPUT</span>
         </p>
@@ -152,7 +151,7 @@
 
             <!-- Oscilloscope Zoom & Trigger Panel -->
             <div id="zoom-scope" class="grid grid-cols-1 gap-y-3 mode-scope" style="display: none;">
-                <div class="flex flex-col gap-1">
+                <div id="scope-time-container" class="flex flex-col gap-1">
                     <label class="text-[10px] text-slate-400">Time Base (X-Axis)</label>
                     <div class="flex items-center gap-2">
                         <input type="range" id="scope-time" min="1" max="500" step="1" value="20" class="w-full flex-1">
@@ -160,20 +159,20 @@
                     </div>
                 </div>
                 <div class="flex flex-col gap-1">
-                    <label class="text-[10px] text-slate-400">Vertical Zoom (Y-Axis)</label>
+                    <label class="text-[10px] text-slate-400">Vertical Zoom (Amplitude)</label>
                     <div class="flex items-center gap-2">
                         <input type="range" id="scope-amp" min="0.05" max="1" step="0.05" value="1" class="w-full flex-1">
                         <span id="scope-amp-val" class="text-[10px] text-cyan-400 font-mono w-10 text-right">1.00x</span>
                     </div>
                 </div>
-                <div class="flex flex-col gap-1 border-t border-slate-700 pt-2">
+                <div id="scope-trigger-container" class="flex flex-col gap-1 border-t border-slate-700 pt-2">
                     <label class="text-[10px] text-slate-400 flex justify-between">
                         <span>Trigger Level</span>
                         <span id="scope-trigger-val" class="text-pink-400 font-mono">0.00</span>
                     </label>
                     <input type="range" id="scope-trigger-lvl" min="-1" max="1" step="0.01" value="0" class="w-full">
                 </div>
-                <div class="flex gap-1">
+                <div id="scope-trigger-btns" class="flex gap-1">
                     <button id="btn-trig-comb" class="flex-1 py-1 rounded bg-pink-700 border border-slate-600 text-[10px] font-bold">T: L+R</button>
                     <button id="btn-trig-left" class="flex-1 py-1 rounded bg-slate-700 border border-slate-600 text-[10px] font-bold">T: L</button>
                     <button id="btn-trig-right" class="flex-1 py-1 rounded bg-slate-700 border border-slate-600 text-[10px] font-bold">T: R</button>
@@ -207,7 +206,7 @@
             <button id="btn-mem-capture" class="w-full py-1.5 rounded bg-indigo-700 hover:bg-indigo-600 border border-slate-500 transition-colors text-[11px] font-bold text-white shadow-inner">📸 CAPTURE TO MEM</button>
             <div class="flex gap-2">
                 <button id="btn-mem-overlay" class="flex-1 py-1 rounded bg-slate-700 border border-slate-600 text-[10px] font-bold text-slate-300">OVERLAY: OFF</button>
-                <button id="btn-mem-restore" class="flex-1 py-1 rounded bg-slate-700 border border-slate-600 text-[10px] font-bold text-slate-300">RESTORE & FREEZE</button>
+                <button id="btn-mem-restore" class="flex-1 py-1 rounded bg-slate-700 border border-slate-600 text-[10px] font-bold text-slate-300">RESTORE & FREE</button>
             </div>
             <div class="flex gap-2 mt-1">
                 <button id="btn-mem-save" class="flex-1 py-1 rounded bg-slate-800 hover:bg-slate-700 border border-slate-600 text-[10px] font-bold text-cyan-400">💾 SAVE FILE</button>
@@ -247,7 +246,7 @@
         // --- State Variables ---
         let audioCtx, gainNode, source, stream, animationId;
         
-        let viewMode = 'spectrum'; // 'spectrum', 'waterfall', 'both', or 'oscilloscope'
+        let viewMode = 'spectrum'; // 'spectrum', 'waterfall', 'both', 'oscilloscope', or 'lissajous'
         let isLogScale = false;
         let isFrozen = false;
         let showPeaks = false;
@@ -263,7 +262,7 @@
         let cursorX1Freq = 1000, cursorX2Freq = 5000;
         let cursorY1Db = -40, cursorY2Db = -60;
 
-        // Oscilloscope Config
+        // Oscilloscope / Lissajous Config
         let scopeTimeWindowMs = 20; 
         let scopeMaxAmp = 1.0; 
         let scopeCursorX1Ms = 5, scopeCursorX2Ms = 15;
@@ -514,6 +513,30 @@
             ctx.fillText('TRIG', p.left + 5, trigY - 4);
         }
 
+        function drawLissajousGrid(ctx, cvs, maxAmp) {
+            const p = getPadding();
+            const w = cvs.width - p.left;
+            const h = cvs.height - p.bottom;
+            const centerX = p.left + w / 2;
+            const centerY = h / 2;
+
+            ctx.strokeStyle = 'rgba(56, 189, 248, 0.15)';
+            ctx.beginPath(); 
+            ctx.moveTo(p.left, centerY); ctx.lineTo(cvs.width, centerY); 
+            ctx.moveTo(centerX, 0); ctx.lineTo(centerX, h);
+            ctx.stroke();
+
+            ctx.fillStyle = '#94a3b8';
+            ctx.textAlign = 'center';
+            ctx.font = '10px monospace';
+            ctx.fillText('- L +', centerX, h + 15);
+            
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('+R', p.left - 5, 10);
+            ctx.fillText('-R', p.left - 5, h - 10);
+        }
+
         // --- Audio Logic ---
         async function initAudio(sourceType) {
             messageBox.classList.add('hidden');
@@ -601,11 +624,44 @@
         function drawVisualizer() {
             animationId = requestAnimationFrame(drawVisualizer);
 
+            // --- LISSAJOUS (X-Y) LOGIC ---
+            if (viewMode === 'lissajous') {
+                if (!isFrozen) {
+                    // Always poll analyzers directly to ensure we have Left and Right data even if their displays are hidden
+                    Object.values(displays).forEach(d => {
+                        if (d.analyser) {
+                            if (!d.timeData || d.timeData.length !== d.analyser.fftSize) {
+                                d.timeData = new Float32Array(d.analyser.fftSize);
+                            }
+                            d.analyser.getFloatTimeDomainData(d.timeData);
+                        }
+                    });
+                }
+
+                Object.keys(displays).forEach(key => {
+                    const d = displays[key];
+                    if (!d.show) return;
+                    const visCtx = d.visCvs.getContext('2d');
+                    visCtx.clearRect(0, 0, d.visCvs.width, d.visCvs.height);
+                    
+                    drawLissajousGrid(visCtx, d.visCvs, scopeMaxAmp);
+
+                    if (isMemOverlay && memorySnapshot && memorySnapshot.displays['left'] && memorySnapshot.displays['right']) {
+                        drawLissajous(visCtx, d.visCvs, memorySnapshot.displays['left'].timeData, memorySnapshot.displays['right'].timeData, scopeMaxAmp, '#ef4444');
+                    }
+
+                    if (displays.left.timeData && displays.right.timeData) {
+                        drawLissajous(visCtx, d.visCvs, displays.left.timeData, displays.right.timeData, scopeMaxAmp, '#f43f5e'); // Rose-500
+                    }
+                });
+                return;
+            }
+
             // --- OSCILLOSCOPE LOGIC ---
             if (viewMode === 'oscilloscope') {
                 if (!isFrozen) {
                     Object.values(displays).forEach(d => {
-                        if (d.show && d.analyser) {
+                        if (d.analyser) {
                             if (!d.timeData || d.timeData.length !== d.analyser.fftSize) {
                                 d.timeData = new Float32Array(d.analyser.fftSize);
                             }
@@ -618,15 +674,9 @@
                 
                 if (!isFrozen) {
                     let searchData = null;
-                    if (scopeTriggerSource === 'combined' && displays.combined.show) searchData = displays.combined.timeData;
-                    else if (scopeTriggerSource === 'left' && displays.left.show) searchData = displays.left.timeData;
-                    else if (scopeTriggerSource === 'right' && displays.right.show) searchData = displays.right.timeData;
-                    
-                    if (!searchData) {
-                        if (displays.combined.show) searchData = displays.combined.timeData;
-                        else if (displays.left.show) searchData = displays.left.timeData;
-                        else if (displays.right.show) searchData = displays.right.timeData;
-                    }
+                    if (scopeTriggerSource === 'combined') searchData = displays.combined.timeData;
+                    else if (scopeTriggerSource === 'left') searchData = displays.left.timeData;
+                    else if (scopeTriggerSource === 'right') searchData = displays.right.timeData;
 
                     if (searchData) {
                         const sampleRate = actualNyquist * 2;
@@ -710,13 +760,13 @@
 
                 if (!d.data || d.data.length !== bufferLength) {
                     d.data = new Float32Array(rawData);
-                    // Pro Tip: Sanitize the newly created array to avoid -Infinity bugs
+                    // Sanitize the newly created array to avoid -Infinity bugs
                     for(let i = 0; i < bufferLength; i++) {
                         if (!isFinite(d.data[i])) d.data[i] = -200;
                     }
                 } else {
                     for (let i = 0; i < bufferLength; i++) {
-                        // Pro Tip: Validate data before calculating the Moving Average.
+                        // Validate data before calculating the Moving Average.
                         // Absolute silence returns -Infinity. If -Infinity multiplies into the average, 
                         // it "poisons" the array slot forever, trapping the trace off-screen.
                         let oldVal = isFinite(d.data[i]) ? d.data[i] : -200;
@@ -793,6 +843,37 @@
             }
             ctx.stroke();
         }
+        
+        function drawLissajous(ctx, cvs, leftData, rightData, maxAmp, strokeColor) {
+            if (!leftData || !rightData) return;
+            const p = getPadding();
+            const w = cvs.width - p.left;
+            const h = cvs.height - p.bottom;
+            const centerX = p.left + w / 2;
+            const centerY = h / 2;
+            
+            const scaleX = (w / 2) / maxAmp;
+            const scaleY = (h / 2) / maxAmp;
+
+            ctx.lineWidth = 1.5;
+            ctx.strokeStyle = strokeColor; 
+            ctx.beginPath();
+            
+            let hasMoved = false;
+            const len = Math.min(leftData.length, rightData.length);
+            
+            for (let i = 0; i < len; i++) {
+                let valL = Math.max(-maxAmp, Math.min(maxAmp, leftData[i]));
+                let valR = Math.max(-maxAmp, Math.min(maxAmp, rightData[i]));
+                
+                let x = centerX + (valL * scaleX);
+                let y = centerY - (valR * scaleY);
+                
+                if (!hasMoved) { ctx.moveTo(x, y); hasMoved = true; }
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+        }
 
         function drawWaterfallRow(wfCtx, cvs, data) {
             const p = getPadding();
@@ -850,6 +931,8 @@
                 ctx.setLineDash([]);
                 return;
             }
+
+            if (viewMode === 'lissajous') return; // Hide measurement cursors in Lissajous mode
 
             const bufferLength = data.length;
             const binSize = actualNyquist / bufferLength;
@@ -1020,15 +1103,24 @@
         function updateUIControlVisibility() {
             const isScope = viewMode === 'oscilloscope';
             const isWaterfall = viewMode === 'waterfall';
+            const isLissajous = viewMode === 'lissajous';
             
-            document.querySelectorAll('.mode-spec').forEach(el => el.style.display = isScope ? 'none' : '');
-            document.querySelectorAll('.mode-scope').forEach(el => el.style.display = isScope ? '' : 'none');
+            document.querySelectorAll('.mode-spec').forEach(el => el.style.display = (isScope || isLissajous) ? 'none' : '');
+            document.querySelectorAll('.mode-scope').forEach(el => el.style.display = (isScope || isLissajous) ? '' : 'none');
 
-            document.getElementById('btn-cursor-y').style.display = isWaterfall ? 'none' : 'block';
-            document.getElementById('btn-peaks').style.display = (isScope || isWaterfall) ? 'none' : 'block';
+            // Lissajous hides trigger and time-base elements within the scope panel
+            document.getElementById('scope-time-container').style.display = isLissajous ? 'none' : 'flex';
+            document.getElementById('scope-trigger-container').style.display = isLissajous ? 'none' : 'flex';
+            document.getElementById('scope-trigger-btns').style.display = isLissajous ? 'none' : 'flex';
+
+            document.getElementById('btn-cursor-y').style.display = (isWaterfall || isLissajous) ? 'none' : 'block';
+            document.getElementById('btn-cursor-x').style.display = isLissajous ? 'none' : 'block';
+            document.getElementById('btn-peaks').style.display = (isScope || isWaterfall || isLissajous) ? 'none' : 'block';
             
-            if (isWaterfall && cursorsYEnabled) document.getElementById('btn-cursor-y').click();
-            if ((isWaterfall || isScope) && showPeaks) document.getElementById('btn-peaks').click();
+            // Safety shutoffs
+            if ((isWaterfall || isLissajous) && cursorsYEnabled) document.getElementById('btn-cursor-y').click();
+            if (isLissajous && cursorsXEnabled) document.getElementById('btn-cursor-x').click();
+            if ((isWaterfall || isScope || isLissajous) && showPeaks) document.getElementById('btn-peaks').click();
 
             updateCursorReadouts();
         }
@@ -1049,6 +1141,7 @@
             if (viewMode === 'spectrum') viewMode = 'waterfall';
             else if (viewMode === 'waterfall') viewMode = 'both';
             else if (viewMode === 'both') viewMode = 'oscilloscope';
+            else if (viewMode === 'oscilloscope') viewMode = 'lissajous';
             else viewMode = 'spectrum';
             
             this.textContent = `MODE: ${viewMode.toUpperCase()}`;
@@ -1056,8 +1149,9 @@
             this.classList.toggle('bg-fuchsia-700', viewMode === 'waterfall');
             this.classList.toggle('bg-emerald-700', viewMode === 'both');
             this.classList.toggle('bg-amber-700', viewMode === 'oscilloscope');
+            this.classList.toggle('bg-rose-700', viewMode === 'lissajous');
             
-            if (viewMode === 'waterfall' || viewMode === 'spectrum' || viewMode === 'oscilloscope') {
+            if (viewMode === 'waterfall' || viewMode === 'spectrum' || viewMode === 'oscilloscope' || viewMode === 'lissajous') {
                 Object.values(displays).forEach(d => {
                     const wfCtx = d.wfCvs.getContext('2d');
                     wfCtx.fillStyle = '#020617';
@@ -1107,7 +1201,7 @@
         };
 
         function clampCursors() {
-            if (viewMode === 'oscilloscope') {
+            if (viewMode === 'oscilloscope' || viewMode === 'lissajous') {
                 scopeCursorX1Ms = Math.max(0, Math.min(scopeTimeWindowMs, scopeCursorX1Ms));
                 scopeCursorX2Ms = Math.max(0, Math.min(scopeTimeWindowMs, scopeCursorX2Ms));
                 scopeCursorY1Amp = Math.max(-scopeMaxAmp, Math.min(scopeMaxAmp, scopeCursorY1Amp));
@@ -1184,6 +1278,7 @@
 
         const btnCursorX = document.getElementById('btn-cursor-x');
         btnCursorX.onclick = () => { 
+            if (viewMode === 'lissajous') return; // disabled
             cursorsXEnabled = !cursorsXEnabled; 
             btnCursorX.classList.toggle('bg-slate-700', !cursorsXEnabled);
             btnCursorX.classList.toggle('bg-green-700', cursorsXEnabled);
@@ -1207,6 +1302,7 @@
 
         const btnCursorY = document.getElementById('btn-cursor-y');
         btnCursorY.onclick = () => { 
+            if (viewMode === 'waterfall' || viewMode === 'lissajous') return; // disabled
             cursorsYEnabled = !cursorsYEnabled; 
             btnCursorY.classList.toggle('bg-slate-700', !cursorsYEnabled);
             btnCursorY.classList.toggle('bg-purple-700', cursorsYEnabled);
@@ -1223,7 +1319,7 @@
         };
 
         function updateCursorReadouts() {
-            if (viewMode === 'oscilloscope') {
+            if (viewMode === 'oscilloscope' || viewMode === 'lissajous') {
                 document.getElementById('lbl-f1').textContent = 'T1:';
                 document.getElementById('lbl-f2').textContent = 'T2:';
                 document.getElementById('lbl-df').textContent = 'ΔT:';
@@ -1234,7 +1330,7 @@
                 const currentGain = gainNode ? gainNode.gain.value : 1.0;
 
                 let dtStr = '--';
-                if (cursorsXEnabled) {
+                if (cursorsXEnabled && viewMode !== 'lissajous') {
                     const dt = Math.abs(scopeCursorX2Ms - scopeCursorX1Ms);
                     if (dt > 0) {
                         const freq = 1000 / dt;
@@ -1244,13 +1340,13 @@
                     }
                 }
 
-                document.getElementById('readout-f1').textContent = cursorsXEnabled ? scopeCursorX1Ms.toFixed(2) + 'ms' : '--';
-                document.getElementById('readout-f2').textContent = cursorsXEnabled ? scopeCursorX2Ms.toFixed(2) + 'ms' : '--';
+                document.getElementById('readout-f1').textContent = (cursorsXEnabled && viewMode !== 'lissajous') ? scopeCursorX1Ms.toFixed(2) + 'ms' : '--';
+                document.getElementById('readout-f2').textContent = (cursorsXEnabled && viewMode !== 'lissajous') ? scopeCursorX2Ms.toFixed(2) + 'ms' : '--';
                 document.getElementById('readout-df').textContent = dtStr;
                 
-                document.getElementById('readout-a1').textContent = cursorsYEnabled ? (scopeCursorY1Amp > 0 ? '+' : '') + (scopeCursorY1Amp / currentGain).toFixed(3) : '--';
-                document.getElementById('readout-a2').textContent = cursorsYEnabled ? (scopeCursorY2Amp > 0 ? '+' : '') + (scopeCursorY2Amp / currentGain).toFixed(3) : '--';
-                document.getElementById('readout-da').textContent = cursorsYEnabled ? Math.abs((scopeCursorY2Amp - scopeCursorY1Amp) / currentGain).toFixed(3) : '--';
+                document.getElementById('readout-a1').textContent = (cursorsYEnabled && viewMode !== 'lissajous') ? (scopeCursorY1Amp > 0 ? '+' : '') + (scopeCursorY1Amp / currentGain).toFixed(3) : '--';
+                document.getElementById('readout-a2').textContent = (cursorsYEnabled && viewMode !== 'lissajous') ? (scopeCursorY2Amp > 0 ? '+' : '') + (scopeCursorY2Amp / currentGain).toFixed(3) : '--';
+                document.getElementById('readout-da').textContent = (cursorsYEnabled && viewMode !== 'lissajous') ? Math.abs((scopeCursorY2Amp - scopeCursorY1Amp) / currentGain).toFixed(3) : '--';
             } else {
                 document.getElementById('lbl-f1').textContent = 'F1:';
                 document.getElementById('lbl-f2').textContent = 'F2:';
@@ -1288,7 +1384,7 @@
                     if (Math.abs(y - getScopeYPosition(scopeCursorY1Amp, cvs.height)) < hitTest) activeDrag = { id: 'y1s', cvs };
                     else if (Math.abs(y - getScopeYPosition(scopeCursorY2Amp, cvs.height)) < hitTest) activeDrag = { id: 'y2s', cvs };
                 }
-            } else {
+            } else if (viewMode === 'spectrum' || viewMode === 'both') {
                 if (cursorsXEnabled) {
                     if (Math.abs(x - getXPosition(cursorX1Freq, cvs.width)) < hitTest) activeDrag = { id: 'x1', cvs };
                     else if (Math.abs(x - getXPosition(cursorX2Freq, cvs.width)) < hitTest) activeDrag = { id: 'x2', cvs };
