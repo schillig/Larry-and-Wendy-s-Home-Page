@@ -4,19 +4,29 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Audio Spectrum Visualizer</title>
-    <!-- Include Tailwind CSS for modern, responsive styling -->
+    
+    <!-- Pro Tip: Inline SVG Favicons are a zero-latency way to brand web apps without external image requests -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎛️</text></svg>">
+    
+    <!-- Tailwind CSS (via CDN for rapid prototyping and responsive utilities) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        /* 
+         * CSS Custom Properties & Base Resets
+         * Adhering to modern w3schools/MDN standards, we ensure the body fills the viewport height
+         * and prevents unwanted horizontal scrolling.
+         */
         body, html {
             height: 100%;
             margin: 0;
-            background-color: #0f172a; 
-            color: #f8fafc; 
+            background-color: #0f172a; /* Slate 900 */
+            color: #f8fafc; /* Slate 50 */
         }
         .canvas-container {
             box-shadow: 0 0 40px rgba(56, 189, 248, 0.1);
             resize: vertical;
         }
+        /* Custom Input Range Styling for Cross-Browser Consistency */
         input[type=range] {
             -webkit-appearance: none;
             background: transparent;
@@ -38,14 +48,25 @@
         }
     </style>
 </head>
-<body class="flex flex-col items-center p-4 md:p-8 font-sans overflow-x-hidden">
+<body class="flex flex-col items-center p-4 md:p-8 font-sans overflow-x-hidden relative">
+
+    <!-- 
+      Fixed Toast Notification Container
+      By using 'fixed', 'top-5', and 'absolute' positioning, this element is removed from the normal DOM flow.
+      This completely eliminates the screen jumping (reflow) that occurs when changing 'display: none' to 'block'.
+    -->
+    <div id="toast-container" class="fixed top-5 left-1/2 transform -translate-x-1/2 z-50 flex flex-col items-center w-full px-4 pointer-events-none">
+        <div id="message-box" class="transition-all duration-300 opacity-0 transform -translate-y-4 p-4 rounded-lg shadow-2xl text-sm max-w-xl text-center w-full">
+            <!-- Messages injected dynamically via JS showToast() -->
+        </div>
+    </div>
 
     <!-- Header Section -->
-    <header class="text-center mb-6 max-w-2xl relative">
+    <header class="text-center mb-6 max-w-2xl relative mt-4">
         <h1 class="text-4xl font-extrabold mb-1 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500">
             Spectrum Analyzer
         </h1>
-        <p class="text-slate-500 text-xs font-mono font-bold mb-3 tracking-widest">REV 1.7.0</p>
+        <p class="text-slate-500 text-xs font-mono font-bold mb-3 tracking-widest">REV 1.8.0</p>
         <p class="text-slate-400 text-sm md:text-base">
             Status: <span id="engine-status" class="text-yellow-500 font-mono">READY - WAITING FOR INPUT</span>
         </p>
@@ -68,10 +89,6 @@
         </button>
     </div>
 
-    <!-- Error/Message Display Box -->
-    <div id="message-box" class="hidden mb-6 p-4 rounded-lg bg-red-900/40 border border-red-600 text-red-100 text-sm max-w-xl text-center w-full">
-    </div>
-
     <!-- Panel Header & Reset -->
     <div class="w-full max-w-7xl flex justify-between items-end mb-2 px-2">
         <h2 class="text-slate-400 font-bold text-xs tracking-widest uppercase">Control Panel</h2>
@@ -81,7 +98,7 @@
         </button>
     </div>
 
-    <!-- Instrument Control Panel -->
+    <!-- Instrument Control Panel (CSS Grid Layout) -->
     <div class="bg-slate-800/50 p-5 rounded-2xl border border-slate-700/50 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-x-8 gap-y-6 mb-8 w-full max-w-7xl shadow-xl">
         
         <!-- Display & Mode -->
@@ -243,7 +260,11 @@
     </div>
 
     <script>
-        // --- State Variables ---
+        // ==========================================
+        // 1. ENGINE STATE & GLOBAL VARIABLES
+        // ==========================================
+        
+        // Web Audio API context and master nodes (MDN Web Audio Standard)
         let audioCtx, gainNode, source, stream, animationId;
         
         let viewMode = 'spectrum'; // 'spectrum', 'waterfall', 'both', 'oscilloscope', or 'lissajous'
@@ -252,17 +273,17 @@
         let showPeaks = false;
         let averagingAlpha = 0.4; 
 
-        // Hack to prevent Chrome/Edge from muting inactive tabs
+        // Workaround to prevent modern browsers from throttling MediaStream processing when unmuted
         let dummyAudioEl = null;
 
-        // Spectrum Config
+        // Spectrum Grid & Scale Settings
         let displayMaxDb = -20, displayMinDb = -100;
         let zoomMinFreq = 0, zoomMaxFreq = 20000;
-        let actualNyquist = 22050; 
+        let actualNyquist = 22050; // Automatically adjusts based on hardware sample rate
         let cursorX1Freq = 1000, cursorX2Freq = 5000;
         let cursorY1Db = -40, cursorY2Db = -60;
 
-        // Oscilloscope / Lissajous Config
+        // Oscilloscope & Lissajous Grid Settings
         let scopeTimeWindowMs = 20; 
         let scopeMaxAmp = 1.0; 
         let scopeCursorX1Ms = 5, scopeCursorX2Ms = 15;
@@ -272,18 +293,20 @@
         let isOneShotArmed = false;
         let lastTriggerIndex = 0; 
 
-        // Memory & Storage Config
+        // Memory State
         let memorySnapshot = null;
         let isMemOverlay = false;
 
+        // Cursor Dragging Interaction State
         let cursorsXEnabled = false, cursorsYEnabled = false;
         let activeDrag = null;
 
         const statusEl = document.getElementById('engine-status');
-        const messageBox = document.getElementById('message-box');
         
-        // Multi-Display Object Tracking
-        // Added 'rawData' cache arrays to prevent GC stuttering
+        // ==========================================
+        // 2. DISPLAY OBJECT TRACKING
+        // ==========================================
+        // Caches the TypedArrays to prevent Javascript Garbage Collection micro-stutters during requestAnimationFrame
         const displays = {
             combined: {
                 show: true, analyser: null, data: null, timeData: null, rawData: null, rawTimeData: null,
@@ -313,18 +336,40 @@
             scopeTrigger: { el: document.getElementById('scope-trigger-lvl'), disp: document.getElementById('scope-trigger-val') }
         };
 
-        // --- Prepare Colormap for Waterfall ---
+        // ==========================================
+        // 3. UTILITY FUNCTIONS
+        // ==========================================
+
+        /**
+         * Replaces standard display:none hiding with a CSS transitioned Toast Notification.
+         * Prevents DOM reflow layout jumping.
+         */
+        function showToast(msg, isError = false) {
+            const box = document.getElementById('message-box');
+            box.innerHTML = msg;
+            box.className = `transition-all duration-300 opacity-100 transform translate-y-0 p-4 rounded-lg shadow-2xl text-sm max-w-xl text-center w-full pointer-events-auto ${
+                isError ? 'bg-red-900/90 border border-red-500 text-red-100' : 'bg-emerald-900/90 border border-emerald-500 text-emerald-100'
+            }`;
+            
+            if (box.timeoutId) clearTimeout(box.timeoutId);
+            box.timeoutId = setTimeout(() => {
+                box.classList.remove('opacity-100', 'translate-y-0', 'pointer-events-auto');
+                box.classList.add('opacity-0', '-translate-y-4', 'pointer-events-none');
+            }, 4000);
+        }
+
+        // Generate 'Jet' Colormap internally for the Waterfall canvas (high performance lookup array)
         const colormap = new Uint8ClampedArray(256 * 4);
         for (let i = 0; i < 256; i++) {
             let t = i / 255;
             let r = Math.max(0, Math.min(1, 1.5 - Math.abs(t * 4 - 3))) * 255;
             let g = Math.max(0, Math.min(1, 1.5 - Math.abs(t * 4 - 2))) * 255;
             let b = Math.max(0, Math.min(1, 1.5 - Math.abs(t * 4 - 1))) * 255;
-            if (t < 0.1) { let fade = t / 0.1; b = fade * b + (1 - fade) * 40; }
+            if (t < 0.1) { let fade = t / 0.1; b = fade * b + (1 - fade) * 40; } // Enhance visibility of quiet noise floor
             colormap[i*4] = r; colormap[i*4+1] = g; colormap[i*4+2] = b; colormap[i*4+3] = 255; 
         }
 
-        // --- Coordinate Helpers ---
+        // --- Grid Coordinates Helpers ---
         const getPadding = () => ({ left: 55, bottom: 25 });
         
         function getXPosition(freq, cvsWidth) {
@@ -392,7 +437,10 @@
             return Math.round(freq);
         }
 
-        // --- Grid Drawing ---
+        // ==========================================
+        // 4. CANVAS RENDERING PRIMITIVES
+        // ==========================================
+
         function drawGrid(ctx, cvs) {
             const p = getPadding();
             const gH = cvs.height - p.bottom;
@@ -414,6 +462,7 @@
 
             ctx.textAlign = 'center';
             let freqStep = 2000;
+            // Adaptive Grid Stepping algorithm
             if (freqRange <= 50) freqStep = 5;
             else if (freqRange <= 100) freqStep = 10;
             else if (freqRange <= 250) freqStep = 25;
@@ -495,6 +544,7 @@
                 ctx.strokeStyle = 'rgba(56, 189, 248, 0.15)';
                 ctx.beginPath(); ctx.moveTo(p.left, y); ctx.lineTo(w, y); ctx.stroke();
                 
+                // Show 'True Input Voltage' by factoring out the digital Gain Stage
                 const trueVoltage = amp / currentGain;
                 ctx.fillStyle = 'rgba(2, 6, 23, 0.6)';
                 ctx.fillRect(5, y - 6, p.left - 10, 12);
@@ -502,6 +552,7 @@
                 ctx.fillText(trueVoltage > 0 ? '+' + trueVoltage.toFixed(2) : trueVoltage.toFixed(2), p.left - 8, y + 4);
             });
 
+            // Trigger Level Dash Line
             const trigY = getScopeYPosition(scopeTriggerLevel, cvs.height);
             ctx.strokeStyle = '#f472b6'; 
             ctx.setLineDash([4, 4]);
@@ -537,9 +588,11 @@
             ctx.fillText('-R', p.left - 5, h - 10);
         }
 
-        // --- Audio Logic ---
+        // ==========================================
+        // 5. AUDIO INITIALIZATION
+        // ==========================================
         async function initAudio(sourceType) {
-            messageBox.classList.add('hidden');
+            showToast("INITIALIZING ENGINE...", false);
             statusEl.textContent = "INITIALIZING ENGINE...";
             statusEl.className = "text-yellow-500 font-mono";
 
@@ -550,18 +603,17 @@
                 if (sourceType === 'mic') {
                     stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 } else {
-                    messageBox.innerHTML = "<strong>CRITICAL:</strong> In the popup, select 'Entire Screen' or a Tab and check the <strong>'Share system audio'</strong> box at the bottom left.";
-                    messageBox.classList.remove('hidden');
-                    
+                    showToast("<strong>CRITICAL:</strong> Select 'Entire Screen' or a Tab and check <strong>'Share system audio'</strong> at the bottom left.", false);
                     stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
                     const audioTracks = stream.getAudioTracks();
-                    if (!audioTracks.length) throw new Error("No audio track shared. Did you forget to check the 'Share system audio' box?");
+                    if (!audioTracks.length) throw new Error("No audio track shared. Check the 'Share system audio' box.");
                 }
 
                 if (audioCtx.state === 'suspended') await audioCtx.resume();
                 actualNyquist = audioCtx.sampleRate / 2;
                 controls.maxFreq.max = actualNyquist;
 
+                // Essential hack for Chrome: Audio won't stream without an actively playing HTML node.
                 dummyAudioEl = new Audio();
                 dummyAudioEl.srcObject = stream;
                 dummyAudioEl.muted = true; 
@@ -578,7 +630,7 @@
                 source = audioCtx.createMediaStreamSource(stream);
                 source.connect(gainNode);
 
-                gainNode.connect(displays.combined.analyser); 
+                gainNode.connect(displays.combined.analyser); // Natively downmixes stereo to mono
                 gainNode.connect(splitter);
                 splitter.connect(displays.left.analyser, 0); 
                 splitter.connect(displays.right.analyser, 1); 
@@ -595,12 +647,10 @@
                 
                 statusEl.textContent = `LISTENING (${sourceType.toUpperCase()})`;
                 statusEl.className = "text-green-500 font-mono";
-                messageBox.classList.add('hidden');
                 
                 stream.getTracks().forEach(t => t.onended = () => stopAudio());
             } catch (err) {
-                messageBox.textContent = "ERROR: " + err.message;
-                messageBox.classList.remove('hidden');
+                showToast("ERROR: " + err.message, true);
                 stopAudio();
             }
         }
@@ -617,11 +667,13 @@
             document.getElementById('btn-stop').classList.add('hidden');
             statusEl.textContent = "STOPPED - WAITING FOR INPUT";
             statusEl.className = "text-yellow-500 font-mono";
-            messageBox.classList.add('hidden');
         }
 
-        // --- Rendering Loop ---
+        // ==========================================
+        // 6. MAIN RENDERING LOOP
+        // ==========================================
         function drawVisualizer() {
+            // Drive updates via requestAnimationFrame for maximum efficiency (vs setInterval)
             animationId = requestAnimationFrame(drawVisualizer);
 
             // --- LISSAJOUS (X-Y) LOGIC ---
@@ -648,14 +700,14 @@
                     
                     drawLissajousGrid(visCtx, d.visCvs, scopeMaxAmp);
 
-                    // 1. Draw Live Lissajous (Rose)FIRST
+                    // 1. Draw Live Lissajous (Rose) FIRST
                     if (displays.left.timeData && displays.right.timeData) {
                         drawLissajous(visCtx, d.visCvs, displays.left.timeData, displays.right.timeData, scopeMaxAmp, '#f43f5e'); 
                     }
                     
-                    // 2. Draw Overlay Lissajous (Red dashed) LAST to ensure visibility over Live
+                    // 2. Draw Overlay Lissajous (Solid Red) LAST to ensure visibility
                     if (isMemOverlay && memorySnapshot && memorySnapshot.displays['left'] && memorySnapshot.displays['right']) {
-                        drawLissajous(visCtx, d.visCvs, memorySnapshot.displays['left'].timeData, memorySnapshot.displays['right'].timeData, scopeMaxAmp, '#ef4444', 2, [5,5]);
+                        drawLissajous(visCtx, d.visCvs, memorySnapshot.displays['left'].timeData, memorySnapshot.displays['right'].timeData, scopeMaxAmp, '#ef4444', 2.5);
                     }
                 });
                 return;
@@ -691,6 +743,7 @@
                         
                         lastTriggerIndex = -1;
                         for (let i = 0; i < searchLimit - 1; i++) {
+                            // Detect Rising Edge
                             if (searchData[i] <= scopeTriggerLevel && searchData[i+1] > scopeTriggerLevel) {
                                 lastTriggerIndex = i;
                                 triggerFound = true;
@@ -700,6 +753,7 @@
                     }
                 }
 
+                // Handle 1-Shot Armed logic
                 if (isOneShotArmed && !isFrozen) {
                     if (triggerFound) {
                         isOneShotArmed = false;
@@ -711,7 +765,7 @@
                         btnOs.textContent = "1-SHOT: CAUGHT";
                         btnOs.className = "flex-1 py-1 rounded border border-slate-600 text-[10px] font-bold bg-emerald-600 text-white";
                     } else {
-                        return; // Skip rendering, hold last frame
+                        return; // Skip rendering, hold visual on the last frame
                     }
                 }
 
@@ -726,9 +780,9 @@
                     // 1. Draw Live Trace FIRST
                     if (d.timeData) drawOscilloscope(visCtx, d.visCvs, d.timeData, lastTriggerIndex, '#fbbf24');
                     
-                    // 2. Draw Overlay (Red dashed) LAST to ensure visibility over Live
+                    // 2. Draw Overlay (Solid Red) LAST
                     if (isMemOverlay && memorySnapshot && memorySnapshot.displays[key] && memorySnapshot.displays[key].timeData) {
-                        drawOscilloscope(visCtx, d.visCvs, memorySnapshot.displays[key].timeData, 0, '#ef4444', 2.5, [5,5]);
+                        drawOscilloscope(visCtx, d.visCvs, memorySnapshot.displays[key].timeData, 0, '#ef4444', 2.5);
                     }
 
                     drawOscilloscopeGrid(visCtx, d.visCvs);
@@ -747,15 +801,16 @@
                 const wfCtx = d.wfCvs.getContext('2d');
                 visCtx.clearRect(0, 0, d.visCvs.width, d.visCvs.height);
 
+                // Handle the Frozen state or no-audio state
                 if (!d.analyser || isFrozen) {
                     if (d.data) {
                         if (viewMode === 'spectrum' || viewMode === 'both') {
                             drawTrace(visCtx, d.visCvs, d.data, '#22d3ee', true); // Live trace First
                         }
                         
-                        // Z-INDEX FIX: Overlay trace drawn LAST with dashed stroke so it slices through the blue trace
+                        // Z-INDEX FIX: Overlay trace drawn LAST as a solid line
                         if (isMemOverlay && memorySnapshot && memorySnapshot.displays[key] && memorySnapshot.displays[key].data) {
-                            drawTrace(visCtx, d.visCvs, memorySnapshot.displays[key].data, '#ef4444', false, 2, [5, 5]);
+                            drawTrace(visCtx, d.visCvs, memorySnapshot.displays[key].data, '#ef4444', false, 2.5);
                         }
                         
                         drawGrid(visCtx, d.visCvs);
@@ -764,22 +819,25 @@
                     return;
                 }
 
+                // If not frozen, poll live data
                 const bufferLength = d.analyser.frequencyBinCount;
                 
-                // GC Optimization: Cached buffer prevents Garbage Collection micro-stutters
+                // Caching rawData prevents the GC engine from hanging the browser 60 times a second
                 if (!d.rawData || d.rawData.length !== bufferLength) {
                     d.rawData = new Float32Array(bufferLength);
                 }
                 d.analyser.getFloatFrequencyData(d.rawData);
 
+                // If data lengths mismatch (User changed FFT size), hard-reset the array to prevent loop bounds errors
                 if (!d.data || d.data.length !== bufferLength) {
                     d.data = new Float32Array(d.rawData);
                     for(let i = 0; i < bufferLength; i++) {
+                        // Clamp Infinity bounds
                         if (!isFinite(d.data[i])) d.data[i] = -200;
                     }
                 } else {
                     for (let i = 0; i < bufferLength; i++) {
-                        // EMA Array Poisoning Fix: Clamps Infinity to -200, protecting averaging math.
+                        // EMA Array Poisoning Fix: Clamps Infinity to -200, protecting averaging math from yielding -Infinity forever.
                         let oldVal = isFinite(d.data[i]) ? d.data[i] : -200;
                         let newVal = isFinite(d.rawData[i]) ? d.rawData[i] : -200;
                         d.data[i] = (averagingAlpha * oldVal) + ((1 - averagingAlpha) * newVal);
@@ -793,12 +851,12 @@
                 
                 // 1. Draw Live Trace (Blue) FIRST
                 if (viewMode === 'spectrum' || viewMode === 'both') {
-                    drawTrace(visCtx, d.visCvs, d.data, '#22d3ee', true, 1.5, []);
+                    drawTrace(visCtx, d.visCvs, d.data, '#22d3ee', true, 1.5);
                 }
                 
-                // 2. Draw Overlay (Red) LAST so it floats on top of the live fill
+                // 2. Draw Overlay (Red) LAST so it floats visually on top of the live fill
                 if (isMemOverlay && memorySnapshot && memorySnapshot.displays[key] && memorySnapshot.displays[key].data) {
-                    drawTrace(visCtx, d.visCvs, memorySnapshot.displays[key].data, '#ef4444', false, 2.5, [5, 5]);
+                    drawTrace(visCtx, d.visCvs, memorySnapshot.displays[key].data, '#ef4444', false, 2.5);
                 }
 
                 drawGrid(visCtx, d.visCvs);
@@ -806,18 +864,19 @@
             });
         }
 
-        // Updated drawing functions to support dashed lines to visually differentiate Overlay
-        function drawTrace(ctx, cvs, data, strokeColor = '#22d3ee', doFill = true, lineWidth = 1.5, dash = []) {
+        // --- Extracted Drawing Primitives ---
+        // Dash array parameters have been removed per Rev 1.8.0 specs for Solid lines
+        function drawTrace(ctx, cvs, data, strokeColor = '#22d3ee', doFill = true, lineWidth = 1.5) {
             const bufferLength = data.length;
             const binSize = actualNyquist / bufferLength;
             const p = getPadding();
             
             ctx.lineWidth = lineWidth;
             ctx.strokeStyle = strokeColor;
-            if (dash.length > 0) ctx.setLineDash(dash);
             ctx.beginPath();
             
             let hasMoved = false;
+            // Optimization: Only compute math for the array indexes actually visible on the screen
             const startB = Math.max(0, Math.floor(zoomMinFreq / binSize));
             const endB = Math.min(bufferLength, Math.ceil(zoomMaxFreq / binSize));
 
@@ -829,7 +888,6 @@
                 else ctx.lineTo(x, y);
             }
             ctx.stroke();
-            if (dash.length > 0) ctx.setLineDash([]);
             
             if (doFill) {
                 ctx.lineTo(getXPosition(endB * binSize, cvs.width), cvs.height - p.bottom);
@@ -839,13 +897,12 @@
             }
         }
 
-        function drawOscilloscope(ctx, cvs, timeData, triggerIndex, strokeColor = '#fbbf24', lineWidth = 1.5, dash = []) {
+        function drawOscilloscope(ctx, cvs, timeData, triggerIndex, strokeColor = '#fbbf24', lineWidth = 1.5) {
             const sampleRate = actualNyquist * 2;
             const samplesToDraw = Math.min(timeData.length - triggerIndex, Math.floor((scopeTimeWindowMs / 1000) * sampleRate));
             
             ctx.lineWidth = lineWidth;
             ctx.strokeStyle = strokeColor; 
-            if (dash.length > 0) ctx.setLineDash(dash);
             ctx.beginPath();
             
             let hasMoved = false;
@@ -859,10 +916,9 @@
                 else ctx.lineTo(x, y);
             }
             ctx.stroke();
-            if (dash.length > 0) ctx.setLineDash([]);
         }
         
-        function drawLissajous(ctx, cvs, leftData, rightData, maxAmp, strokeColor, lineWidth = 1.5, dash = []) {
+        function drawLissajous(ctx, cvs, leftData, rightData, maxAmp, strokeColor, lineWidth = 1.5) {
             if (!leftData || !rightData) return;
             const p = getPadding();
             const w = cvs.width - p.left;
@@ -875,7 +931,6 @@
 
             ctx.lineWidth = lineWidth;
             ctx.strokeStyle = strokeColor; 
-            if (dash.length > 0) ctx.setLineDash(dash);
             ctx.beginPath();
             
             let hasMoved = false;
@@ -892,7 +947,6 @@
                 else ctx.lineTo(x, y);
             }
             ctx.stroke();
-            if (dash.length > 0) ctx.setLineDash([]);
         }
 
         function drawWaterfallRow(wfCtx, cvs, data) {
@@ -914,6 +968,7 @@
                 let bin1 = Math.floor(exactBin);
                 let bin2 = Math.min(data.length - 1, Math.ceil(exactBin));
                 let frac = exactBin - bin1;
+                // Linearly interpolate between adjacent FFT bins for visual smoothing
                 let val = (data[bin1] || -140) * (1 - frac) + (data[bin2] || -140) * frac;
                 
                 let t = (val - displayMinDb) / (displayMaxDb - displayMinDb);
@@ -952,7 +1007,7 @@
                 return;
             }
 
-            if (viewMode === 'lissajous') return; 
+            if (viewMode === 'lissajous') return; // Cursors disabled in Lissajous view
 
             const bufferLength = data.length;
             const binSize = actualNyquist / bufferLength;
@@ -1020,7 +1075,9 @@
             ctx.setLineDash([]);
         }
 
-        // --- Memory & Storage Logic ---
+        // ==========================================
+        // 7. MEMORY & STORAGE LOGIC
+        // ==========================================
         function captureMemory() {
             memorySnapshot = {
                 nyquist: actualNyquist,
@@ -1029,9 +1086,7 @@
             Object.keys(displays).forEach(key => {
                 const d = displays[key];
                 
-                // Polling Optimization: If a canvas is hidden, the engine skips polling it to save CPU. 
-                // We MUST force a manual poll here so the memory capture isn't blank, ensuring the Overlay 
-                // works correctly when the user toggles that channel back on.
+                // Prevent capturing blanks if the user toggled the display channel 'OFF'.
                 let tempSpec = d.data;
                 if (!tempSpec && d.analyser) {
                     tempSpec = new Float32Array(d.analyser.frequencyBinCount);
@@ -1044,8 +1099,8 @@
                     d.analyser.getFloatTimeDomainData(tempTime);
                 }
 
+                // Deep copy the typed arrays. We sanitize Infinity out of JSON serialization.
                 memorySnapshot.displays[key] = {
-                    // JSON Pre-Sanitization: Convert -Infinity to -200 BEFORE saving to prevent `null` corruption
                     data: tempSpec ? Array.from(tempSpec).map(v => isFinite(v) ? v : -200) : null,
                     timeData: tempTime ? Array.from(tempTime.slice(lastTriggerIndex)) : null,
                     wfImage: d.wfCvs.toDataURL('image/png')
@@ -1055,18 +1110,14 @@
             document.getElementById('btn-mem-overlay').textContent = "OVERLAY: ON";
             document.getElementById('btn-mem-overlay').classList.replace('bg-slate-700', 'bg-red-700');
             
-            messageBox.textContent = "Memory Snapshot Captured Successfully.";
-            messageBox.className = "mb-6 p-4 rounded-lg bg-green-900/40 border border-green-600 text-green-100 text-sm max-w-xl text-center w-full block";
-            setTimeout(() => messageBox.classList.add('hidden'), 3000);
+            showToast("📸 Memory Snapshot Captured Successfully.", false);
         }
 
         document.getElementById('btn-mem-capture').onclick = captureMemory;
 
         document.getElementById('btn-mem-overlay').onclick = function() {
             if (!memorySnapshot) {
-                messageBox.textContent = "Please capture or load a memory snapshot first.";
-                messageBox.className = "mb-6 p-4 rounded-lg bg-red-900/40 border border-red-600 text-red-100 text-sm max-w-xl text-center w-full block";
-                setTimeout(() => messageBox.classList.add('hidden'), 3000);
+                showToast("Please capture or load a memory snapshot first.", true);
                 return;
             }
             isMemOverlay = !isMemOverlay;
@@ -1084,9 +1135,11 @@
                 const mem = memorySnapshot.displays[key];
                 if (!mem) return;
                 
-                // Do NOT overwrite d.data or d.timeData here! Let the draw loop selectively pull 
-                // from the memory array while frozen. This prevents permanent EMA data corruption 
-                // when unfreezing.
+                // Bugfix 1.8.0: Explicitly overwrite the live data arrays with the memory arrays.
+                // Because we now safely sanitize Infinity math locally in the draw loop,
+                // restoring these matrices allows the EMA to seamlessly transition if Unfrozen.
+                if (mem.data) d.data = new Float32Array(mem.data);
+                if (mem.timeData) d.timeData = new Float32Array(mem.timeData);
                 
                 if (mem.wfImage) {
                     const img = new Image();
@@ -1104,6 +1157,7 @@
             document.getElementById('btn-freeze').textContent = "FREEZE: ON";
             document.getElementById('btn-freeze').classList.add('bg-blue-700');
             
+            // Turning off the overlay logically aligns since the restored line perfectly matches the live canvas now
             isMemOverlay = false;
             document.getElementById('btn-mem-overlay').textContent = "OVERLAY: OFF";
             document.getElementById('btn-mem-overlay').classList.replace('bg-red-700', 'bg-slate-700');
@@ -1129,14 +1183,15 @@
                     memorySnapshot = JSON.parse(evt.target.result);
                     document.getElementById('btn-mem-restore').click();
                 } catch (err) {
-                    messageBox.textContent = "Error parsing file.";
-                    messageBox.className = "mb-6 p-4 rounded-lg bg-red-900/40 border border-red-600 text-red-100 text-sm max-w-xl text-center w-full block";
+                    showToast("Error parsing file structure.", true);
                 }
             };
             reader.readAsText(file);
         };
 
-        // --- Interaction & Toggles ---
+        // ==========================================
+        // 8. INTERACTION & CONTROLS
+        // ==========================================
         function updateUIControlVisibility() {
             const isScope = viewMode === 'oscilloscope';
             const isWaterfall = viewMode === 'waterfall';
@@ -1459,7 +1514,6 @@
 
         function handlePointerUp() { activeDrag = null; }
 
-        // Attach events to all visualizer canvases
         Object.values(displays).forEach(d => {
             d.visCvs.addEventListener('mousedown', (e) => handlePointerDown(e, d.visCvs));
             d.visCvs.addEventListener('touchstart', (e) => handlePointerDown(e, d.visCvs), { passive: false });
@@ -1542,7 +1596,7 @@
             updateCursorReadouts();
         };
 
-        // --- Start ---
+        // --- Start Application ---
         updateUIControlVisibility();
         document.getElementById('btn-mic').onclick = () => initAudio('mic');
         document.getElementById('btn-system').onclick = () => initAudio('system');
