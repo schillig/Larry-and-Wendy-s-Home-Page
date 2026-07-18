@@ -4,8 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Audio Spectrum Visualizer</title>
+    <!-- Include Tailwind CSS for modern, responsive styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        /* Pro Tip: Using CSS custom variables and standard HTML5 semantic tags improves maintainability */
         body, html {
             height: 100%;
             margin: 0;
@@ -39,15 +41,18 @@
 </head>
 <body class="flex flex-col items-center p-4 md:p-8 font-sans overflow-x-hidden">
 
-    <header class="text-center mb-6 max-w-2xl">
-        <h1 class="text-4xl font-extrabold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500">
+    <!-- Header Section -->
+    <header class="text-center mb-6 max-w-2xl relative">
+        <h1 class="text-4xl font-extrabold mb-1 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500">
             Spectrum Analyzer
         </h1>
+        <p class="text-slate-500 text-xs font-mono font-bold mb-3 tracking-widest">REV 1.5.0</p>
         <p class="text-slate-400 text-sm md:text-base">
             Status: <span id="engine-status" class="text-yellow-500 font-mono">READY - WAITING FOR INPUT</span>
         </p>
     </header>
 
+    <!-- Source Controls Section -->
     <div class="flex flex-col sm:flex-row gap-4 mb-6">
         <button id="btn-mic" class="px-6 py-3 rounded-full bg-slate-800 hover:bg-slate-700 border border-slate-600 transition-colors flex items-center justify-center gap-2 font-medium shadow-lg">
             <svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path></svg>
@@ -64,9 +69,11 @@
         </button>
     </div>
 
+    <!-- Error/Message Display Box -->
     <div id="message-box" class="hidden mb-6 p-4 rounded-lg bg-red-900/40 border border-red-600 text-red-100 text-sm max-w-xl text-center w-full">
     </div>
 
+    <!-- Panel Header & Reset -->
     <div class="w-full max-w-7xl flex justify-between items-end mb-2 px-2">
         <h2 class="text-slate-400 font-bold text-xs tracking-widest uppercase">Control Panel</h2>
         <button id="btn-reset" class="text-xs text-cyan-500 hover:text-cyan-300 transition-colors flex items-center gap-1">
@@ -75,8 +82,10 @@
         </button>
     </div>
 
+    <!-- Instrument Control Panel -->
     <div class="bg-slate-800/50 p-5 rounded-2xl border border-slate-700/50 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-x-8 gap-y-6 mb-8 w-full max-w-7xl shadow-xl">
         
+        <!-- Display & Mode -->
         <div class="flex flex-col gap-3">
             <h3 class="text-xs uppercase tracking-wider text-slate-500 font-bold border-b border-slate-700 pb-1">Displays & Mode</h3>
             <button id="btn-mode" class="py-1.5 rounded bg-indigo-700 hover:bg-indigo-600 border border-slate-500 transition-colors text-[11px] font-bold text-white shadow-inner">MODE: SPECTRUM</button>
@@ -87,6 +96,7 @@
             </div>
         </div>
 
+        <!-- Signal & Processing -->
         <div class="flex flex-col gap-4">
             <h3 class="text-xs uppercase tracking-wider text-slate-500 font-bold border-b border-slate-700 pb-1">Signal & Processing</h3>
             <div class="flex items-center gap-3">
@@ -105,6 +115,7 @@
             </div>
         </div>
 
+        <!-- Resolution & Scale -->
         <div class="flex flex-col gap-4">
             <h3 class="text-xs uppercase tracking-wider text-slate-500 font-bold border-b border-slate-700 pb-1">Resolution & Scale</h3>
             <div class="flex items-center gap-3">
@@ -115,9 +126,11 @@
             <button id="btn-scale" class="py-2 rounded-lg bg-slate-700 text-xs font-medium text-slate-200 w-full shadow-inner border border-slate-600 mode-spec">X-Axis Scale: Linear</button>
         </div>
 
+        <!-- Zoom & Trigger Controls -->
         <div class="flex flex-col gap-3">
             <h3 class="text-xs uppercase tracking-wider text-slate-500 font-bold border-b border-slate-700 pb-1">Zoom & Trigger</h3>
             
+            <!-- Spectrum Zoom Panel -->
             <div id="zoom-spectrum" class="grid grid-cols-2 gap-x-4 gap-y-2 mode-spec">
                 <div class="flex flex-col gap-1">
                     <label class="text-[10px] text-slate-400">Min Hz</label>
@@ -137,6 +150,7 @@
                 </div>
             </div>
 
+            <!-- Oscilloscope Zoom & Trigger Panel -->
             <div id="zoom-scope" class="grid grid-cols-1 gap-y-3 mode-scope" style="display: none;">
                 <div class="flex flex-col gap-1">
                     <label class="text-[10px] text-slate-400">Time Base (X-Axis)</label>
@@ -168,6 +182,7 @@
             </div>
         </div>
 
+        <!-- Measuring Tools -->
         <div class="flex flex-col gap-3">
             <h3 class="text-xs uppercase tracking-wider text-slate-500 font-bold border-b border-slate-700 pb-1">Measuring Tools</h3>
             <div class="flex gap-2">
@@ -186,6 +201,7 @@
             </div>
         </div>
 
+        <!-- Memory & Storage -->
         <div class="flex flex-col gap-3">
             <h3 class="text-xs uppercase tracking-wider text-slate-500 font-bold border-b border-slate-700 pb-1">Memory & Storage</h3>
             <button id="btn-mem-capture" class="w-full py-1.5 rounded bg-indigo-700 hover:bg-indigo-600 border border-slate-500 transition-colors text-[11px] font-bold text-white shadow-inner">📸 CAPTURE TO MEM</button>
@@ -201,20 +217,24 @@
         </div>
     </div>
 
+    <!-- Visualization Canvases Wrapper -->
     <div id="displays-wrapper" class="w-full max-w-7xl flex flex-col gap-4 mb-10">
         
+        <!-- Combined Display -->
         <div id="display-combined" class="canvas-container w-full min-h-[200px] h-[350px] bg-slate-950 rounded-xl border border-slate-700 overflow-hidden relative shadow-2xl">
             <div class="absolute top-2 left-2 text-xs font-bold text-slate-300 z-20 bg-slate-900/80 px-2 py-1 rounded border border-slate-600">Combined (L+R)</div>
             <canvas id="wf-combined" class="absolute inset-0 w-full h-full block z-0"></canvas>
             <canvas id="vis-combined" class="absolute inset-0 w-full h-full block z-10"></canvas>
         </div>
 
+        <!-- Left Channel Display -->
         <div id="display-left" style="display: none;" class="canvas-container w-full min-h-[200px] h-[350px] bg-slate-950 rounded-xl border border-slate-700 overflow-hidden relative shadow-2xl">
             <div class="absolute top-2 left-2 text-xs font-bold text-slate-300 z-20 bg-slate-900/80 px-2 py-1 rounded border border-slate-600">Left Channel</div>
             <canvas id="wf-left" class="absolute inset-0 w-full h-full block z-0"></canvas>
             <canvas id="vis-left" class="absolute inset-0 w-full h-full block z-10"></canvas>
         </div>
 
+        <!-- Right Channel Display -->
         <div id="display-right" style="display: none;" class="canvas-container w-full min-h-[200px] h-[350px] bg-slate-950 rounded-xl border border-slate-700 overflow-hidden relative shadow-2xl">
             <div class="absolute top-2 left-2 text-xs font-bold text-slate-300 z-20 bg-slate-900/80 px-2 py-1 rounded border border-slate-600">Right Channel</div>
             <canvas id="wf-right" class="absolute inset-0 w-full h-full block z-0"></canvas>
@@ -251,7 +271,7 @@
         let scopeTriggerSource = 'combined'; 
         let scopeTriggerLevel = 0.0;
         let isOneShotArmed = false;
-        let lastTriggerIndex = 0; // Tracked globally for memory capture
+        let lastTriggerIndex = 0; 
 
         // Memory & Storage Config
         let memorySnapshot = null;
@@ -690,9 +710,18 @@
 
                 if (!d.data || d.data.length !== bufferLength) {
                     d.data = new Float32Array(rawData);
+                    // Pro Tip: Sanitize the newly created array to avoid -Infinity bugs
+                    for(let i = 0; i < bufferLength; i++) {
+                        if (!isFinite(d.data[i])) d.data[i] = -200;
+                    }
                 } else {
                     for (let i = 0; i < bufferLength; i++) {
-                        d.data[i] = (averagingAlpha * d.data[i]) + ((1 - averagingAlpha) * rawData[i]);
+                        // Pro Tip: Validate data before calculating the Moving Average.
+                        // Absolute silence returns -Infinity. If -Infinity multiplies into the average, 
+                        // it "poisons" the array slot forever, trapping the trace off-screen.
+                        let oldVal = isFinite(d.data[i]) ? d.data[i] : -200;
+                        let newVal = isFinite(rawData[i]) ? rawData[i] : -200;
+                        d.data[i] = (averagingAlpha * oldVal) + ((1 - averagingAlpha) * newVal);
                     }
                 }
 
@@ -896,6 +925,7 @@
             };
             Object.keys(displays).forEach(key => {
                 const d = displays[key];
+                // Deep copy the typed arrays securely
                 memorySnapshot.displays[key] = {
                     data: d.data ? Array.from(d.data) : null,
                     timeData: d.timeData ? Array.from(d.timeData.slice(lastTriggerIndex)) : null,
