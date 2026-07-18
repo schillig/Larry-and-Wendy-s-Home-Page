@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Professional Web-Based Audio Spectrum Analyzer and Oscilloscope">
-    <title>Audio Spectrum Visualizer - REV 1.10.0</title>
+    <title>Audio Spectrum Visualizer - REV 1.11.0</title>
     
     <!-- Pro Tip: Inline SVG Favicons are a zero-latency way to brand web apps without external image requests -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎛️</text></svg>">
@@ -41,6 +41,10 @@
             cursor: pointer;
             margin-top: -4px;
             box-shadow: 0 0 5px rgba(34, 211, 238, 0.5);
+            transition: transform 0.1s;
+        }
+        input[type=range]:hover::-webkit-slider-thumb {
+            transform: scale(1.2); /* Visual feedback that the thumb is active for scrolling */
         }
         input[type=range]::-webkit-slider-runnable-track {
             height: 6px;
@@ -67,7 +71,7 @@
         <h1 class="text-4xl font-extrabold mb-1 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500">
             Spectrum Analyzer
         </h1>
-        <p class="text-slate-500 text-xs font-mono font-bold mb-3 tracking-widest">REV 1.10.0</p>
+        <p class="text-slate-500 text-xs font-mono font-bold mb-3 tracking-widest">REV 1.11.0</p>
         <p class="text-slate-400 text-sm md:text-base">
             Status: <span id="engine-status" class="text-yellow-500 font-mono">READY - WAITING FOR INPUT</span>
         </p>
@@ -116,12 +120,12 @@
         <!-- Signal & Processing -->
         <div class="flex flex-col gap-4">
             <h3 class="text-xs uppercase tracking-wider text-slate-500 font-bold border-b border-slate-700 pb-1">Signal & Processing</h3>
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-3" title="Scroll to adjust">
                 <label for="gain" class="text-xs font-medium text-slate-300 w-20">Gain:</label>
                 <input type="range" id="gain" min="0.1" max="10" step="0.1" value="2" class="flex-1">
                 <span id="gain-value" class="text-xs font-mono text-cyan-400 w-10 text-right">2.0x</span>
             </div>
-            <div id="avg-container" class="flex items-center gap-3 mode-spec">
+            <div id="avg-container" class="flex items-center gap-3 mode-spec" title="Scroll to adjust">
                 <label for="avg" class="text-xs font-medium text-slate-300 w-20">Average:</label>
                 <input type="range" id="avg" min="0" max="0.98" step="0.02" value="0.4" class="flex-1">
                 <span id="avg-value" class="text-xs font-mono text-cyan-400 w-10 text-right">40%</span>
@@ -135,7 +139,7 @@
         <!-- Resolution & Scale -->
         <div class="flex flex-col gap-4">
             <h3 class="text-xs uppercase tracking-wider text-slate-500 font-bold border-b border-slate-700 pb-1">Resolution & Scale</h3>
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-3" title="Scroll to adjust">
                 <label for="bandwidth" class="text-xs font-medium text-slate-300 w-20">FFT Size:</label>
                 <input type="range" id="bandwidth" min="5" max="15" step="1" value="11" class="flex-1">
                 <span id="bandwidth-value" class="text-xs font-mono text-cyan-400 w-10 text-right">2048</span>
@@ -149,19 +153,19 @@
             
             <!-- Spectrum Zoom Panel -->
             <div id="zoom-spectrum" class="grid grid-cols-2 gap-x-4 gap-y-2 mode-spec">
-                <div class="flex flex-col gap-1">
+                <div class="flex flex-col gap-1" title="Scroll to adjust">
                     <label class="text-[10px] text-slate-400">Min Hz</label>
                     <input type="range" id="min-freq" min="0" max="20000" step="1" value="0" class="w-full">
                 </div>
-                <div class="flex flex-col gap-1">
+                <div class="flex flex-col gap-1" title="Scroll to adjust">
                     <label class="text-[10px] text-slate-400">Max Hz</label>
                     <input type="range" id="max-freq" min="100" max="24000" step="100" value="20000" class="w-full">
                 </div>
-                <div class="flex flex-col gap-1">
+                <div class="flex flex-col gap-1" title="Scroll to adjust">
                     <label class="text-[10px] text-slate-400">Min dB</label>
                     <input type="range" id="min-db" min="-140" max="-70" step="1" value="-100" class="w-full">
                 </div>
-                <div class="flex flex-col gap-1">
+                <div class="flex flex-col gap-1" title="Scroll to adjust">
                     <label class="text-[10px] text-slate-400">Max dB</label>
                     <input type="range" id="max-db" min="-60" max="0" step="1" value="-20" class="w-full">
                 </div>
@@ -169,21 +173,21 @@
 
             <!-- Oscilloscope Zoom & Trigger Panel -->
             <div id="zoom-scope" class="grid grid-cols-1 gap-y-3 mode-scope" style="display: none;">
-                <div id="scope-time-container" class="flex flex-col gap-1">
+                <div id="scope-time-container" class="flex flex-col gap-1" title="Scroll to adjust">
                     <label class="text-[10px] text-slate-400">Time Base (X-Axis)</label>
                     <div class="flex items-center gap-2">
                         <input type="range" id="scope-time" min="1" max="500" step="1" value="20" class="w-full flex-1">
                         <span id="scope-time-val" class="text-[10px] text-cyan-400 font-mono w-10 text-right">20ms</span>
                     </div>
                 </div>
-                <div class="flex flex-col gap-1">
+                <div class="flex flex-col gap-1" title="Scroll to adjust">
                     <label class="text-[10px] text-slate-400">Vertical Zoom (Amplitude)</label>
                     <div class="flex items-center gap-2">
                         <input type="range" id="scope-amp" min="0.05" max="1" step="0.05" value="1" class="w-full flex-1">
                         <span id="scope-amp-val" class="text-[10px] text-cyan-400 font-mono w-10 text-right">1.00x</span>
                     </div>
                 </div>
-                <div id="scope-trigger-container" class="flex flex-col gap-1 border-t border-slate-700 pt-2">
+                <div id="scope-trigger-container" class="flex flex-col gap-1 border-t border-slate-700 pt-2" title="Scroll to adjust">
                     <label class="text-[10px] text-slate-400 flex justify-between">
                         <span>Trigger Level</span>
                         <span id="scope-trigger-val" class="text-pink-400 font-mono">0.00</span>
@@ -371,7 +375,7 @@
         }
 
         /**
-         * REV 1.10.0: DYNAMIC FFT SIZING
+         * DYNAMIC FFT SIZING
          * Automatically pushes the analyser's buffer size to the max limit (32768)
          * when switching to Scope modes to guarantee up to ~680ms of time-domain data.
          * Restores user preference for Spectrum modes.
@@ -657,7 +661,7 @@
                 splitter.connect(displays.left.analyser, 0); 
                 splitter.connect(displays.right.analyser, 1); 
 
-                applyFftSize(); // Uses Dynamic Context Sizing from Rev 1.10.0
+                applyFftSize(); // Uses Dynamic Context Sizing
 
                 document.getElementById('btn-mic').classList.add('hidden');
                 document.getElementById('btn-system').classList.add('hidden');
@@ -1289,7 +1293,7 @@
             btnOs.className = "flex-1 py-1 rounded border border-slate-600 text-[10px] font-bold bg-slate-700 text-slate-300";
             
             updateUIControlVisibility();
-            applyFftSize(); // Adjust underlying buffer length per context
+            applyFftSize(); 
             clampCursors();
             
             // Clean up UX state if switching modes
@@ -1308,7 +1312,7 @@
         controls.bandwidth.el.oninput = (e) => {
             const sz = Math.pow(2, parseInt(e.target.value));
             controls.bandwidth.disp.textContent = sz;
-            applyFftSize(); // Safe update
+            applyFftSize(); 
         };
 
         document.getElementById('btn-freeze').onclick = function() {
@@ -1594,55 +1598,36 @@
         });
         Object.values(displays).forEach(d => resizeObserver.observe(d.container));
 
-        // --- Defaults Reset ---
-        document.getElementById('btn-reset').onclick = () => {
-            isLogScale = false; isFrozen = false; showPeaks = false;
-            averagingAlpha = 0.4; displayMaxDb = -20; displayMinDb = -100;
-            zoomMinFreq = 0; zoomMaxFreq = 20000;
-            scopeTimeWindowMs = 20; scopeMaxAmp = 1.0;
-            scopeTriggerLevel = 0.0; setTriggerSource('combined');
-            cursorsXEnabled = false; cursorsYEnabled = false;
-            isOneShotArmed = false;
-            isMemOverlay = false;
-            memorySnapshot = null;
+        // ==========================================
+        // 9. NEW FEATURE: SCROLL WHEEL FINE-TUNING
+        // ==========================================
+        // Binds a wheel listener to all range inputs for precision adjustments
+        document.querySelectorAll('input[type="range"]').forEach(input => {
+            input.addEventListener('wheel', (e) => {
+                // Prevent the entire webpage from scrolling vertically
+                e.preventDefault();
+                
+                const step = parseFloat(input.step) || 1;
+                const min = parseFloat(input.min) || 0;
+                const max = parseFloat(input.max) || 100;
+                let val = parseFloat(input.value);
 
-            controls.gain.el.value = 2; controls.gain.disp.textContent = "2.0x";
-            if (gainNode) gainNode.gain.setTargetAtTime(2, audioCtx.currentTime, 0.05);
-            controls.avg.el.value = 0.4; controls.avg.disp.textContent = "40%";
-            controls.bandwidth.el.value = 11; controls.bandwidth.disp.textContent = "2048";
-            
-            applyFftSize(); // Uses Dynamic Context Switcher
+                // e.deltaY < 0 = scrolled up (increase value)
+                // e.deltaY > 0 = scrolled down (decrease value)
+                if (e.deltaY < 0) {
+                    val = Math.min(max, val + step);
+                } else if (e.deltaY > 0) {
+                    val = Math.max(min, val - step);
+                }
 
-            controls.minFreq.value = 0; controls.maxFreq.value = 20000;
-            controls.minDb.value = -100; controls.maxDb.value = -20;
-            controls.scopeTime.el.value = 20; controls.scopeTime.disp.textContent = "20ms";
-            controls.scopeAmp.el.value = 1; controls.scopeAmp.disp.textContent = "1.00x";
-            controls.scopeTrigger.el.value = 0; controls.scopeTrigger.disp.textContent = "0.00";
-
-            const btnFreeze = document.getElementById('btn-freeze');
-            btnFreeze.textContent = "FREEZE: OFF"; btnFreeze.classList.remove('bg-blue-700');
-            const btnPeaks = document.getElementById('btn-peaks');
-            btnPeaks.textContent = "PEAKS: OFF"; btnPeaks.classList.remove('bg-pink-700');
-            document.getElementById('btn-scale').textContent = "X-Axis Scale: Linear";
-            
-            const btnOs = document.getElementById('btn-trig-oneshot');
-            btnOs.textContent = "1-SHOT: OFF";
-            btnOs.className = "flex-1 py-1 rounded border border-slate-600 text-[10px] font-bold bg-slate-700 text-slate-300";
-
-            const btnCX = document.getElementById('btn-cursor-x');
-            btnCX.classList.remove('bg-green-700'); btnCX.classList.add('bg-slate-700');
-            const btnCY = document.getElementById('btn-cursor-y');
-            btnCY.classList.remove('bg-purple-700'); btnCY.classList.add('bg-slate-700');
-            
-            document.getElementById('btn-mem-overlay').textContent = "OVERLAY: OFF";
-            document.getElementById('btn-mem-overlay').classList.replace('bg-red-700', 'bg-slate-700');
-            
-            const btnRes = document.getElementById('btn-mem-restore');
-            btnRes.textContent = "RESTORE & FREEZE";
-            btnRes.classList.remove('bg-emerald-700');
-
-            updateCursorReadouts();
-        };
+                // If value changed, apply it and manually dispatch the event
+                // so attached listeners (like audioCtx gain updates) register the change
+                if (input.value !== val.toString()) {
+                    input.value = val;
+                    input.dispatchEvent(new Event('input'));
+                }
+            }, { passive: false }); // IMPORTANT: Required by modern browsers to allow e.preventDefault()
+        });
 
         // --- Start Application ---
         updateUIControlVisibility();
