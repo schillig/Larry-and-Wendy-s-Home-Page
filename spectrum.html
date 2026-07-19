@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Professional Web-Based Audio Spectrum Analyzer and Oscilloscope">
-    <title>Audio Spectrum Visualizer - REV 1.21.0</title>
+    <title>Audio Spectrum Visualizer - REV 1.22.0</title>
     
     <!-- Pro Tip: Inline SVG Favicons are a zero-latency way to brand web apps without external image requests -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎛️</text></svg>">
@@ -73,7 +73,7 @@
         <!-- Branding & Status -->
         <div class="flex flex-col sm:flex-row items-center sm:gap-4 text-center sm:text-left">
             <h1 class="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500 whitespace-nowrap">
-                Spectrum Analyzer <span class="text-slate-500 text-[10px] font-mono tracking-widest uppercase ml-1 align-top">Rev 1.21.0</span>
+                Spectrum Analyzer <span class="text-slate-500 text-[10px] font-mono tracking-widest uppercase ml-1 align-top">Rev 1.22.0</span>
             </h1>
             <div class="text-slate-400 text-xs sm:border-l sm:border-slate-600 sm:pl-4 mt-1 sm:mt-0">
                 Status: <span id="engine-status" class="text-yellow-500 font-mono">READY</span>
@@ -590,7 +590,6 @@
                 ctx.fillStyle = '#94a3b8'; ctx.fillText(trueVoltage > 0 ? '+' + trueVoltage.toFixed(2) : trueVoltage.toFixed(2), p.left - 8, y + 4);
             });
 
-            // REV 1.21.0 UPDATE: Only draw the trigger threshold line if the trigger is explicitly enabled
             if (scopeTriggerSource !== null) {
                 const trigY = getScopeYPosition(scopeTriggerLevel, cvs.height);
                 ctx.save(); 
@@ -735,33 +734,58 @@
                         }
                     });
                 }
+                
                 let triggerFound = false;
+                
                 if (!isFrozen && scopeTriggerSource !== null) {
                     let searchData = null;
                     if (scopeTriggerSource === 'combined') searchData = displays.combined.timeData;
                     else if (scopeTriggerSource === 'left') searchData = displays.left.timeData;
                     else if (scopeTriggerSource === 'right') searchData = displays.right.timeData;
+                    
                     if (searchData) {
-                        const sampleRate = actualNyquist * 2; const samplesToDraw = Math.floor((scopeTimeWindowMs / 1000) * sampleRate);
+                        const sampleRate = actualNyquist * 2; 
+                        const samplesToDraw = Math.floor((scopeTimeWindowMs / 1000) * sampleRate);
                         const searchLimit = Math.max(1, searchData.length - samplesToDraw);
                         lastTriggerIndex = -1;
+                        
+                        // REV 1.22.0: Schmitt Trigger Hysteresis (5% gap)
+                        const hysteresis = scopeMaxAmp * 0.05;
+                        let armedForEdge = false;
+
                         for (let i = 0; i < searchLimit - 1; i++) {
-                            if (searchData[i] <= scopeTriggerLevel && searchData[i+1] > scopeTriggerLevel) {
-                                lastTriggerIndex = i; triggerFound = true; break;
+                            // Signal must dip below threshold - hysteresis to arm the edge detector
+                            if (searchData[i] < scopeTriggerLevel - hysteresis) {
+                                armedForEdge = true;
+                            }
+                            // Detect rising edge crossing
+                            if (armedForEdge && searchData[i+1] >= scopeTriggerLevel) {
+                                lastTriggerIndex = i; 
+                                triggerFound = true; 
+                                break;
                             }
                         }
                     }
                 } else {
                     lastTriggerIndex = 0;
                 }
+
+                // REV 1.22.0: Removed the `else { return; }` to prevent UI freezing
                 if (isOneShotArmed && !isFrozen) {
                     if (triggerFound) {
-                        isOneShotArmed = false; isFrozen = true;
-                        document.getElementById('btn-freeze').textContent = "FREEZE: ON"; document.getElementById('btn-freeze').classList.add('bg-blue-700');
+                        isOneShotArmed = false; 
+                        isFrozen = true;
+                        document.getElementById('btn-freeze').textContent = "FREEZE: ON"; 
+                        document.getElementById('btn-freeze').classList.add('bg-blue-700');
+                        
                         const btnOs = document.getElementById('btn-trig-oneshot');
-                        btnOs.textContent = "1-SHOT: CAUGHT"; btnOs.className = "flex-1 py-1 rounded border border-slate-600 text-[10px] font-bold bg-emerald-600 text-white";
-                    } else { return; }
+                        btnOs.textContent = "1-SHOT: CAUGHT"; 
+                        btnOs.className = "flex-1 py-1 rounded border border-slate-600 text-[10px] font-bold bg-emerald-600 text-white";
+                    } 
+                    // By allowing the loop to continue when !triggerFound, 
+                    // the user sees the live feed while adjusting the trigger.
                 }
+                
                 if (lastTriggerIndex === -1) lastTriggerIndex = 0;
 
                 Object.keys(displays).forEach(key => {
@@ -1113,13 +1137,26 @@
         }
         document.getElementById('btn-trig-comb').onclick = () => setTriggerSource('combined'); document.getElementById('btn-trig-left').onclick = () => setTriggerSource('left'); document.getElementById('btn-trig-right').onclick = () => setTriggerSource('right');
 
+        // REV 1.22.0 UPDATE: Auto-Arm a default trigger source if user hits 1-SHOT while triggers are disabled
         const btnOneShot = document.getElementById('btn-trig-oneshot');
         btnOneShot.onclick = () => {
             if (isOneShotArmed) {
-                isOneShotArmed = false; btnOneShot.textContent = "1-SHOT: OFF"; btnOneShot.className = "flex-1 py-1 rounded border border-slate-600 text-[10px] font-bold bg-slate-700 text-slate-300";
+                isOneShotArmed = false; 
+                btnOneShot.textContent = "1-SHOT: OFF"; 
+                btnOneShot.className = "flex-1 py-1 rounded border border-slate-600 text-[10px] font-bold bg-slate-700 text-slate-300";
             } else {
-                isOneShotArmed = true; isFrozen = false; document.getElementById('btn-freeze').textContent = "FREEZE: OFF"; document.getElementById('btn-freeze').classList.remove('bg-blue-700');
-                btnOneShot.textContent = "1-SHOT: ARMED"; btnOneShot.className = "flex-1 py-1 rounded border border-red-500 text-[10px] font-bold bg-red-600 text-white animate-pulse";
+                isOneShotArmed = true; 
+                isFrozen = false; 
+                document.getElementById('btn-freeze').textContent = "FREEZE: OFF"; 
+                document.getElementById('btn-freeze').classList.remove('bg-blue-700');
+                
+                // Force a trigger source if none exists, ensuring the engine waits for a real event!
+                if (scopeTriggerSource === null) {
+                    setTriggerSource('combined'); 
+                }
+
+                btnOneShot.textContent = "1-SHOT: ARMED"; 
+                btnOneShot.className = "flex-1 py-1 rounded border border-red-500 text-[10px] font-bold bg-red-600 text-white animate-pulse";
             }
         };
 
