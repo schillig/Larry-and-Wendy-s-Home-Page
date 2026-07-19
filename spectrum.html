@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Professional Web-Based Audio Spectrum Analyzer and Oscilloscope">
-    <title>Audio Spectrum Visualizer - REV 1.14.0</title>
+    <title>Audio Spectrum Visualizer - REV 1.15.0</title>
     
     <!-- Pro Tip: Inline SVG Favicons are a zero-latency way to brand web apps without external image requests -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎛️</text></svg>">
@@ -67,11 +67,7 @@
 </head>
 <body class="flex flex-col items-center p-3 md:p-4 font-sans overflow-x-hidden relative">
 
-    <!-- 
-      Fixed Toast Notification Container
-      By using 'fixed', 'top-5', and 'absolute' positioning, this element is removed from the normal DOM flow.
-      This completely eliminates the screen jumping (reflow) that occurs when changing 'display: none' to 'block'.
-    -->
+    <!-- Fixed Toast Notification Container -->
     <div id="toast-container" class="fixed top-5 left-1/2 transform -translate-x-1/2 z-50 flex flex-col items-center w-full px-4 pointer-events-none">
         <div id="message-box" class="transition-all duration-300 opacity-0 transform -translate-y-4 p-4 rounded-lg shadow-2xl text-sm max-w-xl text-center w-full">
             <!-- Messages injected dynamically via JS showToast() -->
@@ -83,7 +79,7 @@
         <!-- Branding & Status -->
         <div class="flex flex-col sm:flex-row items-center sm:gap-4 text-center sm:text-left">
             <h1 class="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500 whitespace-nowrap">
-                Spectrum Analyzer <span class="text-slate-500 text-[10px] font-mono tracking-widest uppercase ml-1 align-top">Rev 1.14.0</span>
+                Spectrum Analyzer <span class="text-slate-500 text-[10px] font-mono tracking-widest uppercase ml-1 align-top">Rev 1.15.0</span>
             </h1>
             <div class="text-slate-400 text-xs sm:border-l sm:border-slate-600 sm:pl-4 mt-1 sm:mt-0">
                 Status: <span id="engine-status" class="text-yellow-500 font-mono">READY</span>
@@ -129,66 +125,71 @@
             </div>
         </div>
 
-        <!-- Signal & Processing -->
+        <!-- Signal & Processing (UPDATED TO STACKED LAYOUT) -->
         <div class="flex flex-col gap-4">
             <h3 class="text-xs uppercase tracking-wider text-slate-500 font-bold border-b border-slate-700 pb-1">Signal & Processing</h3>
-            <!-- Added 'group' class to tie hover effects to the scroll wrapper -->
-            <div class="flex items-center gap-3 group" title="Scroll to adjust">
-                <label for="gain" class="text-xs font-medium text-slate-300 w-20">Gain:</label>
-                <input type="range" id="gain" min="0.1" max="10" step="0.1" value="2" class="flex-1">
-                <span id="gain-value" class="text-xs font-mono text-cyan-400 w-10 text-right">2.0x</span>
+            <div class="flex flex-col gap-1 group" title="Scroll to adjust">
+                <label for="gain" class="text-[10px] text-slate-400 flex justify-between">
+                    <span>Gain</span>
+                    <span id="gain-value" class="text-cyan-400 font-mono">2.0x</span>
+                </label>
+                <input type="range" id="gain" min="0.1" max="10" step="0.1" value="2" class="w-full">
             </div>
-            <div id="avg-container" class="flex items-center gap-3 mode-spec group" title="Scroll to adjust">
-                <label for="avg" class="text-xs font-medium text-slate-300 w-20">Average:</label>
-                <input type="range" id="avg" min="0" max="0.98" step="0.02" value="0.4" class="flex-1">
-                <span id="avg-value" class="text-xs font-mono text-cyan-400 w-10 text-right">40%</span>
+            <div id="avg-container" class="flex flex-col gap-1 mode-spec group" title="Scroll to adjust">
+                <label for="avg" class="text-[10px] text-slate-400 flex justify-between">
+                    <span>Average</span>
+                    <span id="avg-value" class="text-cyan-400 font-mono">40%</span>
+                </label>
+                <input type="range" id="avg" min="0" max="0.98" step="0.02" value="0.4" class="w-full">
             </div>
-            <div class="flex gap-2">
+            <div class="flex gap-2 mt-1">
                 <button id="btn-freeze" class="flex-1 py-1.5 rounded bg-slate-700 hover:bg-slate-600 border border-slate-500 transition-colors text-[11px] font-bold text-slate-300">FREEZE: OFF</button>
                 <button id="btn-peaks" class="flex-1 py-1.5 rounded bg-slate-700 hover:bg-slate-600 border border-slate-500 transition-colors text-[11px] font-bold text-slate-300 mode-spec">PEAKS: OFF</button>
             </div>
         </div>
 
-        <!-- Resolution & Scale -->
+        <!-- Resolution & Scale (UPDATED TO STACKED LAYOUT) -->
         <div class="flex flex-col gap-4">
             <h3 class="text-xs uppercase tracking-wider text-slate-500 font-bold border-b border-slate-700 pb-1">Resolution & Scale</h3>
-            <div class="flex items-center gap-3 group" title="Scroll to adjust">
-                <label for="bandwidth" class="text-xs font-medium text-slate-300 w-20">FFT Size:</label>
-                <input type="range" id="bandwidth" min="5" max="15" step="1" value="11" class="flex-1">
-                <span id="bandwidth-value" class="text-xs font-mono text-cyan-400 w-10 text-right">2048</span>
+            <div class="flex flex-col gap-1 group" title="Scroll to adjust">
+                <label for="bandwidth" class="text-[10px] text-slate-400 flex justify-between">
+                    <span>FFT Size</span>
+                    <span id="bandwidth-value" class="text-cyan-400 font-mono">2048</span>
+                </label>
+                <input type="range" id="bandwidth" min="5" max="15" step="1" value="11" class="w-full">
             </div>
-            <button id="btn-scale" class="py-2 rounded-lg bg-slate-700 text-xs font-medium text-slate-200 w-full shadow-inner border border-slate-600 mode-spec">X-Axis Scale: Linear</button>
+            <button id="btn-scale" class="py-2 mt-1 rounded-lg bg-slate-700 text-xs font-medium text-slate-200 w-full shadow-inner border border-slate-600 mode-spec">X-Axis Scale: Linear</button>
         </div>
 
-        <!-- Zoom & Trigger Controls -->
+        <!-- Zoom & Trigger Controls (FULLY STANDARDIZED) -->
         <div class="flex flex-col gap-3">
             <h3 class="text-xs uppercase tracking-wider text-slate-500 font-bold border-b border-slate-700 pb-1">Zoom & Trigger</h3>
             
             <!-- Spectrum Zoom Panel -->
-            <div id="zoom-spectrum" class="grid grid-cols-2 gap-x-4 gap-y-2 mode-spec">
+            <div id="zoom-spectrum" class="grid grid-cols-2 gap-x-4 gap-y-3 mode-spec">
                 <div class="flex flex-col gap-1 group" title="Scroll to adjust">
-                    <label class="text-[10px] text-slate-400 flex justify-between">
+                    <label for="min-freq" class="text-[10px] text-slate-400 flex justify-between">
                         <span>Min Hz</span>
                         <span id="min-freq-val" class="text-cyan-400 font-mono">0</span>
                     </label>
                     <input type="range" id="min-freq" min="0" max="20000" step="1" value="0" class="w-full">
                 </div>
                 <div class="flex flex-col gap-1 group" title="Scroll to adjust">
-                    <label class="text-[10px] text-slate-400 flex justify-between">
+                    <label for="max-freq" class="text-[10px] text-slate-400 flex justify-between">
                         <span>Max Hz</span>
                         <span id="max-freq-val" class="text-cyan-400 font-mono">20000</span>
                     </label>
                     <input type="range" id="max-freq" min="100" max="24000" step="100" value="20000" class="w-full">
                 </div>
                 <div class="flex flex-col gap-1 group" title="Scroll to adjust">
-                    <label class="text-[10px] text-slate-400 flex justify-between">
+                    <label for="min-db" class="text-[10px] text-slate-400 flex justify-between">
                         <span>Min dB</span>
                         <span id="min-db-val" class="text-cyan-400 font-mono">-100</span>
                     </label>
                     <input type="range" id="min-db" min="-140" max="-70" step="1" value="-100" class="w-full">
                 </div>
                 <div class="flex flex-col gap-1 group" title="Scroll to adjust">
-                    <label class="text-[10px] text-slate-400 flex justify-between">
+                    <label for="max-db" class="text-[10px] text-slate-400 flex justify-between">
                         <span>Max dB</span>
                         <span id="max-db-val" class="text-cyan-400 font-mono">-20</span>
                     </label>
@@ -199,21 +200,21 @@
             <!-- Oscilloscope Zoom & Trigger Panel -->
             <div id="zoom-scope" class="grid grid-cols-1 gap-y-3 mode-scope" style="display: none;">
                 <div id="scope-time-container" class="flex flex-col gap-1 group" title="Scroll to adjust">
-                    <label class="text-[10px] text-slate-400">Time Base (X-Axis)</label>
-                    <div class="flex items-center gap-2">
-                        <input type="range" id="scope-time" min="1" max="500" step="1" value="20" class="w-full flex-1">
-                        <span id="scope-time-val" class="text-[10px] text-cyan-400 font-mono w-10 text-right">20ms</span>
-                    </div>
+                    <label for="scope-time" class="text-[10px] text-slate-400 flex justify-between">
+                        <span>Time Base (X-Axis)</span>
+                        <span id="scope-time-val" class="text-cyan-400 font-mono">20ms</span>
+                    </label>
+                    <input type="range" id="scope-time" min="1" max="500" step="1" value="20" class="w-full">
                 </div>
                 <div class="flex flex-col gap-1 group" title="Scroll to adjust">
-                    <label class="text-[10px] text-slate-400">Vertical Zoom (Amplitude)</label>
-                    <div class="flex items-center gap-2">
-                        <input type="range" id="scope-amp" min="0.05" max="1" step="0.05" value="1" class="w-full flex-1">
-                        <span id="scope-amp-val" class="text-[10px] text-cyan-400 font-mono w-10 text-right">1.00x</span>
-                    </div>
+                    <label for="scope-amp" class="text-[10px] text-slate-400 flex justify-between">
+                        <span>Vertical Zoom (Amp)</span>
+                        <span id="scope-amp-val" class="text-cyan-400 font-mono">1.00x</span>
+                    </label>
+                    <input type="range" id="scope-amp" min="0.05" max="1" step="0.05" value="1" class="w-full">
                 </div>
                 <div id="scope-trigger-container" class="flex flex-col gap-1 border-t border-slate-700 pt-2 group" title="Scroll to adjust">
-                    <label class="text-[10px] text-slate-400 flex justify-between">
+                    <label for="scope-trigger-lvl" class="text-[10px] text-slate-400 flex justify-between">
                         <span>Trigger Level</span>
                         <span id="scope-trigger-val" class="text-pink-400 font-mono">0.00</span>
                     </label>
@@ -1569,16 +1570,12 @@
         Object.values(displays).forEach(d => resizeObserver.observe(d.container));
 
         // ==========================================
-        // 9. SCROLL WHEEL FINE-TUNING (EXPANDED HIT AREAS)
+        // 9. SCROLL WHEEL FINE-TUNING
         // ==========================================
-        // REV 1.14.0 UPDATE: Binds listener to parent container for massively improved UX
         document.querySelectorAll('input[type="range"]').forEach(input => {
-            
-            // Find the immediate wrapper div to act as the expanded hit area
             const hitArea = input.closest('div[title="Scroll to adjust"]') || input.parentElement;
             
             hitArea.addEventListener('wheel', (e) => {
-                // Prevent the entire webpage from scrolling vertically
                 e.preventDefault();
                 
                 const step = parseFloat(input.step) || 1;
@@ -1586,20 +1583,17 @@
                 const max = parseFloat(input.max) || 100;
                 let val = parseFloat(input.value);
 
-                // e.deltaY < 0 = scrolled up (increase value)
-                // e.deltaY > 0 = scrolled down (decrease value)
                 if (e.deltaY < 0) {
                     val = Math.min(max, val + step);
                 } else if (e.deltaY > 0) {
                     val = Math.max(min, val - step);
                 }
 
-                // If value changed, apply it and manually dispatch the event
                 if (input.value !== val.toString()) {
                     input.value = val;
                     input.dispatchEvent(new Event('input'));
                 }
-            }, { passive: false }); // IMPORTANT: Required by modern browsers to allow e.preventDefault()
+            }, { passive: false }); 
         });
 
         // --- Defaults Reset ---
