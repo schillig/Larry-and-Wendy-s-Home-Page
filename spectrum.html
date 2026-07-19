@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Professional Web-Based Audio Spectrum Analyzer and Oscilloscope">
-    <title>Audio Spectrum Visualizer - REV 1.16.0</title>
+    <title>Audio Spectrum Visualizer - REV 1.17.0</title>
     
     <!-- Pro Tip: Inline SVG Favicons are a zero-latency way to brand web apps without external image requests -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎛️</text></svg>">
@@ -79,7 +79,7 @@
         <!-- Branding & Status -->
         <div class="flex flex-col sm:flex-row items-center sm:gap-4 text-center sm:text-left">
             <h1 class="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500 whitespace-nowrap">
-                Spectrum Analyzer <span class="text-slate-500 text-[10px] font-mono tracking-widest uppercase ml-1 align-top">Rev 1.16.0</span>
+                Spectrum Analyzer <span class="text-slate-500 text-[10px] font-mono tracking-widest uppercase ml-1 align-top">Rev 1.17.0</span>
             </h1>
             <div class="text-slate-400 text-xs sm:border-l sm:border-slate-600 sm:pl-4 mt-1 sm:mt-0">
                 Status: <span id="engine-status" class="text-yellow-500 font-mono">READY</span>
@@ -989,25 +989,16 @@
             wfCtx.putImageData(imgData, p.left, 0); 
         }
 
-        /**
-         * REV 1.16.0: HIGH CONTRAST RENDERING HELPER
-         * Automatically draws a thick black shadow line behind the neon colored line
-         * to guarantee W3C contrast standards are met against any dynamic background.
-         */
         function drawHighContrastLine(ctx, x1, y1, x2, y2, color, isDashed = true) {
             ctx.save();
-            
-            // 1. Draw thick black backdrop/outline
             ctx.setLineDash(isDashed ? [5, 5] : []);
             ctx.strokeStyle = 'rgba(0, 0, 0, 0.85)';
             ctx.lineWidth = 3;
             ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
             
-            // 2. Draw the bright colored line over it
             ctx.strokeStyle = color;
             ctx.lineWidth = 1;
             ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
-            
             ctx.restore();
         }
 
@@ -1063,7 +1054,6 @@
                 distinctPeaks.forEach((peak, idx) => {
                     const x = getXPosition(peak.freq, cvs.width), y = getYPosition(peak.db, cvs.height);
                     
-                    // REV 1.16.0: High Contrast Peak Node
                     ctx.strokeStyle = 'rgba(0,0,0,0.85)';
                     ctx.lineWidth = 3;
                     ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI*2); ctx.stroke();
@@ -1496,6 +1486,7 @@
             }
         }
 
+        // REV 1.17.0 UPDATE: Included 'waterfall' mode in the drag logic for X cursors
         function handlePointerDown(e, cvs) {
             const rect = cvs.getBoundingClientRect();
             const clientX = e.touches && e.touches.length > 0 ? e.touches[0].clientX : e.clientX;
@@ -1515,18 +1506,20 @@
                     if (Math.abs(y - getScopeYPosition(scopeCursorY1Amp, cvs.height)) < hitTest) activeDrag = { id: 'y1s', cvs };
                     else if (Math.abs(y - getScopeYPosition(scopeCursorY2Amp, cvs.height)) < hitTest) activeDrag = { id: 'y2s', cvs };
                 }
-            } else if (viewMode === 'spectrum' || viewMode === 'both') {
+            } else if (viewMode === 'spectrum' || viewMode === 'both' || viewMode === 'waterfall') {
                 if (cursorsXEnabled) {
                     if (Math.abs(x - getXPosition(cursorX1Freq, cvs.width)) < hitTest) activeDrag = { id: 'x1', cvs };
                     else if (Math.abs(x - getXPosition(cursorX2Freq, cvs.width)) < hitTest) activeDrag = { id: 'x2', cvs };
                 }
-                if (!activeDrag && cursorsYEnabled) {
+                // Only allow grabbing Y cursors if we aren't exclusively in waterfall mode
+                if (!activeDrag && cursorsYEnabled && viewMode !== 'waterfall') {
                     if (Math.abs(y - getYPosition(cursorY1Db, cvs.height)) < hitTest) activeDrag = { id: 'y1', cvs };
                     else if (Math.abs(y - getYPosition(cursorY2Db, cvs.height)) < hitTest) activeDrag = { id: 'y2', cvs };
                 }
             }
         }
 
+        // REV 1.17.0 UPDATE: Ensures Y cursors don't erroneously update if dragged during waterfall mode
         function handlePointerMove(e) {
             if (!activeDrag) return;
             if (e.cancelable) e.preventDefault(); 
@@ -1545,8 +1538,8 @@
             } else {
                 if (activeDrag.id === 'x1') cursorX1Freq = getFreqFromX(x, activeDrag.cvs.width);
                 if (activeDrag.id === 'x2') cursorX2Freq = getFreqFromX(x, activeDrag.cvs.width);
-                if (activeDrag.id === 'y1') cursorY1Db = getDbFromY(y, activeDrag.cvs.height);
-                if (activeDrag.id === 'y2') cursorY2Db = getDbFromY(y, activeDrag.cvs.height);
+                if (activeDrag.id === 'y1' && viewMode !== 'waterfall') cursorY1Db = getDbFromY(y, activeDrag.cvs.height);
+                if (activeDrag.id === 'y2' && viewMode !== 'waterfall') cursorY2Db = getDbFromY(y, activeDrag.cvs.height);
             }
             
             clampCursors();
