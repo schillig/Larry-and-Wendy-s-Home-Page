@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Professional Web-Based Audio Spectrum Analyzer and Oscilloscope">
-    <title>Audio Spectrum Visualizer - REV 1.15.0</title>
+    <title>Audio Spectrum Visualizer - REV 1.16.0</title>
     
     <!-- Pro Tip: Inline SVG Favicons are a zero-latency way to brand web apps without external image requests -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎛️</text></svg>">
@@ -79,7 +79,7 @@
         <!-- Branding & Status -->
         <div class="flex flex-col sm:flex-row items-center sm:gap-4 text-center sm:text-left">
             <h1 class="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500 whitespace-nowrap">
-                Spectrum Analyzer <span class="text-slate-500 text-[10px] font-mono tracking-widest uppercase ml-1 align-top">Rev 1.15.0</span>
+                Spectrum Analyzer <span class="text-slate-500 text-[10px] font-mono tracking-widest uppercase ml-1 align-top">Rev 1.16.0</span>
             </h1>
             <div class="text-slate-400 text-xs sm:border-l sm:border-slate-600 sm:pl-4 mt-1 sm:mt-0">
                 Status: <span id="engine-status" class="text-yellow-500 font-mono">READY</span>
@@ -125,7 +125,7 @@
             </div>
         </div>
 
-        <!-- Signal & Processing (UPDATED TO STACKED LAYOUT) -->
+        <!-- Signal & Processing -->
         <div class="flex flex-col gap-4">
             <h3 class="text-xs uppercase tracking-wider text-slate-500 font-bold border-b border-slate-700 pb-1">Signal & Processing</h3>
             <div class="flex flex-col gap-1 group" title="Scroll to adjust">
@@ -148,7 +148,7 @@
             </div>
         </div>
 
-        <!-- Resolution & Scale (UPDATED TO STACKED LAYOUT) -->
+        <!-- Resolution & Scale -->
         <div class="flex flex-col gap-4">
             <h3 class="text-xs uppercase tracking-wider text-slate-500 font-bold border-b border-slate-700 pb-1">Resolution & Scale</h3>
             <div class="flex flex-col gap-1 group" title="Scroll to adjust">
@@ -161,7 +161,7 @@
             <button id="btn-scale" class="py-2 mt-1 rounded-lg bg-slate-700 text-xs font-medium text-slate-200 w-full shadow-inner border border-slate-600 mode-spec">X-Axis Scale: Linear</button>
         </div>
 
-        <!-- Zoom & Trigger Controls (FULLY STANDARDIZED) -->
+        <!-- Zoom & Trigger Controls -->
         <div class="flex flex-col gap-3">
             <h3 class="text-xs uppercase tracking-wider text-slate-500 font-bold border-b border-slate-700 pb-1">Zoom & Trigger</h3>
             
@@ -989,6 +989,28 @@
             wfCtx.putImageData(imgData, p.left, 0); 
         }
 
+        /**
+         * REV 1.16.0: HIGH CONTRAST RENDERING HELPER
+         * Automatically draws a thick black shadow line behind the neon colored line
+         * to guarantee W3C contrast standards are met against any dynamic background.
+         */
+        function drawHighContrastLine(ctx, x1, y1, x2, y2, color, isDashed = true) {
+            ctx.save();
+            
+            // 1. Draw thick black backdrop/outline
+            ctx.setLineDash(isDashed ? [5, 5] : []);
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.85)';
+            ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+            
+            // 2. Draw the bright colored line over it
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+            
+            ctx.restore();
+        }
+
         function drawMeasurementTools(ctx, cvs, data) {
             const p = getPadding();
             const gH = cvs.height - p.bottom;
@@ -997,18 +1019,15 @@
                 if (cursorsXEnabled) {
                     [scopeCursorX1Ms, scopeCursorX2Ms].forEach(ms => {
                         const x = getScopeXPosition(ms, cvs.width);
-                        ctx.setLineDash([5, 5]); ctx.strokeStyle = '#4ade80';
-                        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, gH); ctx.stroke();
+                        drawHighContrastLine(ctx, x, 0, x, gH, '#4ade80', true);
                     });
                 }
                 if (cursorsYEnabled) {
                     [scopeCursorY1Amp, scopeCursorY2Amp].forEach(amp => {
                         const y = getScopeYPosition(amp, cvs.height);
-                        ctx.setLineDash([5, 5]); ctx.strokeStyle = '#c084fc';
-                        ctx.beginPath(); ctx.moveTo(p.left, y); ctx.lineTo(cvs.width, y); ctx.stroke();
+                        drawHighContrastLine(ctx, p.left, y, cvs.width, y, '#c084fc', true);
                     });
                 }
-                ctx.setLineDash([]);
                 return;
             }
 
@@ -1044,7 +1063,13 @@
                 distinctPeaks.forEach((peak, idx) => {
                     const x = getXPosition(peak.freq, cvs.width), y = getYPosition(peak.db, cvs.height);
                     
+                    // REV 1.16.0: High Contrast Peak Node
+                    ctx.strokeStyle = 'rgba(0,0,0,0.85)';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI*2); ctx.stroke();
+                    
                     ctx.strokeStyle = '#f472b6'; 
+                    ctx.lineWidth = 1.5;
                     ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI*2); ctx.stroke();
                     
                     ctx.font = '10px monospace';
@@ -1065,19 +1090,16 @@
             if (cursorsXEnabled) {
                 [cursorX1Freq, cursorX2Freq].forEach(f => {
                     const x = getXPosition(f, cvs.width);
-                    ctx.setLineDash([5, 5]); ctx.strokeStyle = '#4ade80';
-                    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, gH); ctx.stroke();
+                    drawHighContrastLine(ctx, x, 0, x, gH, '#4ade80', true);
                 });
             }
             
             if (cursorsYEnabled && viewMode !== 'waterfall') {
                 [cursorY1Db, cursorY2Db].forEach(db => {
                     const y = getYPosition(db, cvs.height);
-                    ctx.setLineDash([5, 5]); ctx.strokeStyle = '#c084fc';
-                    ctx.beginPath(); ctx.moveTo(p.left, y); ctx.lineTo(cvs.width, y); ctx.stroke();
+                    drawHighContrastLine(ctx, p.left, y, cvs.width, y, '#c084fc', true);
                 });
             }
-            ctx.setLineDash([]);
         }
 
         // ==========================================
