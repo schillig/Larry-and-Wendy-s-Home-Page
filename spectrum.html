@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Professional Web-Based Audio Spectrum Analyzer and Oscilloscope">
-    <title>Audio Spectrum Visualizer - REV 1.20.0</title>
+    <title>Audio Spectrum Visualizer - REV 1.21.0</title>
     
     <!-- Pro Tip: Inline SVG Favicons are a zero-latency way to brand web apps without external image requests -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎛️</text></svg>">
@@ -73,7 +73,7 @@
         <!-- Branding & Status -->
         <div class="flex flex-col sm:flex-row items-center sm:gap-4 text-center sm:text-left">
             <h1 class="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500 whitespace-nowrap">
-                Spectrum Analyzer <span class="text-slate-500 text-[10px] font-mono tracking-widest uppercase ml-1 align-top">Rev 1.20.0</span>
+                Spectrum Analyzer <span class="text-slate-500 text-[10px] font-mono tracking-widest uppercase ml-1 align-top">Rev 1.21.0</span>
             </h1>
             <div class="text-slate-400 text-xs sm:border-l sm:border-slate-600 sm:pl-4 mt-1 sm:mt-0">
                 Status: <span id="engine-status" class="text-yellow-500 font-mono">READY</span>
@@ -263,7 +263,6 @@
         <div id="display-combined" class="canvas-container w-full min-h-[200px] h-[350px] bg-slate-950 rounded-xl border border-slate-700 overflow-hidden relative shadow-2xl">
             <div class="absolute top-2 left-2 text-xs font-bold text-slate-300 z-20 bg-slate-900/80 px-2 py-1 rounded border border-slate-600 shadow">Combined (L+R)</div>
             
-            <!-- REV 1.20.0: UI Badge for Time Base readout in Waterfall Mode -->
             <div class="ms-row-badge absolute top-2 right-2 text-[10px] font-mono text-cyan-300 z-20 bg-slate-900/80 px-2 py-1 rounded border border-slate-600 shadow" style="display: none;">
                 <span class="val">--</span> ms/row
             </div>
@@ -317,11 +316,11 @@
         let cursorX1Freq = 1000, cursorX2Freq = 5000;
         let cursorY1Db = -40, cursorY2Db = -60;
 
-        // REV 1.20.0: Independent Pixel Cursors for Waterfall Mode
+        // Pixel Cursors for Waterfall Mode
         let wfCursorY1Px = 50;
         let wfCursorY2Px = 150;
         let lastDrawTime = 0;
-        let msPerRowAverage = 16.67; // Default assumption for 60fps monitor
+        let msPerRowAverage = 16.67; 
 
         // Oscilloscope Globals
         let scopeTimeWindowMs = 20; 
@@ -560,8 +559,7 @@
             }
         }
 
-        // ... [Grid rendering functions for Scope and Lissajous omitted for brevity] ...
-        function drawOscilloscopeGrid(ctx, cvs) { /* Unchanged from 1.19.0 */
+        function drawOscilloscopeGrid(ctx, cvs) { 
             const p = getPadding();
             const w = cvs.width;
             const h = cvs.height - p.bottom;
@@ -592,13 +590,25 @@
                 ctx.fillStyle = '#94a3b8'; ctx.fillText(trueVoltage > 0 ? '+' + trueVoltage.toFixed(2) : trueVoltage.toFixed(2), p.left - 8, y + 4);
             });
 
-            const trigY = getScopeYPosition(scopeTriggerLevel, cvs.height);
-            ctx.strokeStyle = '#f472b6'; ctx.setLineDash([4, 4]);
-            ctx.beginPath(); ctx.moveTo(p.left, trigY); ctx.lineTo(w, trigY); ctx.stroke(); ctx.setLineDash([]);
-            ctx.fillStyle = '#f472b6'; ctx.textAlign = 'left'; ctx.fillText('TRIG', p.left + 5, trigY - 4);
+            // REV 1.21.0 UPDATE: Only draw the trigger threshold line if the trigger is explicitly enabled
+            if (scopeTriggerSource !== null) {
+                const trigY = getScopeYPosition(scopeTriggerLevel, cvs.height);
+                ctx.save(); 
+                ctx.strokeStyle = '#f472b6'; 
+                ctx.setLineDash([4, 4]);
+                ctx.beginPath(); 
+                ctx.moveTo(p.left, trigY); 
+                ctx.lineTo(w, trigY); 
+                ctx.stroke(); 
+                
+                ctx.fillStyle = '#f472b6'; 
+                ctx.textAlign = 'left'; 
+                ctx.fillText('TRIG', p.left + 5, trigY - 4);
+                ctx.restore(); 
+            }
         }
 
-        function drawLissajousGrid(ctx, cvs, maxAmp) { /* Unchanged from 1.19.0 */
+        function drawLissajousGrid(ctx, cvs, maxAmp) { 
             const p = getPadding();
             const w = cvs.width - p.left;
             const h = cvs.height - p.bottom;
@@ -612,7 +622,7 @@
         }
 
         // ==========================================
-        // 5. AUDIO INITIALIZATION (Unchanged)
+        // 5. AUDIO INITIALIZATION
         // ==========================================
         async function initAudio(sourceType) {
             showToast("INITIALIZING ENGINE...", false);
@@ -671,24 +681,15 @@
         // ==========================================
         // 6. MAIN RENDERING LOOP
         // ==========================================
-        /**
-         * REV 1.20.0 UPDATE: Accept HighResTimeStamp to dynamically calculate msPerRow
-         */
         function drawVisualizer(timestamp) {
             animationId = requestAnimationFrame(drawVisualizer);
 
-            // Calculate exact milliseconds per frame row for the waterfall timing calculations
             if (lastDrawTime && !isFrozen) {
                 const dt = timestamp - lastDrawTime;
-                // Basic bounds check (prevents pausing the tab from skewing the average wildly)
-                if (dt > 0 && dt < 150) {
-                    // Exponential Moving Average (EMA) to smooth out minor render stutters
-                    msPerRowAverage = (msPerRowAverage * 0.9) + (dt * 0.1);
-                }
+                if (dt > 0 && dt < 150) { msPerRowAverage = (msPerRowAverage * 0.9) + (dt * 0.1); }
             }
             lastDrawTime = timestamp;
 
-            // Toggle MS/Row Badge UI
             if ((viewMode === 'waterfall' || viewMode === 'both') && displays.combined.analyser) {
                 document.querySelectorAll('.ms-row-badge').forEach(el => {
                     el.style.display = 'block';
@@ -698,7 +699,6 @@
                 document.querySelectorAll('.ms-row-badge').forEach(el => el.style.display = 'none');
             }
 
-            // ... [Oscilloscope and Lissajous blocks omitted for brevity; exact same logic as 1.19.0]
             if (viewMode === 'lissajous') {
                 if (!isFrozen) {
                     Object.values(displays).forEach(d => {
@@ -825,11 +825,10 @@
                 drawMeasurementTools(visCtx, d.visCvs, d.data);
             });
             
-            // Sync values incase window resets
             updateCursorReadouts();
         }
 
-        // --- Extracted Drawing Primitives (Unchanged) ---
+        // --- Extracted Drawing Primitives ---
         function drawTrace(ctx, cvs, data, strokeColor = '#22d3ee', doFill = true, lineWidth = 1.5) {
             const bufferLength = data.length; const binSize = actualNyquist / bufferLength; const p = getPadding();
             ctx.lineWidth = lineWidth; ctx.strokeStyle = strokeColor; ctx.beginPath();
@@ -890,9 +889,6 @@
             ctx.restore();
         }
 
-        /**
-         * REV 1.20.0 UPDATE: Render independent Pixel Cursors for Waterfall Mode
-         */
         function drawMeasurementTools(ctx, cvs, data) {
             const p = getPadding();
             const gH = cvs.height - p.bottom;
@@ -913,7 +909,6 @@
 
             if (viewMode === 'lissajous') return; 
 
-            // Standard peaks detection and drawing
             if (showPeaks && viewMode !== 'waterfall' && data) {
                 const bufferLength = data.length; const binSize = actualNyquist / bufferLength; let localPeaks = [];
                 const startB = Math.max(0, Math.floor(zoomMinFreq / binSize)); const endB = Math.min(bufferLength, Math.ceil(zoomMaxFreq / binSize));
@@ -945,11 +940,9 @@
             
             if (cursorsYEnabled) {
                 if (viewMode === 'waterfall') {
-                    // Waterfall time history rendering (Pixels based on msPerRow)
                     drawHighContrastLine(ctx, p.left, wfCursorY1Px, cvs.width, wfCursorY1Px, '#c084fc', true);
                     drawHighContrastLine(ctx, p.left, wfCursorY2Px, cvs.width, wfCursorY2Px, '#c084fc', true);
                 } else if (viewMode === 'spectrum' || viewMode === 'both') {
-                    // Standard dB amplitude rendering
                     [cursorY1Db, cursorY2Db].forEach(db => {
                         const y = getYPosition(db, cvs.height); drawHighContrastLine(ctx, p.left, y, cvs.width, y, '#c084fc', true);
                     });
@@ -1098,8 +1091,6 @@
                 cursorX1Freq = Math.max(zoomMinFreq, Math.min(zoomMaxFreq, cursorX1Freq)); cursorX2Freq = Math.max(zoomMinFreq, Math.min(zoomMaxFreq, cursorX2Freq));
                 cursorY1Db = Math.max(displayMinDb, Math.min(displayMaxDb, cursorY1Db)); cursorY2Db = Math.max(displayMinDb, Math.min(displayMaxDb, cursorY2Db));
             }
-            
-            // Constrain pixel variables safely relative to combined canvas height if available
             const hBound = displays.combined.visCvs.height || 350;
             wfCursorY1Px = Math.max(0, Math.min(hBound, wfCursorY1Px));
             wfCursorY2Px = Math.max(0, Math.min(hBound, wfCursorY2Px));
@@ -1169,13 +1160,8 @@
             updateCursorReadouts(); 
         };
 
-        /**
-         * REV 1.20.0 UPDATE: Multi-Mode math handling for time vs amplitude Y-Cursors
-         */
         function updateCursorReadouts() {
-            const isWaterfall = viewMode === 'waterfall';
-            const isScope = viewMode === 'oscilloscope';
-            const isLissajous = viewMode === 'lissajous';
+            const isWaterfall = viewMode === 'waterfall'; const isScope = viewMode === 'oscilloscope'; const isLissajous = viewMode === 'lissajous';
 
             if (isScope || isLissajous) {
                 document.getElementById('lbl-f1').textContent = 'T1:'; document.getElementById('lbl-f2').textContent = 'T2:'; document.getElementById('lbl-df').textContent = 'ΔT:';
@@ -1196,15 +1182,12 @@
                 document.getElementById('readout-da').textContent = (cursorsYEnabled && !isLissajous) ? Math.abs((scopeCursorY2Amp - scopeCursorY1Amp) / currentGain).toFixed(3) : '--';
             } else if (isWaterfall) {
                 document.getElementById('lbl-f1').textContent = 'F1:'; document.getElementById('lbl-f2').textContent = 'F2:'; document.getElementById('lbl-df').textContent = 'ΔF:';
-                
-                // Switch A (Amplitude) labels to T (Time) specifically for waterfall
                 document.getElementById('lbl-a1').textContent = 'T1:'; document.getElementById('lbl-a2').textContent = 'T2:'; document.getElementById('lbl-da').textContent = 'ΔT:';
 
                 document.getElementById('readout-f1').textContent = cursorsXEnabled ? formatFreqLabel(cursorX1Freq) : '--';
                 document.getElementById('readout-f2').textContent = cursorsXEnabled ? formatFreqLabel(cursorX2Freq) : '--';
                 document.getElementById('readout-df').textContent = cursorsXEnabled ? formatFreqLabel(Math.abs(cursorX2Freq - cursorX1Freq)) : '--';
                 
-                // Perform dynamic pixel-to-ms calculation
                 const t1Str = (wfCursorY1Px * msPerRowAverage).toFixed(0);
                 const t2Str = (wfCursorY2Px * msPerRowAverage).toFixed(0);
                 const deltaTStr = (Math.abs(wfCursorY2Px - wfCursorY1Px) * msPerRowAverage).toFixed(0);
@@ -1225,7 +1208,6 @@
             }
         }
 
-        // REV 1.20.0 UPDATE: Check for pixel coordinate hits (wfCursorY1Px) instead of db thresholds
         function handlePointerDown(e, cvs) {
             const rect = cvs.getBoundingClientRect(); const clientX = e.touches && e.touches.length > 0 ? e.touches[0].clientX : e.clientX;
             const clientY = e.touches && e.touches.length > 0 ? e.touches[0].clientY : e.clientY;
@@ -1263,7 +1245,6 @@
             }
         }
 
-        // REV 1.20.0 UPDATE: Save the exact Y pixel coordinate to the new isolated pixel variables
         function handlePointerMove(e) {
             if (!activeDrag) return; if (e.cancelable) e.preventDefault(); 
             const rect = activeDrag.cvs.getBoundingClientRect(); const clientX = e.touches && e.touches.length > 0 ? e.touches[0].clientX : e.clientX;
