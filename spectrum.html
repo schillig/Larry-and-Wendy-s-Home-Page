@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Professional Web-Based Audio Spectrum Analyzer and Oscilloscope">
-    <title>Audio Spectrum Visualizer - REV 1.24.0</title>
+    <title>Audio Spectrum Visualizer - REV 1.25.0</title>
     
     <!-- Pro Tip: Inline SVG Favicons are a zero-latency way to brand web apps without external image requests -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎛️</text></svg>">
@@ -22,7 +22,6 @@
         .canvas-container {
             resize: vertical;
             border: 1px solid #525252; /* Neutral 600 */
-            /* Add crosshair cursor hint when hovering near draggable elements */
             cursor: crosshair;
         }
         
@@ -65,7 +64,7 @@
 
     <!-- Fixed Toast Notification Container -->
     <div id="toast-container" class="fixed top-5 left-1/2 transform -translate-x-1/2 z-50 flex flex-col items-center w-full px-4 pointer-events-none">
-        <div id="message-box" class="transition-all duration-300 opacity-0 transform -translate-y-4 p-3 border border-neutral-500 shadow-none text-xs font-mono max-w-xl text-center w-full">
+        <div id="message-box" class="transition-all duration-300 opacity-0 transform -translate-y-4 p-3 border shadow-none text-xs font-mono max-w-xl text-center w-full">
         </div>
     </div>
 
@@ -73,7 +72,7 @@
     <header class="w-full max-w-7xl flex flex-col md:flex-row justify-between items-center bg-neutral-800 p-2 md:px-4 border border-neutral-600 mb-2 gap-2 md:gap-0">
         <div class="flex flex-col sm:flex-row items-center sm:gap-4 text-center sm:text-left">
             <h1 class="text-lg font-bold text-neutral-100 uppercase tracking-wider whitespace-nowrap">
-                Spectrum Analyzer <span class="text-neutral-500 text-[10px] font-mono tracking-widest ml-1 align-top">REV 1.24.0</span>
+                Spectrum Analyzer <span class="text-neutral-500 text-[10px] font-mono tracking-widest ml-1 align-top">REV 1.25.0</span>
             </h1>
             <div class="text-neutral-400 text-[10px] uppercase sm:border-l sm:border-neutral-600 sm:pl-4 mt-1 sm:mt-0 font-bold">
                 Status: <span id="engine-status" class="text-yellow-500 font-mono bg-neutral-900 px-1 border border-neutral-700">READY</span>
@@ -124,7 +123,6 @@
                 </label>
                 <input type="range" id="gain" min="0.1" max="10" step="0.1" value="2">
             </div>
-            <!-- REV 1.24.0: Default Average set to 0 (OFF) -->
             <div id="avg-container" class="flex flex-col gap-0.5 mode-spec">
                 <label for="avg" class="text-[9px] font-bold uppercase text-neutral-400 flex justify-between">
                     <span>Average</span>
@@ -156,7 +154,6 @@
             <h3 class="text-[10px] uppercase tracking-wider text-neutral-500 font-bold border-b border-neutral-600 pb-1">Zoom & Trig</h3>
             
             <div id="zoom-spectrum" class="grid grid-cols-2 gap-x-3 gap-y-2 mode-spec">
-                <!-- REV 1.24.0: Default Freq 0 to 22000, dB -140 to 0 -->
                 <div class="flex flex-col gap-0.5">
                     <label for="min-freq" class="text-[9px] font-bold uppercase text-neutral-400 flex justify-between">
                         <span>Min Hz</span>
@@ -209,7 +206,6 @@
                     </label>
                     <input type="range" id="scope-trigger-lvl" min="-1" max="1" step="0.01" value="0">
                 </div>
-                <!-- REV 1.24.0: Default Trigger UI is OFF (Neutral 800) -->
                 <div id="scope-trigger-btns" class="flex gap-0.5">
                     <button id="btn-trig-comb" class="flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[9px] font-bold text-neutral-400">T:L+R</button>
                     <button id="btn-trig-left" class="flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[9px] font-bold text-neutral-400">T:L</button>
@@ -300,16 +296,11 @@
         let isLogScale = false;
         let isFrozen = false;
         let showPeaks = false;
-
-        // REV 1.24.0: Default Average to 0 (Off)
         let averagingAlpha = 0.0; 
 
         let dummyAudioEl = null;
 
-        // REV 1.24.0: Default minDb to -140, maxDb to 0
         let displayMaxDb = 0, displayMinDb = -140;
-        
-        // REV 1.24.0: Default minHz to 0, maxHz to 22000
         let zoomMinFreq = 0, zoomMaxFreq = 22000;
         let actualNyquist = 22050; 
         
@@ -329,7 +320,6 @@
         let scopeCursorX1Ms = 5, scopeCursorX2Ms = 15;
         let scopeCursorY1Amp = 0.5, scopeCursorY2Amp = -0.5;
         
-        // REV 1.24.0: Default Trigger to Off (null)
         let scopeTriggerSource = null; 
         let scopeTriggerLevel = 0.0;
         let isOneShotArmed = false;
@@ -647,7 +637,6 @@
                 if (audioCtx.state === 'suspended') await audioCtx.resume();
                 actualNyquist = audioCtx.sampleRate / 2;
                 
-                // REV 1.24.0: Adjust dynamic max bounds based on hardware
                 controls.maxFreq.el.max = actualNyquist;
 
                 dummyAudioEl = new Audio(); dummyAudioEl.srcObject = stream; dummyAudioEl.muted = true; dummyAudioEl.play().catch(e => console.warn(e));
@@ -1128,7 +1117,6 @@
         controls.scopeTime.el.oninput = (e) => { scopeTimeWindowMs = parseInt(e.target.value); controls.scopeTime.disp.textContent = scopeTimeWindowMs + "ms"; clampCursors(); updateCursorReadouts(); };
         controls.scopeAmp.el.oninput = (e) => { scopeMaxAmp = parseFloat(e.target.value); controls.scopeAmp.disp.textContent = scopeMaxAmp.toFixed(2) + 'x'; clampCursors(); updateCursorReadouts(); };
         
-        // Update trigger value on slider drag
         controls.scopeTrigger.el.oninput = (e) => { 
             scopeTriggerLevel = parseFloat(e.target.value); 
             controls.scopeTrigger.disp.textContent = scopeTriggerLevel.toFixed(2); 
@@ -1136,19 +1124,34 @@
 
         function setTriggerSource(src) {
             if (scopeTriggerSource === src) { scopeTriggerSource = null; } else { scopeTriggerSource = src; }
+            
+            // REV 1.25.0: If trigger is turned OFF, safely disarm 1-Shot to prevent logical deadlocks
+            if (scopeTriggerSource === null && isOneShotArmed) {
+                isOneShotArmed = false;
+                const btnOs = document.getElementById('btn-trig-oneshot');
+                btnOs.textContent = "1-SHOT"; 
+                btnOs.className = "flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[9px] font-bold text-neutral-400";
+            }
+
             document.getElementById('btn-trig-comb').classList.toggle('bg-pink-900', scopeTriggerSource === 'combined'); document.getElementById('btn-trig-comb').classList.toggle('bg-neutral-800', scopeTriggerSource !== 'combined');
             document.getElementById('btn-trig-left').classList.toggle('bg-pink-900', scopeTriggerSource === 'left'); document.getElementById('btn-trig-left').classList.toggle('bg-neutral-800', scopeTriggerSource !== 'left');
             document.getElementById('btn-trig-right').classList.toggle('bg-pink-900', scopeTriggerSource === 'right'); document.getElementById('btn-trig-right').classList.toggle('bg-neutral-800', scopeTriggerSource !== 'right');
             
-            // Text color toggle for active states
             document.getElementById('btn-trig-comb').classList.toggle('text-white', scopeTriggerSource === 'combined'); document.getElementById('btn-trig-comb').classList.toggle('text-neutral-400', scopeTriggerSource !== 'combined');
             document.getElementById('btn-trig-left').classList.toggle('text-white', scopeTriggerSource === 'left'); document.getElementById('btn-trig-left').classList.toggle('text-neutral-400', scopeTriggerSource !== 'left');
             document.getElementById('btn-trig-right').classList.toggle('text-white', scopeTriggerSource === 'right'); document.getElementById('btn-trig-right').classList.toggle('text-neutral-400', scopeTriggerSource !== 'right');
         }
+        
         document.getElementById('btn-trig-comb').onclick = () => setTriggerSource('combined'); document.getElementById('btn-trig-left').onclick = () => setTriggerSource('left'); document.getElementById('btn-trig-right').onclick = () => setTriggerSource('right');
 
+        // REV 1.25.0 UPDATE: Enforce trigger source prerequisite for 1-Shot arming
         const btnOneShot = document.getElementById('btn-trig-oneshot');
         btnOneShot.onclick = () => {
+            if (scopeTriggerSource === null) {
+                showToast("ERROR: SELECT A TRIGGER SOURCE (L+R, L, R) FIRST", true);
+                return; // Prevent arming
+            }
+
             if (isOneShotArmed) {
                 isOneShotArmed = false; 
                 btnOneShot.textContent = "1-SHOT"; 
@@ -1158,8 +1161,6 @@
                 isFrozen = false; 
                 document.getElementById('btn-freeze').textContent = "FREEZE: OFF"; 
                 document.getElementById('btn-freeze').classList.replace('bg-blue-800', 'bg-neutral-800');
-                
-                if (scopeTriggerSource === null) { setTriggerSource('combined'); }
 
                 btnOneShot.textContent = "ARMED"; 
                 btnOneShot.className = "flex-1 py-1 bg-red-900 border border-red-700 text-[9px] font-bold text-white animate-pulse";
@@ -1253,7 +1254,6 @@
             }
         }
 
-        // REV 1.24.0 UPDATE: Included Hit-Detection for Draggable Trigger Line
         function handlePointerDown(e, cvs) {
             const rect = cvs.getBoundingClientRect(); const clientX = e.touches && e.touches.length > 0 ? e.touches[0].clientX : e.clientX;
             const clientY = e.touches && e.touches.length > 0 ? e.touches[0].clientY : e.clientY;
@@ -1262,7 +1262,6 @@
             activeDrag = null; const hitTest = 25; 
             
             if (viewMode === 'oscilloscope') {
-                // Draggable Trigger Line Logic
                 if (scopeTriggerSource !== null) {
                     if (Math.abs(y - getScopeYPosition(scopeTriggerLevel, cvs.height)) < hitTest) {
                         activeDrag = { id: 'trig', cvs };
@@ -1297,7 +1296,6 @@
             }
         }
 
-        // REV 1.24.0 UPDATE: Update internal state and external DOM when Trigger is dragged
         function handlePointerMove(e) {
             if (!activeDrag) return; if (e.cancelable) e.preventDefault(); 
             const rect = activeDrag.cvs.getBoundingClientRect(); const clientX = e.touches && e.touches.length > 0 ? e.touches[0].clientX : e.clientX;
@@ -1307,7 +1305,7 @@
             if (viewMode === 'oscilloscope') {
                 if (activeDrag.id === 'trig') {
                     scopeTriggerLevel = getAmpFromScopeY(y, activeDrag.cvs.height);
-                    scopeTriggerLevel = Math.max(-1, Math.min(1, scopeTriggerLevel)); // Clamp
+                    scopeTriggerLevel = Math.max(-1, Math.min(1, scopeTriggerLevel)); 
                     controls.scopeTrigger.el.value = scopeTriggerLevel;
                     controls.scopeTrigger.disp.textContent = scopeTriggerLevel.toFixed(2);
                 }
@@ -1371,7 +1369,7 @@
             }, { passive: false }); 
         });
 
-        // --- Defaults Reset (Updated for 1.24.0 Baselines) ---
+        // --- Defaults Reset ---
         document.getElementById('btn-reset').onclick = () => {
             isLogScale = false; isFrozen = false; showPeaks = false; averagingAlpha = 0.0; displayMaxDb = 0; displayMinDb = -140; zoomMinFreq = 0; zoomMaxFreq = 22000;
             scopeTimeWindowMs = 20; scopeMaxAmp = 1.0; scopeTriggerLevel = 0.0; scopeTriggerSource = null; setTriggerSource(null);
