@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Professional Web-Based Audio Spectrum Analyzer and Oscilloscope">
-    <title>Audio Spectrum Visualizer - REV 1.13.0</title>
+    <title>Audio Spectrum Visualizer - REV 1.14.0</title>
     
     <!-- Pro Tip: Inline SVG Favicons are a zero-latency way to brand web apps without external image requests -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎛️</text></svg>">
@@ -27,10 +27,14 @@
             box-shadow: 0 0 40px rgba(56, 189, 248, 0.1);
             resize: vertical;
         }
+        
         /* Custom Input Range Styling for Cross-Browser Consistency */
         input[type=range] {
             -webkit-appearance: none;
             background: transparent;
+            /* Increases the physical touch/click target size of the input line */
+            padding: 8px 0; 
+            cursor: pointer;
         }
         input[type=range]::-webkit-slider-thumb {
             -webkit-appearance: none;
@@ -38,14 +42,22 @@
             width: 14px;
             border-radius: 50%;
             background: #22d3ee;
-            cursor: pointer;
             margin-top: -4px;
-            box-shadow: 0 0 5px rgba(34, 211, 238, 0.5);
-            transition: transform 0.1s;
+            box-shadow: 0 0 5px rgba(34, 211, 238, 0.3);
+            transition: transform 0.1s, box-shadow 0.2s;
         }
+        
+        /* Visual Feedback: Thumb scales up when directly hovered */
         input[type=range]:hover::-webkit-slider-thumb {
-            transform: scale(1.2); /* Visual feedback that the thumb is active for scrolling */
+            transform: scale(1.2); 
+            box-shadow: 0 0 10px rgba(34, 211, 238, 0.8);
         }
+        
+        /* Visual Feedback: Thumb glows when the mouse is anywhere inside the parent group block */
+        .group:hover input[type=range]::-webkit-slider-thumb {
+            box-shadow: 0 0 12px rgba(34, 211, 238, 0.6);
+        }
+
         input[type=range]::-webkit-slider-runnable-track {
             height: 6px;
             background: #334155;
@@ -66,34 +78,28 @@
         </div>
     </div>
 
-    <!-- 
-      REV 1.13.0: Compact App-Bar Header
-      Combines Title, Status, and Controls into a single responsive flex container to save vertical space.
-    -->
+    <!-- App-Bar Header -->
     <header class="w-full max-w-7xl flex flex-col md:flex-row justify-between items-center bg-slate-800/40 p-3 md:px-5 rounded-xl border border-slate-700/50 mb-4 shadow-md gap-3 md:gap-0">
-        
-        <!-- Branding & Status (Left Side) -->
+        <!-- Branding & Status -->
         <div class="flex flex-col sm:flex-row items-center sm:gap-4 text-center sm:text-left">
             <h1 class="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500 whitespace-nowrap">
-                Spectrum Analyzer <span class="text-slate-500 text-[10px] font-mono tracking-widest uppercase ml-1 align-top">Rev 1.13.0</span>
+                Spectrum Analyzer <span class="text-slate-500 text-[10px] font-mono tracking-widest uppercase ml-1 align-top">Rev 1.14.0</span>
             </h1>
             <div class="text-slate-400 text-xs sm:border-l sm:border-slate-600 sm:pl-4 mt-1 sm:mt-0">
                 Status: <span id="engine-status" class="text-yellow-500 font-mono">READY</span>
             </div>
         </div>
 
-        <!-- Source Controls (Right Side) -->
+        <!-- Source Controls -->
         <div class="flex gap-2">
             <button id="btn-mic" class="px-4 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 transition-colors flex items-center justify-center gap-2 text-sm font-medium shadow-lg">
                 <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path></svg>
                 Mic
             </button>
-            
             <button id="btn-system" class="px-4 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 transition-colors flex items-center justify-center gap-2 text-sm font-medium shadow-lg">
                 <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
                 System
             </button>
-
             <button id="btn-stop" class="hidden px-4 py-1.5 rounded-lg bg-red-900/50 hover:bg-red-800/80 border border-red-700 text-red-200 transition-colors text-sm font-medium shadow-lg">
                 Stop Audio
             </button>
@@ -109,7 +115,7 @@
         </button>
     </div>
 
-    <!-- Instrument Control Panel (CSS Grid Layout) -->
+    <!-- Instrument Control Panel -->
     <div class="bg-slate-800/50 p-4 md:p-5 rounded-2xl border border-slate-700/50 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-x-8 gap-y-6 mb-6 w-full max-w-7xl shadow-xl">
         
         <!-- Display & Mode -->
@@ -126,12 +132,13 @@
         <!-- Signal & Processing -->
         <div class="flex flex-col gap-4">
             <h3 class="text-xs uppercase tracking-wider text-slate-500 font-bold border-b border-slate-700 pb-1">Signal & Processing</h3>
-            <div class="flex items-center gap-3" title="Scroll to adjust">
+            <!-- Added 'group' class to tie hover effects to the scroll wrapper -->
+            <div class="flex items-center gap-3 group" title="Scroll to adjust">
                 <label for="gain" class="text-xs font-medium text-slate-300 w-20">Gain:</label>
                 <input type="range" id="gain" min="0.1" max="10" step="0.1" value="2" class="flex-1">
                 <span id="gain-value" class="text-xs font-mono text-cyan-400 w-10 text-right">2.0x</span>
             </div>
-            <div id="avg-container" class="flex items-center gap-3 mode-spec" title="Scroll to adjust">
+            <div id="avg-container" class="flex items-center gap-3 mode-spec group" title="Scroll to adjust">
                 <label for="avg" class="text-xs font-medium text-slate-300 w-20">Average:</label>
                 <input type="range" id="avg" min="0" max="0.98" step="0.02" value="0.4" class="flex-1">
                 <span id="avg-value" class="text-xs font-mono text-cyan-400 w-10 text-right">40%</span>
@@ -145,7 +152,7 @@
         <!-- Resolution & Scale -->
         <div class="flex flex-col gap-4">
             <h3 class="text-xs uppercase tracking-wider text-slate-500 font-bold border-b border-slate-700 pb-1">Resolution & Scale</h3>
-            <div class="flex items-center gap-3" title="Scroll to adjust">
+            <div class="flex items-center gap-3 group" title="Scroll to adjust">
                 <label for="bandwidth" class="text-xs font-medium text-slate-300 w-20">FFT Size:</label>
                 <input type="range" id="bandwidth" min="5" max="15" step="1" value="11" class="flex-1">
                 <span id="bandwidth-value" class="text-xs font-mono text-cyan-400 w-10 text-right">2048</span>
@@ -159,28 +166,28 @@
             
             <!-- Spectrum Zoom Panel -->
             <div id="zoom-spectrum" class="grid grid-cols-2 gap-x-4 gap-y-2 mode-spec">
-                <div class="flex flex-col gap-1" title="Scroll to adjust">
+                <div class="flex flex-col gap-1 group" title="Scroll to adjust">
                     <label class="text-[10px] text-slate-400 flex justify-between">
                         <span>Min Hz</span>
                         <span id="min-freq-val" class="text-cyan-400 font-mono">0</span>
                     </label>
                     <input type="range" id="min-freq" min="0" max="20000" step="1" value="0" class="w-full">
                 </div>
-                <div class="flex flex-col gap-1" title="Scroll to adjust">
+                <div class="flex flex-col gap-1 group" title="Scroll to adjust">
                     <label class="text-[10px] text-slate-400 flex justify-between">
                         <span>Max Hz</span>
                         <span id="max-freq-val" class="text-cyan-400 font-mono">20000</span>
                     </label>
                     <input type="range" id="max-freq" min="100" max="24000" step="100" value="20000" class="w-full">
                 </div>
-                <div class="flex flex-col gap-1" title="Scroll to adjust">
+                <div class="flex flex-col gap-1 group" title="Scroll to adjust">
                     <label class="text-[10px] text-slate-400 flex justify-between">
                         <span>Min dB</span>
                         <span id="min-db-val" class="text-cyan-400 font-mono">-100</span>
                     </label>
                     <input type="range" id="min-db" min="-140" max="-70" step="1" value="-100" class="w-full">
                 </div>
-                <div class="flex flex-col gap-1" title="Scroll to adjust">
+                <div class="flex flex-col gap-1 group" title="Scroll to adjust">
                     <label class="text-[10px] text-slate-400 flex justify-between">
                         <span>Max dB</span>
                         <span id="max-db-val" class="text-cyan-400 font-mono">-20</span>
@@ -191,21 +198,21 @@
 
             <!-- Oscilloscope Zoom & Trigger Panel -->
             <div id="zoom-scope" class="grid grid-cols-1 gap-y-3 mode-scope" style="display: none;">
-                <div id="scope-time-container" class="flex flex-col gap-1" title="Scroll to adjust">
+                <div id="scope-time-container" class="flex flex-col gap-1 group" title="Scroll to adjust">
                     <label class="text-[10px] text-slate-400">Time Base (X-Axis)</label>
                     <div class="flex items-center gap-2">
                         <input type="range" id="scope-time" min="1" max="500" step="1" value="20" class="w-full flex-1">
                         <span id="scope-time-val" class="text-[10px] text-cyan-400 font-mono w-10 text-right">20ms</span>
                     </div>
                 </div>
-                <div class="flex flex-col gap-1" title="Scroll to adjust">
+                <div class="flex flex-col gap-1 group" title="Scroll to adjust">
                     <label class="text-[10px] text-slate-400">Vertical Zoom (Amplitude)</label>
                     <div class="flex items-center gap-2">
                         <input type="range" id="scope-amp" min="0.05" max="1" step="0.05" value="1" class="w-full flex-1">
                         <span id="scope-amp-val" class="text-[10px] text-cyan-400 font-mono w-10 text-right">1.00x</span>
                     </div>
                 </div>
-                <div id="scope-trigger-container" class="flex flex-col gap-1 border-t border-slate-700 pt-2" title="Scroll to adjust">
+                <div id="scope-trigger-container" class="flex flex-col gap-1 border-t border-slate-700 pt-2 group" title="Scroll to adjust">
                     <label class="text-[10px] text-slate-400 flex justify-between">
                         <span>Trigger Level</span>
                         <span id="scope-trigger-val" class="text-pink-400 font-mono">0.00</span>
@@ -287,26 +294,22 @@
         // 1. ENGINE STATE & GLOBAL VARIABLES
         // ==========================================
         
-        // Web Audio API context and master nodes (MDN Web Audio Standard)
         let audioCtx, gainNode, source, stream, animationId;
         
-        let viewMode = 'spectrum'; // 'spectrum', 'waterfall', 'both', 'oscilloscope', or 'lissajous'
+        let viewMode = 'spectrum'; 
         let isLogScale = false;
         let isFrozen = false;
         let showPeaks = false;
         let averagingAlpha = 0.4; 
 
-        // Workaround to prevent modern browsers from throttling MediaStream processing when unmuted
         let dummyAudioEl = null;
 
-        // Spectrum Grid & Scale Settings
         let displayMaxDb = -20, displayMinDb = -100;
         let zoomMinFreq = 0, zoomMaxFreq = 20000;
-        let actualNyquist = 22050; // Automatically adjusts based on hardware sample rate
+        let actualNyquist = 22050; 
         let cursorX1Freq = 1000, cursorX2Freq = 5000;
         let cursorY1Db = -40, cursorY2Db = -60;
 
-        // Oscilloscope & Lissajous Grid Settings
         let scopeTimeWindowMs = 20; 
         let scopeMaxAmp = 1.0; 
         let scopeCursorX1Ms = 5, scopeCursorX2Ms = 15;
@@ -316,11 +319,9 @@
         let isOneShotArmed = false;
         let lastTriggerIndex = 0; 
 
-        // Memory State
         let memorySnapshot = null;
         let isMemOverlay = false;
 
-        // Cursor Dragging Interaction State
         let cursorsXEnabled = false, cursorsYEnabled = false;
         let activeDrag = null;
 
@@ -329,7 +330,6 @@
         // ==========================================
         // 2. DISPLAY OBJECT TRACKING
         // ==========================================
-        // Caches the TypedArrays to prevent Javascript Garbage Collection micro-stutters during requestAnimationFrame
         const displays = {
             combined: {
                 show: true, analyser: null, data: null, timeData: null, rawData: null, rawTimeData: null,
@@ -365,10 +365,6 @@
         // 3. UTILITY FUNCTIONS
         // ==========================================
 
-        /**
-         * Replaces standard display:none hiding with a CSS transitioned Toast Notification.
-         * Prevents DOM reflow layout jumping.
-         */
         function showToast(msg, isError = false) {
             const box = document.getElementById('message-box');
             box.innerHTML = msg;
@@ -383,27 +379,20 @@
             }, 4000);
         }
 
-        // Generate 'Jet' Colormap internally for the Waterfall canvas (high performance lookup array)
         const colormap = new Uint8ClampedArray(256 * 4);
         for (let i = 0; i < 256; i++) {
             let t = i / 255;
             let r = Math.max(0, Math.min(1, 1.5 - Math.abs(t * 4 - 3))) * 255;
             let g = Math.max(0, Math.min(1, 1.5 - Math.abs(t * 4 - 2))) * 255;
             let b = Math.max(0, Math.min(1, 1.5 - Math.abs(t * 4 - 1))) * 255;
-            if (t < 0.1) { let fade = t / 0.1; b = fade * b + (1 - fade) * 40; } // Enhance visibility of quiet noise floor
+            if (t < 0.1) { let fade = t / 0.1; b = fade * b + (1 - fade) * 40; } 
             colormap[i*4] = r; colormap[i*4+1] = g; colormap[i*4+2] = b; colormap[i*4+3] = 255; 
         }
 
-        /**
-         * DYNAMIC FFT SIZING
-         * Automatically pushes the analyser's buffer size to the max limit (32768)
-         * when switching to Scope modes to guarantee up to ~680ms of time-domain data.
-         * Restores user preference for Spectrum modes.
-         */
         function applyFftSize() {
             let targetSize;
             if (viewMode === 'oscilloscope' || viewMode === 'lissajous') {
-                targetSize = 32768; // W3C Max allowed fftSize
+                targetSize = 32768; 
             } else {
                 targetSize = Math.pow(2, parseInt(controls.bandwidth.el.value));
             }
@@ -415,7 +404,6 @@
             });
         }
 
-        // --- Grid Coordinates Helpers ---
         const getPadding = () => ({ left: 55, bottom: 25 });
         
         function getXPosition(freq, cvsWidth) {
@@ -508,7 +496,6 @@
 
             ctx.textAlign = 'center';
             let freqStep = 2000;
-            // Adaptive Grid Stepping algorithm
             if (freqRange <= 50) freqStep = 5;
             else if (freqRange <= 100) freqStep = 10;
             else if (freqRange <= 250) freqStep = 25;
@@ -590,7 +577,6 @@
                 ctx.strokeStyle = 'rgba(56, 189, 248, 0.15)';
                 ctx.beginPath(); ctx.moveTo(p.left, y); ctx.lineTo(w, y); ctx.stroke();
                 
-                // Show 'True Input Voltage' by factoring out the digital Gain Stage
                 const trueVoltage = amp / currentGain;
                 ctx.fillStyle = 'rgba(2, 6, 23, 0.6)';
                 ctx.fillRect(5, y - 6, p.left - 10, 12);
@@ -598,7 +584,6 @@
                 ctx.fillText(trueVoltage > 0 ? '+' + trueVoltage.toFixed(2) : trueVoltage.toFixed(2), p.left - 8, y + 4);
             });
 
-            // Trigger Level Dash Line
             const trigY = getScopeYPosition(scopeTriggerLevel, cvs.height);
             ctx.strokeStyle = '#f472b6'; 
             ctx.setLineDash([4, 4]);
@@ -659,7 +644,6 @@
                 actualNyquist = audioCtx.sampleRate / 2;
                 controls.maxFreq.el.max = actualNyquist;
 
-                // Essential hack for Chrome: Audio won't stream without an actively playing HTML node.
                 dummyAudioEl = new Audio();
                 dummyAudioEl.srcObject = stream;
                 dummyAudioEl.muted = true; 
@@ -676,12 +660,12 @@
                 source = audioCtx.createMediaStreamSource(stream);
                 source.connect(gainNode);
 
-                gainNode.connect(displays.combined.analyser); // Natively downmixes stereo to mono
+                gainNode.connect(displays.combined.analyser); 
                 gainNode.connect(splitter);
                 splitter.connect(displays.left.analyser, 0); 
                 splitter.connect(displays.right.analyser, 1); 
 
-                applyFftSize(); // Uses Dynamic Context Sizing
+                applyFftSize(); 
 
                 document.getElementById('btn-mic').classList.add('hidden');
                 document.getElementById('btn-system').classList.add('hidden');
@@ -715,20 +699,17 @@
         // 6. MAIN RENDERING LOOP
         // ==========================================
         function drawVisualizer() {
-            // Drive updates via requestAnimationFrame for maximum efficiency (vs setInterval)
             animationId = requestAnimationFrame(drawVisualizer);
 
-            // --- LISSAJOUS (X-Y) LOGIC ---
             if (viewMode === 'lissajous') {
                 if (!isFrozen) {
                     Object.values(displays).forEach(d => {
                         if (d.analyser) {
                             if (!d.rawTimeData || d.rawTimeData.length !== d.analyser.fftSize) {
                                 d.rawTimeData = new Float32Array(d.analyser.fftSize);
-                                d.timeData = new Float32Array(d.analyser.fftSize); // Persist live trace
+                                d.timeData = new Float32Array(d.analyser.fftSize); 
                             }
                             d.analyser.getFloatTimeDomainData(d.rawTimeData);
-                            // Copy to safe buffer for freeze mode
                             for(let i=0; i<d.rawTimeData.length; i++) d.timeData[i] = d.rawTimeData[i];
                         }
                     });
@@ -742,12 +723,10 @@
                     
                     drawLissajousGrid(visCtx, d.visCvs, scopeMaxAmp);
 
-                    // 1. Draw Live Lissajous (Rose) FIRST
                     if (displays.left.timeData && displays.right.timeData) {
                         drawLissajous(visCtx, d.visCvs, displays.left.timeData, displays.right.timeData, scopeMaxAmp, '#f43f5e'); 
                     }
                     
-                    // 2. Draw Overlay Lissajous (Solid Red) LAST to ensure visibility
                     if (isMemOverlay && memorySnapshot && memorySnapshot.displays['left'] && memorySnapshot.displays['right']) {
                         drawLissajous(visCtx, d.visCvs, memorySnapshot.displays['left'].timeData, memorySnapshot.displays['right'].timeData, scopeMaxAmp, '#ef4444', 2.5);
                     }
@@ -755,7 +734,6 @@
                 return;
             }
 
-            // --- OSCILLOSCOPE LOGIC ---
             if (viewMode === 'oscilloscope') {
                 if (!isFrozen) {
                     Object.values(displays).forEach(d => {
@@ -781,14 +759,10 @@
                     if (searchData) {
                         const sampleRate = actualNyquist * 2;
                         const samplesToDraw = Math.floor((scopeTimeWindowMs / 1000) * sampleRate);
-                        
-                        // Prevents looking for a trigger too late in the buffer, ensuring full trace draws.
-                        // With fftSize forced to 32768, we have up to ~682ms of buffer at 48kHz.
                         const searchLimit = Math.max(1, searchData.length - samplesToDraw);
                         
                         lastTriggerIndex = -1;
                         for (let i = 0; i < searchLimit - 1; i++) {
-                            // Detect Rising Edge
                             if (searchData[i] <= scopeTriggerLevel && searchData[i+1] > scopeTriggerLevel) {
                                 lastTriggerIndex = i;
                                 triggerFound = true;
@@ -798,7 +772,6 @@
                     }
                 }
 
-                // Handle 1-Shot Armed logic
                 if (isOneShotArmed && !isFrozen) {
                     if (triggerFound) {
                         isOneShotArmed = false;
@@ -810,7 +783,7 @@
                         btnOs.textContent = "1-SHOT: CAUGHT";
                         btnOs.className = "flex-1 py-1 rounded border border-slate-600 text-[10px] font-bold bg-emerald-600 text-white";
                     } else {
-                        return; // Skip rendering, hold visual on the last frame
+                        return; 
                     }
                 }
 
@@ -822,10 +795,8 @@
                     const visCtx = d.visCvs.getContext('2d');
                     visCtx.clearRect(0, 0, d.visCvs.width, d.visCvs.height);
                     
-                    // 1. Draw Live Trace FIRST
                     if (d.timeData) drawOscilloscope(visCtx, d.visCvs, d.timeData, lastTriggerIndex, '#fbbf24');
                     
-                    // 2. Draw Overlay (Solid Red) LAST
                     if (isMemOverlay && memorySnapshot && memorySnapshot.displays[key] && memorySnapshot.displays[key].timeData) {
                         drawOscilloscope(visCtx, d.visCvs, memorySnapshot.displays[key].timeData, 0, '#ef4444', 2.5);
                     }
@@ -846,14 +817,12 @@
                 const wfCtx = d.wfCvs.getContext('2d');
                 visCtx.clearRect(0, 0, d.visCvs.width, d.visCvs.height);
 
-                // Handle the Frozen state or no-audio state
                 if (!d.analyser || isFrozen) {
                     if (d.data) {
                         if (viewMode === 'spectrum' || viewMode === 'both') {
-                            drawTrace(visCtx, d.visCvs, d.data, '#22d3ee', true); // Live trace First
+                            drawTrace(visCtx, d.visCvs, d.data, '#22d3ee', true); 
                         }
                         
-                        // Z-INDEX FIX: Overlay trace drawn LAST as a solid line
                         if (isMemOverlay && memorySnapshot && memorySnapshot.displays[key] && memorySnapshot.displays[key].data) {
                             drawTrace(visCtx, d.visCvs, memorySnapshot.displays[key].data, '#ef4444', false, 2.5);
                         }
@@ -864,25 +833,20 @@
                     return;
                 }
 
-                // If not frozen, poll live data
                 const bufferLength = d.analyser.frequencyBinCount;
                 
-                // Caching rawData prevents the GC engine from hanging the browser 60 times a second
                 if (!d.rawData || d.rawData.length !== bufferLength) {
                     d.rawData = new Float32Array(bufferLength);
                 }
                 d.analyser.getFloatFrequencyData(d.rawData);
 
-                // If data lengths mismatch (User changed FFT size), hard-reset the array to prevent loop bounds errors
                 if (!d.data || d.data.length !== bufferLength) {
                     d.data = new Float32Array(d.rawData);
                     for(let i = 0; i < bufferLength; i++) {
-                        // Clamp Infinity bounds
                         if (!isFinite(d.data[i])) d.data[i] = -200;
                     }
                 } else {
                     for (let i = 0; i < bufferLength; i++) {
-                        // EMA Array Poisoning Fix: Clamps Infinity to -200, protecting averaging math from yielding -Infinity forever.
                         let oldVal = isFinite(d.data[i]) ? d.data[i] : -200;
                         let newVal = isFinite(d.rawData[i]) ? d.rawData[i] : -200;
                         d.data[i] = (averagingAlpha * oldVal) + ((1 - averagingAlpha) * newVal);
@@ -894,12 +858,10 @@
                     drawWaterfallRow(wfCtx, d.wfCvs, d.data);
                 } 
                 
-                // 1. Draw Live Trace (Blue) FIRST
                 if (viewMode === 'spectrum' || viewMode === 'both') {
                     drawTrace(visCtx, d.visCvs, d.data, '#22d3ee', true, 1.5);
                 }
                 
-                // 2. Draw Overlay (Red) LAST so it floats visually on top of the live fill
                 if (isMemOverlay && memorySnapshot && memorySnapshot.displays[key] && memorySnapshot.displays[key].data) {
                     drawTrace(visCtx, d.visCvs, memorySnapshot.displays[key].data, '#ef4444', false, 2.5);
                 }
@@ -920,7 +882,6 @@
             ctx.beginPath();
             
             let hasMoved = false;
-            // Optimization: Only compute math for the array indexes actually visible on the screen
             const startB = Math.max(0, Math.floor(zoomMinFreq / binSize));
             const endB = Math.min(bufferLength, Math.ceil(zoomMaxFreq / binSize));
 
@@ -1012,7 +973,6 @@
                 let bin1 = Math.floor(exactBin);
                 let bin2 = Math.min(data.length - 1, Math.ceil(exactBin));
                 let frac = exactBin - bin1;
-                // Linearly interpolate between adjacent FFT bins for visual smoothing
                 let val = (data[bin1] || -140) * (1 - frac) + (data[bin2] || -140) * frac;
                 
                 let t = (val - displayMinDb) / (displayMaxDb - displayMinDb);
@@ -1051,7 +1011,7 @@
                 return;
             }
 
-            if (viewMode === 'lissajous') return; // Cursors disabled in Lissajous view
+            if (viewMode === 'lissajous') return; 
 
             const bufferLength = data.length;
             const binSize = actualNyquist / bufferLength;
@@ -1130,7 +1090,6 @@
             Object.keys(displays).forEach(key => {
                 const d = displays[key];
                 
-                // Prevent capturing blanks if the user toggled the display channel 'OFF'.
                 let tempSpec = d.data;
                 if (!tempSpec && d.analyser) {
                     tempSpec = new Float32Array(d.analyser.frequencyBinCount);
@@ -1143,7 +1102,6 @@
                     d.analyser.getFloatTimeDomainData(tempTime);
                 }
 
-                // Deep copy the typed arrays. We sanitize Infinity out of JSON serialization.
                 memorySnapshot.displays[key] = {
                     data: tempSpec ? Array.from(tempSpec).map(v => isFinite(v) ? v : -200) : null,
                     timeData: tempTime ? Array.from(tempTime.slice(lastTriggerIndex)) : null,
@@ -1170,14 +1128,12 @@
             this.classList.toggle('bg-slate-700', !isMemOverlay);
         };
 
-        // Smart UX Toggle handling for the Restore button.
         document.getElementById('btn-mem-restore').onclick = function() {
             if (!memorySnapshot) {
                 showToast("⚠️ No memory captured yet! Please click 📸 CAPTURE TO MEM first.", true);
                 return;
             }
             
-            // If the user clicks RESTORE again while it is already frozen, intelligently toggle the unfreeze.
             if (isFrozen) {
                 document.getElementById('btn-freeze').click(); 
                 return;
@@ -1190,7 +1146,6 @@
                 const mem = memorySnapshot.displays[key];
                 if (!mem) return;
                 
-                // Explicitly overwrite the live arrays so the frozen frame matches memory exactly.
                 if (mem.data) d.data = new Float32Array(mem.data);
                 if (mem.timeData) d.timeData = new Float32Array(mem.timeData);
                 
@@ -1214,7 +1169,6 @@
             document.getElementById('btn-mem-overlay').textContent = "OVERLAY: OFF";
             document.getElementById('btn-mem-overlay').classList.replace('bg-red-700', 'bg-slate-700');
             
-            // UX Update: Change button state so user knows clicking it again unfreezes
             this.textContent = "UNFREEZE (RESUME)";
             this.classList.add('bg-emerald-700');
             
@@ -1316,7 +1270,6 @@
             applyFftSize(); 
             clampCursors();
             
-            // Clean up UX state if switching modes
             if (isFrozen) document.getElementById('btn-freeze').click(); 
         };
 
@@ -1340,7 +1293,6 @@
             this.textContent = `FREEZE: ${isFrozen ? 'ON' : 'OFF'}`;
             this.classList.toggle('bg-blue-700', isFrozen);
             
-            // Reset the Smart Toggle Restore button UX
             if (!isFrozen) {
                 const btnRes = document.getElementById('btn-mem-restore');
                 btnRes.textContent = "RESTORE & FREEZE";
@@ -1521,7 +1473,6 @@
             }
         }
 
-        // --- Cross-Canvas Pointer Logic ---
         function handlePointerDown(e, cvs) {
             const rect = cvs.getBoundingClientRect();
             const clientX = e.touches && e.touches.length > 0 ? e.touches[0].clientX : e.clientX;
@@ -1593,13 +1544,12 @@
         // --- Layout Resizing ---
         const resizeObserver = new ResizeObserver(entries => {
             for (let entry of entries) {
-                const id = entry.target.id.split('-')[1]; // get 'combined', 'left', or 'right'
+                const id = entry.target.id.split('-')[1]; 
                 const w = entry.contentRect.width;
                 const h = entry.contentRect.height;
                 
                 displays[id].visCvs.width = w; displays[id].visCvs.height = h;
                 
-                // For the waterfall canvas, preserve data when resizing if possible
                 let oldData;
                 const wfCtx = displays[id].wfCvs.getContext('2d', { willReadFrequently: true });
                 if (displays[id].wfCvs.width > 0 && displays[id].wfCvs.height > 0) {
@@ -1619,11 +1569,15 @@
         Object.values(displays).forEach(d => resizeObserver.observe(d.container));
 
         // ==========================================
-        // 9. SCROLL WHEEL FINE-TUNING
+        // 9. SCROLL WHEEL FINE-TUNING (EXPANDED HIT AREAS)
         // ==========================================
-        // Binds a wheel listener to all range inputs for precision adjustments
+        // REV 1.14.0 UPDATE: Binds listener to parent container for massively improved UX
         document.querySelectorAll('input[type="range"]').forEach(input => {
-            input.addEventListener('wheel', (e) => {
+            
+            // Find the immediate wrapper div to act as the expanded hit area
+            const hitArea = input.closest('div[title="Scroll to adjust"]') || input.parentElement;
+            
+            hitArea.addEventListener('wheel', (e) => {
                 // Prevent the entire webpage from scrolling vertically
                 e.preventDefault();
                 
@@ -1641,7 +1595,6 @@
                 }
 
                 // If value changed, apply it and manually dispatch the event
-                // so attached listeners (like audioCtx gain updates) register the change
                 if (input.value !== val.toString()) {
                     input.value = val;
                     input.dispatchEvent(new Event('input'));
