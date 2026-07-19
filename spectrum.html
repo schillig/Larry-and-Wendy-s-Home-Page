@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Professional Web-Based Audio Spectrum Analyzer and Oscilloscope">
-    <title>Audio Spectrum Visualizer - REV 1.23.0</title>
+    <title>Audio Spectrum Visualizer - REV 1.24.0</title>
     
     <!-- Pro Tip: Inline SVG Favicons are a zero-latency way to brand web apps without external image requests -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎛️</text></svg>">
@@ -12,10 +12,7 @@
     <!-- Tailwind CSS (via CDN for rapid prototyping and responsive utilities) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* 
-         * Strict, Industrial CSS Resets
-         * Prioritizing W3C compliance and completely flat, non-animated geometry.
-         */
+        /* Strict, Industrial CSS Resets */
         body, html {
             height: 100%;
             margin: 0;
@@ -25,6 +22,8 @@
         .canvas-container {
             resize: vertical;
             border: 1px solid #525252; /* Neutral 600 */
+            /* Add crosshair cursor hint when hovering near draggable elements */
+            cursor: crosshair;
         }
         
         /* Utilitarian Range Slider */
@@ -74,7 +73,7 @@
     <header class="w-full max-w-7xl flex flex-col md:flex-row justify-between items-center bg-neutral-800 p-2 md:px-4 border border-neutral-600 mb-2 gap-2 md:gap-0">
         <div class="flex flex-col sm:flex-row items-center sm:gap-4 text-center sm:text-left">
             <h1 class="text-lg font-bold text-neutral-100 uppercase tracking-wider whitespace-nowrap">
-                Spectrum Analyzer <span class="text-neutral-500 text-[10px] font-mono tracking-widest ml-1 align-top">REV 1.23.0</span>
+                Spectrum Analyzer <span class="text-neutral-500 text-[10px] font-mono tracking-widest ml-1 align-top">REV 1.24.0</span>
             </h1>
             <div class="text-neutral-400 text-[10px] uppercase sm:border-l sm:border-neutral-600 sm:pl-4 mt-1 sm:mt-0 font-bold">
                 Status: <span id="engine-status" class="text-yellow-500 font-mono bg-neutral-900 px-1 border border-neutral-700">READY</span>
@@ -125,12 +124,13 @@
                 </label>
                 <input type="range" id="gain" min="0.1" max="10" step="0.1" value="2">
             </div>
+            <!-- REV 1.24.0: Default Average set to 0 (OFF) -->
             <div id="avg-container" class="flex flex-col gap-0.5 mode-spec">
                 <label for="avg" class="text-[9px] font-bold uppercase text-neutral-400 flex justify-between">
                     <span>Average</span>
-                    <span id="avg-value" class="text-cyan-400 font-mono">40%</span>
+                    <span id="avg-value" class="text-cyan-400 font-mono">OFF</span>
                 </label>
-                <input type="range" id="avg" min="0" max="0.98" step="0.02" value="0.4">
+                <input type="range" id="avg" min="0" max="0.98" step="0.02" value="0">
             </div>
             <div class="flex gap-1 mt-0.5">
                 <button id="btn-freeze" class="flex-1 py-1 bg-neutral-800 hover:bg-neutral-700 border border-neutral-600 text-[9px] font-bold text-neutral-300">FREEZE: OFF</button>
@@ -156,33 +156,34 @@
             <h3 class="text-[10px] uppercase tracking-wider text-neutral-500 font-bold border-b border-neutral-600 pb-1">Zoom & Trig</h3>
             
             <div id="zoom-spectrum" class="grid grid-cols-2 gap-x-3 gap-y-2 mode-spec">
+                <!-- REV 1.24.0: Default Freq 0 to 22000, dB -140 to 0 -->
                 <div class="flex flex-col gap-0.5">
                     <label for="min-freq" class="text-[9px] font-bold uppercase text-neutral-400 flex justify-between">
                         <span>Min Hz</span>
                         <span id="min-freq-val" class="text-cyan-400 font-mono">0</span>
                     </label>
-                    <input type="range" id="min-freq" min="0" max="20000" step="1" value="0">
+                    <input type="range" id="min-freq" min="0" max="24000" step="1" value="0">
                 </div>
                 <div class="flex flex-col gap-0.5">
                     <label for="max-freq" class="text-[9px] font-bold uppercase text-neutral-400 flex justify-between">
                         <span>Max Hz</span>
-                        <span id="max-freq-val" class="text-cyan-400 font-mono">20000</span>
+                        <span id="max-freq-val" class="text-cyan-400 font-mono">22000</span>
                     </label>
-                    <input type="range" id="max-freq" min="100" max="24000" step="100" value="20000">
+                    <input type="range" id="max-freq" min="100" max="24000" step="100" value="22000">
                 </div>
                 <div class="flex flex-col gap-0.5">
                     <label for="min-db" class="text-[9px] font-bold uppercase text-neutral-400 flex justify-between">
                         <span>Min dB</span>
-                        <span id="min-db-val" class="text-cyan-400 font-mono">-100</span>
+                        <span id="min-db-val" class="text-cyan-400 font-mono">-140</span>
                     </label>
-                    <input type="range" id="min-db" min="-140" max="-70" step="1" value="-100">
+                    <input type="range" id="min-db" min="-140" max="-70" step="1" value="-140">
                 </div>
                 <div class="flex flex-col gap-0.5">
                     <label for="max-db" class="text-[9px] font-bold uppercase text-neutral-400 flex justify-between">
                         <span>Max dB</span>
-                        <span id="max-db-val" class="text-cyan-400 font-mono">-20</span>
+                        <span id="max-db-val" class="text-cyan-400 font-mono">0</span>
                     </label>
-                    <input type="range" id="max-db" min="-60" max="0" step="1" value="-20">
+                    <input type="range" id="max-db" min="-60" max="0" step="1" value="0">
                 </div>
             </div>
 
@@ -208,8 +209,9 @@
                     </label>
                     <input type="range" id="scope-trigger-lvl" min="-1" max="1" step="0.01" value="0">
                 </div>
+                <!-- REV 1.24.0: Default Trigger UI is OFF (Neutral 800) -->
                 <div id="scope-trigger-btns" class="flex gap-0.5">
-                    <button id="btn-trig-comb" class="flex-1 py-1 bg-pink-900 border border-pink-700 text-[9px] font-bold text-white">T:L+R</button>
+                    <button id="btn-trig-comb" class="flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[9px] font-bold text-neutral-400">T:L+R</button>
                     <button id="btn-trig-left" class="flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[9px] font-bold text-neutral-400">T:L</button>
                     <button id="btn-trig-right" class="flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[9px] font-bold text-neutral-400">T:R</button>
                     <button id="btn-trig-oneshot" class="flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[9px] font-bold text-neutral-400">1-SHOT</button>
@@ -298,12 +300,17 @@
         let isLogScale = false;
         let isFrozen = false;
         let showPeaks = false;
-        let averagingAlpha = 0.4; 
+
+        // REV 1.24.0: Default Average to 0 (Off)
+        let averagingAlpha = 0.0; 
 
         let dummyAudioEl = null;
 
-        let displayMaxDb = -20, displayMinDb = -100;
-        let zoomMinFreq = 0, zoomMaxFreq = 20000;
+        // REV 1.24.0: Default minDb to -140, maxDb to 0
+        let displayMaxDb = 0, displayMinDb = -140;
+        
+        // REV 1.24.0: Default minHz to 0, maxHz to 22000
+        let zoomMinFreq = 0, zoomMaxFreq = 22000;
         let actualNyquist = 22050; 
         
         // Cursors (Frequency and Standard dB)
@@ -321,7 +328,9 @@
         let scopeMaxAmp = 1.0; 
         let scopeCursorX1Ms = 5, scopeCursorX2Ms = 15;
         let scopeCursorY1Amp = 0.5, scopeCursorY2Amp = -0.5;
-        let scopeTriggerSource = 'combined'; 
+        
+        // REV 1.24.0: Default Trigger to Off (null)
+        let scopeTriggerSource = null; 
         let scopeTriggerLevel = 0.0;
         let isOneShotArmed = false;
         let lastTriggerIndex = 0; 
@@ -637,6 +646,8 @@
 
                 if (audioCtx.state === 'suspended') await audioCtx.resume();
                 actualNyquist = audioCtx.sampleRate / 2;
+                
+                // REV 1.24.0: Adjust dynamic max bounds based on hardware
                 controls.maxFreq.el.max = actualNyquist;
 
                 dummyAudioEl = new Audio(); dummyAudioEl.srcObject = stream; dummyAudioEl.muted = true; dummyAudioEl.play().catch(e => console.warn(e));
@@ -1116,7 +1127,12 @@
 
         controls.scopeTime.el.oninput = (e) => { scopeTimeWindowMs = parseInt(e.target.value); controls.scopeTime.disp.textContent = scopeTimeWindowMs + "ms"; clampCursors(); updateCursorReadouts(); };
         controls.scopeAmp.el.oninput = (e) => { scopeMaxAmp = parseFloat(e.target.value); controls.scopeAmp.disp.textContent = scopeMaxAmp.toFixed(2) + 'x'; clampCursors(); updateCursorReadouts(); };
-        controls.scopeTrigger.el.oninput = (e) => { scopeTriggerLevel = parseFloat(e.target.value); controls.scopeTrigger.disp.textContent = scopeTriggerLevel.toFixed(2); };
+        
+        // Update trigger value on slider drag
+        controls.scopeTrigger.el.oninput = (e) => { 
+            scopeTriggerLevel = parseFloat(e.target.value); 
+            controls.scopeTrigger.disp.textContent = scopeTriggerLevel.toFixed(2); 
+        };
 
         function setTriggerSource(src) {
             if (scopeTriggerSource === src) { scopeTriggerSource = null; } else { scopeTriggerSource = src; }
@@ -1237,6 +1253,7 @@
             }
         }
 
+        // REV 1.24.0 UPDATE: Included Hit-Detection for Draggable Trigger Line
         function handlePointerDown(e, cvs) {
             const rect = cvs.getBoundingClientRect(); const clientX = e.touches && e.touches.length > 0 ? e.touches[0].clientX : e.clientX;
             const clientY = e.touches && e.touches.length > 0 ? e.touches[0].clientY : e.clientY;
@@ -1245,7 +1262,13 @@
             activeDrag = null; const hitTest = 25; 
             
             if (viewMode === 'oscilloscope') {
-                if (cursorsXEnabled) {
+                // Draggable Trigger Line Logic
+                if (scopeTriggerSource !== null) {
+                    if (Math.abs(y - getScopeYPosition(scopeTriggerLevel, cvs.height)) < hitTest) {
+                        activeDrag = { id: 'trig', cvs };
+                    }
+                }
+                if (!activeDrag && cursorsXEnabled) {
                     if (Math.abs(x - getScopeXPosition(scopeCursorX1Ms, cvs.width)) < hitTest) activeDrag = { id: 'x1s', cvs };
                     else if (Math.abs(x - getScopeXPosition(scopeCursorX2Ms, cvs.width)) < hitTest) activeDrag = { id: 'x2s', cvs };
                 }
@@ -1274,6 +1297,7 @@
             }
         }
 
+        // REV 1.24.0 UPDATE: Update internal state and external DOM when Trigger is dragged
         function handlePointerMove(e) {
             if (!activeDrag) return; if (e.cancelable) e.preventDefault(); 
             const rect = activeDrag.cvs.getBoundingClientRect(); const clientX = e.touches && e.touches.length > 0 ? e.touches[0].clientX : e.clientX;
@@ -1281,6 +1305,12 @@
             const x = clientX - rect.left; const y = clientY - rect.top;
             
             if (viewMode === 'oscilloscope') {
+                if (activeDrag.id === 'trig') {
+                    scopeTriggerLevel = getAmpFromScopeY(y, activeDrag.cvs.height);
+                    scopeTriggerLevel = Math.max(-1, Math.min(1, scopeTriggerLevel)); // Clamp
+                    controls.scopeTrigger.el.value = scopeTriggerLevel;
+                    controls.scopeTrigger.disp.textContent = scopeTriggerLevel.toFixed(2);
+                }
                 if (activeDrag.id === 'x1s') scopeCursorX1Ms = getMsFromScopeX(x, activeDrag.cvs.width);
                 if (activeDrag.id === 'x2s') scopeCursorX2Ms = getMsFromScopeX(x, activeDrag.cvs.width);
                 if (activeDrag.id === 'y1s') scopeCursorY1Amp = getAmpFromScopeY(y, activeDrag.cvs.height);
@@ -1341,18 +1371,18 @@
             }, { passive: false }); 
         });
 
-        // --- Defaults Reset ---
+        // --- Defaults Reset (Updated for 1.24.0 Baselines) ---
         document.getElementById('btn-reset').onclick = () => {
-            isLogScale = false; isFrozen = false; showPeaks = false; averagingAlpha = 0.4; displayMaxDb = -20; displayMinDb = -100; zoomMinFreq = 0; zoomMaxFreq = 20000;
-            scopeTimeWindowMs = 20; scopeMaxAmp = 1.0; scopeTriggerLevel = 0.0; scopeTriggerSource = null; setTriggerSource('combined');
+            isLogScale = false; isFrozen = false; showPeaks = false; averagingAlpha = 0.0; displayMaxDb = 0; displayMinDb = -140; zoomMinFreq = 0; zoomMaxFreq = 22000;
+            scopeTimeWindowMs = 20; scopeMaxAmp = 1.0; scopeTriggerLevel = 0.0; scopeTriggerSource = null; setTriggerSource(null);
             cursorsXEnabled = false; cursorsYEnabled = false; isOneShotArmed = false; isMemOverlay = false; memorySnapshot = null;
             
             controls.gain.el.value = 2; controls.gain.disp.textContent = "2.0x"; if (gainNode) gainNode.gain.setTargetAtTime(2, audioCtx.currentTime, 0.05);
-            controls.avg.el.value = 0.4; controls.avg.disp.textContent = "40%";
+            controls.avg.el.value = 0; controls.avg.disp.textContent = "OFF";
             controls.bandwidth.el.value = 11; controls.bandwidth.disp.textContent = "2048"; applyFftSize(); 
 
-            controls.minFreq.el.value = 0; controls.minFreq.disp.textContent = "0"; controls.maxFreq.el.value = 20000; controls.maxFreq.disp.textContent = "20000";
-            controls.minDb.el.value = -100; controls.minDb.disp.textContent = "-100"; controls.maxDb.el.value = -20; controls.maxDb.disp.textContent = "-20";
+            controls.minFreq.el.value = 0; controls.minFreq.disp.textContent = "0"; controls.maxFreq.el.value = 22000; controls.maxFreq.disp.textContent = "22000";
+            controls.minDb.el.value = -140; controls.minDb.disp.textContent = "-140"; controls.maxDb.el.value = 0; controls.maxDb.disp.textContent = "0";
             controls.scopeTime.el.value = 20; controls.scopeTime.disp.textContent = "20ms"; controls.scopeAmp.el.value = 1; controls.scopeAmp.disp.textContent = "1.00x";
             controls.scopeTrigger.el.value = 0; controls.scopeTrigger.disp.textContent = "0.00";
 
