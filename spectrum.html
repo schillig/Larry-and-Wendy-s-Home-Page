@@ -2,14 +2,12 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="description" content="Professional Web-Based Audio Spectrum Analyzer and Oscilloscope">
-    <title>Audio Spectrum Visualizer - REV 1.26.0</title>
+    <title>Audio Spectrum Visualizer - REV 1.27.0</title>
     
-    <!-- Pro Tip: Inline SVG Favicons are a zero-latency way to brand web apps without external image requests -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎛️</text></svg>">
     
-    <!-- Tailwind CSS (via CDN for rapid prototyping and responsive utilities) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* Strict, Industrial CSS Resets */
@@ -19,9 +17,27 @@
             background-color: #171717; /* Neutral 900 */
             color: #d4d4d4; /* Neutral 300 */
         }
+        
+        /* Application-style custom scrollbar for the control panel */
+        .industrial-scroll::-webkit-scrollbar {
+            width: 10px;
+        }
+        .industrial-scroll::-webkit-scrollbar-track {
+            background: #262626; /* Neutral 800 */
+            border-left: 1px solid #404040; /* Neutral 700 */
+        }
+        .industrial-scroll::-webkit-scrollbar-thumb {
+            background: #525252; /* Neutral 600 */
+            border-radius: 0px;
+            border: 1px solid #262626;
+        }
+        .industrial-scroll::-webkit-scrollbar-thumb:hover {
+            background: #a3a3a3; /* Neutral 400 */
+        }
+
         .canvas-container {
             resize: vertical;
-            border: 1px solid #525252; /* Neutral 600 */
+            border: 1px solid #525252;
             cursor: crosshair;
         }
         
@@ -37,42 +53,40 @@
             -webkit-appearance: none;
             height: 16px;
             width: 8px;
-            background: #a3a3a3; /* Neutral 400 */
-            border: 1px solid #262626; /* Neutral 800 */
+            background: #a3a3a3;
+            border: 1px solid #262626;
             border-radius: 0;
             margin-top: -6px;
         }
         input[type=range]::-webkit-slider-runnable-track {
             height: 4px;
-            background: #404040; /* Neutral 700 */
+            background: #404040;
             border: 1px solid #262626;
             border-radius: 0;
         }
         
-        /* Focus states for accessibility */
         input[type=range]:focus { outline: none; }
         input[type=range]:focus::-webkit-slider-thumb { background: #d4d4d4; }
         
-        /* Strict button resets */
         button {
             border-radius: 0 !important;
             text-transform: uppercase;
         }
     </style>
 </head>
-<body class="flex flex-col items-center p-2 font-sans overflow-x-hidden relative">
+<!-- REV 1.27.0: body is now locked to h-screen and overflow-hidden -->
+<body class="flex flex-col items-center p-2 font-sans h-screen overflow-hidden relative">
 
-    <!-- Fixed Toast Notification Container -->
     <div id="toast-container" class="fixed top-5 left-1/2 transform -translate-x-1/2 z-50 flex flex-col items-center w-full px-4 pointer-events-none">
         <div id="message-box" class="transition-all duration-300 opacity-0 transform -translate-y-4 p-3 border shadow-none text-xs font-mono max-w-xl text-center w-full">
         </div>
     </div>
 
-    <!-- App-Bar Header (Flat, dense) -->
-    <header class="w-full max-w-7xl flex flex-col md:flex-row justify-between items-center bg-neutral-800 p-2 md:px-4 border border-neutral-600 mb-2 gap-2 md:gap-0">
+    <!-- Header (flex-none ensures it never shrinks) -->
+    <header class="w-full max-w-7xl flex-none flex flex-col md:flex-row justify-between items-center bg-neutral-800 p-2 md:px-4 border border-neutral-600 mb-2 gap-2 md:gap-0">
         <div class="flex flex-col sm:flex-row items-center sm:gap-4 text-center sm:text-left">
             <h1 class="text-lg font-bold text-neutral-100 uppercase tracking-wider whitespace-nowrap">
-                Spectrum Analyzer <span class="text-neutral-500 text-[10px] font-mono tracking-widest ml-1 align-top">REV 1.26.0</span>
+                Spectrum Analyzer <span class="text-neutral-500 text-[10px] font-mono tracking-widest ml-1 align-top">REV 1.27.0</span>
             </h1>
             <div class="text-neutral-400 text-[10px] uppercase sm:border-l sm:border-neutral-600 sm:pl-4 mt-1 sm:mt-0 font-bold">
                 Status: <span id="engine-status" class="text-yellow-500 font-mono bg-neutral-900 px-1 border border-neutral-700">READY</span>
@@ -92,14 +106,13 @@
         </div>
     </header>
 
-    <!-- REV 1.26.0 MAIN WRAPPER: Flex container handling dynamic mobile vs desktop reordering -->
-    <main class="w-full max-w-7xl flex flex-col gap-4">
+    <!-- Main App Container (flex-1 takes remaining height, overflow-hidden keeps it contained) -->
+    <main class="w-full max-w-7xl flex-1 flex flex-col gap-2 overflow-hidden">
 
-        <!-- Visualization Canvases (ORDER 1 on Mobile, ORDER 2 on Desktop) -->
-        <section id="displays-wrapper" class="order-1 md:order-2 w-full flex flex-col gap-2 mb-4">
+        <!-- Visualization Canvases (Fixed Height via flex-none) -->
+        <section id="displays-wrapper" class="order-1 md:order-2 w-full flex-none flex flex-col gap-2">
             
-            <!-- Combined Display -->
-            <div id="display-combined" class="canvas-container w-full min-h-[200px] h-[350px] bg-neutral-950 relative">
+            <div id="display-combined" class="canvas-container w-full min-h-[200px] h-[35vh] md:h-[350px] bg-neutral-950 relative">
                 <div class="absolute top-0 left-0 text-[10px] font-mono font-bold text-neutral-400 z-20 bg-neutral-900 px-2 py-0.5 border-b border-r border-neutral-700">CH: COMBINED (L+R)</div>
                 <div class="ms-row-badge absolute top-0 right-0 text-[10px] font-mono font-bold text-neutral-400 z-20 bg-neutral-900 px-2 py-0.5 border-b border-l border-neutral-700" style="display: none;">
                     <span class="val">--</span> ms/row
@@ -108,8 +121,7 @@
                 <canvas id="vis-combined" class="absolute inset-0 w-full h-full block z-10"></canvas>
             </div>
 
-            <!-- Left Channel Display -->
-            <div id="display-left" style="display: none;" class="canvas-container w-full min-h-[200px] h-[350px] bg-neutral-950 relative">
+            <div id="display-left" style="display: none;" class="canvas-container w-full min-h-[200px] h-[35vh] md:h-[350px] bg-neutral-950 relative">
                 <div class="absolute top-0 left-0 text-[10px] font-mono font-bold text-neutral-400 z-20 bg-neutral-900 px-2 py-0.5 border-b border-r border-neutral-700">CH: LEFT</div>
                 <div class="ms-row-badge absolute top-0 right-0 text-[10px] font-mono font-bold text-neutral-400 z-20 bg-neutral-900 px-2 py-0.5 border-b border-l border-neutral-700" style="display: none;">
                     <span class="val">--</span> ms/row
@@ -118,8 +130,7 @@
                 <canvas id="vis-left" class="absolute inset-0 w-full h-full block z-10"></canvas>
             </div>
 
-            <!-- Right Channel Display -->
-            <div id="display-right" style="display: none;" class="canvas-container w-full min-h-[200px] h-[350px] bg-neutral-950 relative">
+            <div id="display-right" style="display: none;" class="canvas-container w-full min-h-[200px] h-[35vh] md:h-[350px] bg-neutral-950 relative">
                 <div class="absolute top-0 left-0 text-[10px] font-mono font-bold text-neutral-400 z-20 bg-neutral-900 px-2 py-0.5 border-b border-r border-neutral-700">CH: RIGHT</div>
                 <div class="ms-row-badge absolute top-0 right-0 text-[10px] font-mono font-bold text-neutral-400 z-20 bg-neutral-900 px-2 py-0.5 border-b border-l border-neutral-700" style="display: none;">
                     <span class="val">--</span> ms/row
@@ -130,17 +141,17 @@
 
         </section>
 
-        <!-- Instrument Control Panel (ORDER 2 on Mobile, ORDER 1 on Desktop) -->
-        <section class="order-2 md:order-1 w-full flex flex-col gap-1 mb-4">
+        <!-- Instrument Control Panel (Scrollable via flex-1 and overflow-y-auto) -->
+        <section class="order-2 md:order-1 w-full flex-1 overflow-y-auto industrial-scroll pr-1 pb-10 flex flex-col gap-1">
             
-            <div class="w-full flex justify-between items-end px-1">
+            <div class="w-full flex justify-between items-end px-1 flex-none">
                 <h2 class="text-neutral-500 font-bold text-[10px] tracking-widest uppercase">Bench Controls</h2>
                 <button id="btn-reset" class="text-[10px] uppercase font-bold text-neutral-400 hover:text-neutral-200 transition-none">
                     [ Restore Defaults ]
                 </button>
             </div>
 
-            <div class="bg-neutral-800 p-3 md:p-4 border border-neutral-600 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-x-6 gap-y-4 w-full">
+            <div class="bg-neutral-800 p-3 md:p-4 border border-neutral-600 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-x-6 gap-y-4 w-full flex-none">
                 <!-- Display & Mode -->
                 <div class="flex flex-col gap-2">
                     <h3 class="text-[10px] uppercase tracking-wider text-neutral-500 font-bold border-b border-neutral-600 pb-1">Routing</h3>
@@ -1374,7 +1385,7 @@
             }, { passive: false }); 
         });
 
-        // --- Defaults Reset (Updated for 1.24.0 Baselines) ---
+        // --- Defaults Reset ---
         document.getElementById('btn-reset').onclick = () => {
             isLogScale = false; isFrozen = false; showPeaks = false; averagingAlpha = 0.0; displayMaxDb = 0; displayMinDb = -140; zoomMinFreq = 0; zoomMaxFreq = 22000;
             scopeTimeWindowMs = 20; scopeMaxAmp = 1.0; scopeTriggerLevel = 0.0; scopeTriggerSource = null; setTriggerSource(null);
