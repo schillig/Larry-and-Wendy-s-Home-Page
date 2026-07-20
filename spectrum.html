@@ -4,10 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="description" content="Professional Web-Based Audio Spectrum Analyzer and Oscilloscope">
-    <title>Audio Spectrum Visualizer - REV 1.27.0</title>
+    <title>Audio Spectrum Visualizer - REV 1.28.0</title>
     
+    <!-- Pro Tip: Inline SVG Favicons are a zero-latency way to brand web apps without external image requests -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎛️</text></svg>">
     
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* Strict, Industrial CSS Resets */
@@ -19,21 +21,10 @@
         }
         
         /* Application-style custom scrollbar for the control panel */
-        .industrial-scroll::-webkit-scrollbar {
-            width: 10px;
-        }
-        .industrial-scroll::-webkit-scrollbar-track {
-            background: #262626; /* Neutral 800 */
-            border-left: 1px solid #404040; /* Neutral 700 */
-        }
-        .industrial-scroll::-webkit-scrollbar-thumb {
-            background: #525252; /* Neutral 600 */
-            border-radius: 0px;
-            border: 1px solid #262626;
-        }
-        .industrial-scroll::-webkit-scrollbar-thumb:hover {
-            background: #a3a3a3; /* Neutral 400 */
-        }
+        .industrial-scroll::-webkit-scrollbar { width: 10px; }
+        .industrial-scroll::-webkit-scrollbar-track { background: #262626; border-left: 1px solid #404040; }
+        .industrial-scroll::-webkit-scrollbar-thumb { background: #525252; border-radius: 0px; border: 1px solid #262626; }
+        .industrial-scroll::-webkit-scrollbar-thumb:hover { background: #a3a3a3; }
 
         .canvas-container {
             resize: vertical;
@@ -74,74 +65,54 @@
         }
     </style>
 </head>
-<!-- REV 1.27.0: body is now locked to h-screen and overflow-hidden -->
-<body class="flex flex-col items-center p-2 font-sans h-screen overflow-hidden relative">
+<body class="flex flex-col items-center px-1 md:px-2 pt-1 pb-2 font-sans h-screen overflow-hidden relative">
 
     <div id="toast-container" class="fixed top-5 left-1/2 transform -translate-x-1/2 z-50 flex flex-col items-center w-full px-4 pointer-events-none">
         <div id="message-box" class="transition-all duration-300 opacity-0 transform -translate-y-4 p-3 border shadow-none text-xs font-mono max-w-xl text-center w-full">
         </div>
     </div>
 
-    <!-- Header (flex-none ensures it never shrinks) -->
-    <header class="w-full max-w-7xl flex-none flex flex-col md:flex-row justify-between items-center bg-neutral-800 p-2 md:px-4 border border-neutral-600 mb-2 gap-2 md:gap-0">
-        <div class="flex flex-col sm:flex-row items-center sm:gap-4 text-center sm:text-left">
-            <h1 class="text-lg font-bold text-neutral-100 uppercase tracking-wider whitespace-nowrap">
-                Spectrum Analyzer <span class="text-neutral-500 text-[10px] font-mono tracking-widest ml-1 align-top">REV 1.27.0</span>
+    <!-- REV 1.28.0: Ultra-compact, single-row mobile header -->
+    <header class="w-full max-w-7xl flex-none flex flex-row justify-between items-center bg-neutral-800 py-1 px-2 border-b border-neutral-600 mb-2">
+        <div class="flex items-center gap-2">
+            <h1 class="text-xs md:text-sm font-bold text-neutral-100 uppercase tracking-wider hidden sm:block">
+                Signal Analyzer <span class="text-neutral-500 text-[9px] font-mono align-top ml-0.5">V1.28.0</span>
             </h1>
-            <div class="text-neutral-400 text-[10px] uppercase sm:border-l sm:border-neutral-600 sm:pl-4 mt-1 sm:mt-0 font-bold">
-                Status: <span id="engine-status" class="text-yellow-500 font-mono bg-neutral-900 px-1 border border-neutral-700">READY</span>
+            <div class="text-[9px] uppercase font-bold text-neutral-400">
+                <span id="engine-status" class="text-yellow-500 font-mono bg-neutral-900 px-1 border border-neutral-700">READY</span>
             </div>
         </div>
 
         <div class="flex gap-1">
-            <button id="btn-mic" class="px-3 py-1 bg-neutral-700 hover:bg-neutral-600 border border-neutral-500 text-neutral-200 transition-none text-[10px] font-bold">
-                Mic Input
+            <button id="btn-mic" class="px-2 py-0.5 bg-neutral-700 hover:bg-neutral-600 border border-neutral-500 text-neutral-200 transition-none text-[9px] font-bold">
+                Mic
             </button>
-            <button id="btn-system" class="px-3 py-1 bg-neutral-700 hover:bg-neutral-600 border border-neutral-500 text-neutral-200 transition-none text-[10px] font-bold">
-                System Audio
+            <button id="btn-system" class="px-2 py-0.5 bg-neutral-700 hover:bg-neutral-600 border border-neutral-500 text-neutral-200 transition-none text-[9px] font-bold">
+                Sys Audio
             </button>
-            <button id="btn-stop" class="hidden px-3 py-1 bg-red-900 hover:bg-red-800 border border-red-700 text-red-200 transition-none text-[10px] font-bold">
+            <button id="btn-stop" class="hidden px-2 py-0.5 bg-red-900 hover:bg-red-800 border border-red-700 text-red-200 transition-none text-[9px] font-bold">
                 Stop
             </button>
         </div>
     </header>
 
-    <!-- Main App Container (flex-1 takes remaining height, overflow-hidden keeps it contained) -->
     <main class="w-full max-w-7xl flex-1 flex flex-col gap-2 overflow-hidden">
 
-        <!-- Visualization Canvases (Fixed Height via flex-none) -->
+        <!-- REV 1.28.0: Single Multiplexed Canvas Container -->
         <section id="displays-wrapper" class="order-1 md:order-2 w-full flex-none flex flex-col gap-2">
-            
-            <div id="display-combined" class="canvas-container w-full min-h-[200px] h-[35vh] md:h-[350px] bg-neutral-950 relative">
-                <div class="absolute top-0 left-0 text-[10px] font-mono font-bold text-neutral-400 z-20 bg-neutral-900 px-2 py-0.5 border-b border-r border-neutral-700">CH: COMBINED (L+R)</div>
+            <div id="display-main" class="canvas-container w-full min-h-[200px] h-[35vh] md:h-[350px] bg-neutral-950 relative">
+                <div class="absolute top-0 left-0 text-[10px] font-mono font-bold text-neutral-400 z-20 bg-neutral-900 px-2 py-0.5 border-b border-r border-neutral-700">
+                    CH: <span id="ch-indicator" class="text-white">L+R</span>
+                </div>
                 <div class="ms-row-badge absolute top-0 right-0 text-[10px] font-mono font-bold text-neutral-400 z-20 bg-neutral-900 px-2 py-0.5 border-b border-l border-neutral-700" style="display: none;">
                     <span class="val">--</span> ms/row
                 </div>
-                <canvas id="wf-combined" class="absolute inset-0 w-full h-full block z-0"></canvas>
-                <canvas id="vis-combined" class="absolute inset-0 w-full h-full block z-10"></canvas>
+                <canvas id="wf-main" class="absolute inset-0 w-full h-full block z-0"></canvas>
+                <canvas id="vis-main" class="absolute inset-0 w-full h-full block z-10"></canvas>
             </div>
-
-            <div id="display-left" style="display: none;" class="canvas-container w-full min-h-[200px] h-[35vh] md:h-[350px] bg-neutral-950 relative">
-                <div class="absolute top-0 left-0 text-[10px] font-mono font-bold text-neutral-400 z-20 bg-neutral-900 px-2 py-0.5 border-b border-r border-neutral-700">CH: LEFT</div>
-                <div class="ms-row-badge absolute top-0 right-0 text-[10px] font-mono font-bold text-neutral-400 z-20 bg-neutral-900 px-2 py-0.5 border-b border-l border-neutral-700" style="display: none;">
-                    <span class="val">--</span> ms/row
-                </div>
-                <canvas id="wf-left" class="absolute inset-0 w-full h-full block z-0"></canvas>
-                <canvas id="vis-left" class="absolute inset-0 w-full h-full block z-10"></canvas>
-            </div>
-
-            <div id="display-right" style="display: none;" class="canvas-container w-full min-h-[200px] h-[35vh] md:h-[350px] bg-neutral-950 relative">
-                <div class="absolute top-0 left-0 text-[10px] font-mono font-bold text-neutral-400 z-20 bg-neutral-900 px-2 py-0.5 border-b border-r border-neutral-700">CH: RIGHT</div>
-                <div class="ms-row-badge absolute top-0 right-0 text-[10px] font-mono font-bold text-neutral-400 z-20 bg-neutral-900 px-2 py-0.5 border-b border-l border-neutral-700" style="display: none;">
-                    <span class="val">--</span> ms/row
-                </div>
-                <canvas id="wf-right" class="absolute inset-0 w-full h-full block z-0"></canvas>
-                <canvas id="vis-right" class="absolute inset-0 w-full h-full block z-10"></canvas>
-            </div>
-
         </section>
 
-        <!-- Instrument Control Panel (Scrollable via flex-1 and overflow-y-auto) -->
+        <!-- Instrument Control Panel -->
         <section class="order-2 md:order-1 w-full flex-1 overflow-y-auto industrial-scroll pr-1 pb-10 flex flex-col gap-1">
             
             <div class="w-full flex justify-between items-end px-1 flex-none">
@@ -152,12 +123,14 @@
             </div>
 
             <div class="bg-neutral-800 p-3 md:p-4 border border-neutral-600 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-x-6 gap-y-4 w-full flex-none">
+                
                 <!-- Display & Mode -->
                 <div class="flex flex-col gap-2">
                     <h3 class="text-[10px] uppercase tracking-wider text-neutral-500 font-bold border-b border-neutral-600 pb-1">Routing</h3>
                     <button id="btn-mode" class="py-1 bg-blue-800 hover:bg-blue-700 border border-blue-600 text-[10px] font-bold text-white">MODE: SPECTRUM</button>
+                    <!-- Toggles multiple active channels now -->
                     <div class="flex gap-1">
-                        <button id="btn-show-combined" class="flex-1 py-1 bg-neutral-600 border border-neutral-500 text-[10px] font-bold">L+R</button>
+                        <button id="btn-show-combined" class="flex-1 py-1 bg-neutral-600 border border-neutral-500 text-[10px] font-bold text-white shadow-[0_2px_0_#22d3ee]">L+R</button>
                         <button id="btn-show-left" class="flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[10px] font-bold text-neutral-400">L</button>
                         <button id="btn-show-right" class="flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[10px] font-bold text-neutral-400">R</button>
                     </div>
@@ -322,13 +295,11 @@
         let zoomMinFreq = 0, zoomMaxFreq = 22000;
         let actualNyquist = 22050; 
         
-        // Cursors (Frequency and Standard dB)
+        // Cursors 
         let cursorX1Freq = 1000, cursorX2Freq = 5000;
         let cursorY1Db = -40, cursorY2Db = -60;
-
-        // Pixel Cursors for Waterfall Mode
-        let wfCursorY1Px = 50;
-        let wfCursorY2Px = 150;
+        let wfCursorY1Px = 50, wfCursorY2Px = 150;
+        
         let lastDrawTime = 0;
         let msPerRowAverage = 16.67; 
 
@@ -352,24 +323,20 @@
         const statusEl = document.getElementById('engine-status');
         
         // ==========================================
-        // 2. DISPLAY OBJECT TRACKING
+        // 2. MULTIPLEXED CHANNEL TRACKING (REV 1.28.0)
         // ==========================================
-        const displays = {
-            combined: {
-                show: true, analyser: null, data: null, timeData: null, rawData: null, rawTimeData: null,
-                container: document.getElementById('display-combined'),
-                visCvs: document.getElementById('vis-combined'), wfCvs: document.getElementById('wf-combined')
-            },
-            left: {
-                show: false, analyser: null, data: null, timeData: null, rawData: null, rawTimeData: null,
-                container: document.getElementById('display-left'),
-                visCvs: document.getElementById('vis-left'), wfCvs: document.getElementById('wf-left')
-            },
-            right: {
-                show: false, analyser: null, data: null, timeData: null, rawData: null, rawTimeData: null,
-                container: document.getElementById('display-right'),
-                visCvs: document.getElementById('vis-right'), wfCvs: document.getElementById('wf-right')
-            }
+        
+        // All channels use the same master canvas now.
+        const mainDisplay = {
+            container: document.getElementById('display-main'),
+            visCvs: document.getElementById('vis-main'), 
+            wfCvs: document.getElementById('wf-main')
+        };
+
+        const channels = {
+            combined: { active: true, analyser: null, data: null, timeData: null, rawData: null, rawTimeData: null, color: '#22d3ee', fill: 'rgba(34, 211, 238, 0.1)', name: 'L+R' },
+            left: { active: false, analyser: null, data: null, timeData: null, rawData: null, rawTimeData: null, color: '#4ade80', fill: 'rgba(74, 222, 128, 0.1)', name: 'L' },
+            right: { active: false, analyser: null, data: null, timeData: null, rawData: null, rawTimeData: null, color: '#f472b6', fill: 'rgba(244, 114, 182, 0.1)', name: 'R' }
         };
 
         const controls = {
@@ -394,7 +361,6 @@
             box.className = `transition-all duration-300 opacity-100 transform translate-y-0 p-3 border shadow-none text-xs font-mono max-w-xl text-center w-full pointer-events-auto ${
                 isError ? 'bg-red-900 border-red-500 text-red-100' : 'bg-neutral-800 border-neutral-500 text-neutral-200'
             }`;
-            
             if (box.timeoutId) clearTimeout(box.timeoutId);
             box.timeoutId = setTimeout(() => {
                 box.classList.remove('opacity-100', 'translate-y-0', 'pointer-events-auto');
@@ -420,9 +386,9 @@
                 targetSize = Math.pow(2, parseInt(controls.bandwidth.el.value));
             }
             
-            Object.values(displays).forEach(d => {
-                if (d.analyser && d.analyser.fftSize !== targetSize) {
-                    d.analyser.fftSize = targetSize;
+            Object.values(channels).forEach(ch => {
+                if (ch.analyser && ch.analyser.fftSize !== targetSize) {
+                    ch.analyser.fftSize = targetSize;
                 }
             });
         }
@@ -507,7 +473,7 @@
                 for (let db = -140; db <= 0; db += 10) {
                     if (db < displayMinDb || db > displayMaxDb) continue;
                     const y = getYPosition(db, cvs.height);
-                    ctx.strokeStyle = '#404040'; // Neutral 700
+                    ctx.strokeStyle = '#404040'; 
                     ctx.beginPath(); ctx.moveTo(p.left, y); ctx.lineTo(cvs.width, y); ctx.stroke();
                     
                     ctx.fillStyle = '#171717';
@@ -659,13 +625,16 @@
 
                 dummyAudioEl = new Audio(); dummyAudioEl.srcObject = stream; dummyAudioEl.muted = true; dummyAudioEl.play().catch(e => console.warn(e));
                 
-                displays.combined.analyser = audioCtx.createAnalyser(); displays.left.analyser = audioCtx.createAnalyser(); displays.right.analyser = audioCtx.createAnalyser();
+                channels.combined.analyser = audioCtx.createAnalyser(); 
+                channels.left.analyser = audioCtx.createAnalyser(); 
+                channels.right.analyser = audioCtx.createAnalyser();
+                
                 let splitter = audioCtx.createChannelSplitter(2);
                 gainNode = audioCtx.createGain(); gainNode.gain.value = parseFloat(controls.gain.el.value);
 
                 source = audioCtx.createMediaStreamSource(stream); source.connect(gainNode);
-                gainNode.connect(displays.combined.analyser); gainNode.connect(splitter);
-                splitter.connect(displays.left.analyser, 0); splitter.connect(displays.right.analyser, 1); 
+                gainNode.connect(channels.combined.analyser); gainNode.connect(splitter);
+                splitter.connect(channels.left.analyser, 0); splitter.connect(channels.right.analyser, 1); 
 
                 applyFftSize(); 
 
@@ -690,7 +659,7 @@
         }
 
         // ==========================================
-        // 6. MAIN RENDERING LOOP
+        // 6. MAIN MULTIPLEX RENDERING LOOP
         // ==========================================
         function drawVisualizer(timestamp) {
             animationId = requestAnimationFrame(drawVisualizer);
@@ -701,7 +670,12 @@
             }
             lastDrawTime = timestamp;
 
-            if ((viewMode === 'waterfall' || viewMode === 'both') && displays.combined.analyser) {
+            const visCtx = mainDisplay.visCvs.getContext('2d');
+            const wfCtx = mainDisplay.wfCvs.getContext('2d');
+            
+            visCtx.clearRect(0, 0, mainDisplay.visCvs.width, mainDisplay.visCvs.height);
+
+            if ((viewMode === 'waterfall' || viewMode === 'both') && channels.combined.analyser) {
                 document.querySelectorAll('.ms-row-badge').forEach(el => {
                     el.style.display = 'block';
                     el.querySelector('.val').textContent = msPerRowAverage.toFixed(2);
@@ -710,156 +684,136 @@
                 document.querySelectorAll('.ms-row-badge').forEach(el => el.style.display = 'none');
             }
 
-            if (viewMode === 'lissajous') {
-                if (!isFrozen) {
-                    Object.values(displays).forEach(d => {
-                        if (d.analyser) {
-                            if (!d.rawTimeData || d.rawTimeData.length !== d.analyser.fftSize) {
-                                d.rawTimeData = new Float32Array(d.analyser.fftSize); d.timeData = new Float32Array(d.analyser.fftSize); 
+            // --- DATA ACQUISITION & PROCESSING ---
+            if (!isFrozen) {
+                Object.values(channels).forEach(ch => {
+                    if (ch.analyser) {
+                        // Time Domain (Scope/Lissajous)
+                        if (viewMode === 'oscilloscope' || viewMode === 'lissajous') {
+                            if (!ch.rawTimeData || ch.rawTimeData.length !== ch.analyser.fftSize) {
+                                ch.rawTimeData = new Float32Array(ch.analyser.fftSize); 
+                                ch.timeData = new Float32Array(ch.analyser.fftSize);
                             }
-                            d.analyser.getFloatTimeDomainData(d.rawTimeData);
-                            for(let i=0; i<d.rawTimeData.length; i++) d.timeData[i] = d.rawTimeData[i];
+                            ch.analyser.getFloatTimeDomainData(ch.rawTimeData);
+                            for(let i=0; i<ch.rawTimeData.length; i++) ch.timeData[i] = ch.rawTimeData[i];
                         }
-                    });
-                }
-                Object.keys(displays).forEach(key => {
-                    const d = displays[key]; if (!d.show) return;
-                    const visCtx = d.visCvs.getContext('2d'); visCtx.clearRect(0, 0, d.visCvs.width, d.visCvs.height);
-                    drawLissajousGrid(visCtx, d.visCvs, scopeMaxAmp);
-                    if (displays.left.timeData && displays.right.timeData) drawLissajous(visCtx, d.visCvs, displays.left.timeData, displays.right.timeData, scopeMaxAmp, '#ef4444'); 
-                    if (isMemOverlay && memorySnapshot && memorySnapshot.displays['left'] && memorySnapshot.displays['right']) {
-                        drawLissajous(visCtx, d.visCvs, memorySnapshot.displays['left'].timeData, memorySnapshot.displays['right'].timeData, scopeMaxAmp, '#f87171', 2.5);
+                        // Frequency Domain (Spectrum/Waterfall)
+                        else {
+                            const bufferLength = ch.analyser.frequencyBinCount;
+                            if (!ch.rawData || ch.rawData.length !== bufferLength) ch.rawData = new Float32Array(bufferLength);
+                            ch.analyser.getFloatFrequencyData(ch.rawData);
+
+                            if (!ch.data || ch.data.length !== bufferLength) {
+                                ch.data = new Float32Array(ch.rawData);
+                                for(let i = 0; i < bufferLength; i++) { if (!isFinite(ch.data[i])) ch.data[i] = -200; }
+                            } else {
+                                for (let i = 0; i < bufferLength; i++) {
+                                    let oldVal = isFinite(ch.data[i]) ? ch.data[i] : -200;
+                                    let newVal = isFinite(ch.rawData[i]) ? ch.rawData[i] : -200;
+                                    ch.data[i] = (averagingAlpha * oldVal) + ((1 - averagingAlpha) * newVal);
+                                }
+                            }
+                        }
                     }
                 });
+            }
+
+            // --- LISSAJOUS RENDERING ---
+            if (viewMode === 'lissajous') {
+                drawLissajousGrid(visCtx, mainDisplay.visCvs, scopeMaxAmp);
+                // Requires both L and R arrays to exist
+                if (channels.left.timeData && channels.right.timeData) {
+                    drawLissajous(visCtx, mainDisplay.visCvs, channels.left.timeData, channels.right.timeData, scopeMaxAmp, '#ef4444'); 
+                }
+                if (isMemOverlay && memorySnapshot && memorySnapshot.channels['left'] && memorySnapshot.channels['right']) {
+                    drawLissajous(visCtx, mainDisplay.visCvs, memorySnapshot.channels['left'].timeData, memorySnapshot.channels['right'].timeData, scopeMaxAmp, '#f87171', 2.5);
+                }
+                updateCursorReadouts();
                 return;
             }
 
+            // --- OSCILLOSCOPE RENDERING ---
             if (viewMode === 'oscilloscope') {
-                if (!isFrozen) {
-                    Object.values(displays).forEach(d => {
-                        if (d.analyser) {
-                            if (!d.rawTimeData || d.rawTimeData.length !== d.analyser.fftSize) {
-                                d.rawTimeData = new Float32Array(d.analyser.fftSize); d.timeData = new Float32Array(d.analyser.fftSize);
-                            }
-                            d.analyser.getFloatTimeDomainData(d.rawTimeData);
-                            for(let i=0; i<d.rawTimeData.length; i++) d.timeData[i] = d.rawTimeData[i];
-                        }
-                    });
-                }
+                drawOscilloscopeGrid(visCtx, mainDisplay.visCvs);
                 
                 let triggerFound = false;
-                
-                if (!isFrozen && scopeTriggerSource !== null) {
-                    let searchData = null;
-                    if (scopeTriggerSource === 'combined') searchData = displays.combined.timeData;
-                    else if (scopeTriggerSource === 'left') searchData = displays.left.timeData;
-                    else if (scopeTriggerSource === 'right') searchData = displays.right.timeData;
+                if (!isFrozen && scopeTriggerSource !== null && channels[scopeTriggerSource] && channels[scopeTriggerSource].timeData) {
+                    let searchData = channels[scopeTriggerSource].timeData;
+                    const sampleRate = actualNyquist * 2; 
+                    const samplesToDraw = Math.floor((scopeTimeWindowMs / 1000) * sampleRate);
+                    const searchLimit = Math.max(1, searchData.length - samplesToDraw);
+                    lastTriggerIndex = -1;
                     
-                    if (searchData) {
-                        const sampleRate = actualNyquist * 2; 
-                        const samplesToDraw = Math.floor((scopeTimeWindowMs / 1000) * sampleRate);
-                        const searchLimit = Math.max(1, searchData.length - samplesToDraw);
-                        lastTriggerIndex = -1;
-                        
-                        const hysteresis = scopeMaxAmp * 0.05;
-                        let armedForEdge = false;
+                    const hysteresis = scopeMaxAmp * 0.05;
+                    let armedForEdge = false;
 
-                        for (let i = 0; i < searchLimit - 1; i++) {
-                            if (searchData[i] < scopeTriggerLevel - hysteresis) {
-                                armedForEdge = true;
-                            }
-                            if (armedForEdge && searchData[i+1] >= scopeTriggerLevel) {
-                                lastTriggerIndex = i; 
-                                triggerFound = true; 
-                                break;
-                            }
+                    for (let i = 0; i < searchLimit - 1; i++) {
+                        if (searchData[i] < scopeTriggerLevel - hysteresis) { armedForEdge = true; }
+                        if (armedForEdge && searchData[i+1] >= scopeTriggerLevel) {
+                            lastTriggerIndex = i; triggerFound = true; break;
                         }
                     }
-                } else {
+                } else if (!isFrozen) {
                     lastTriggerIndex = 0;
                 }
 
-                if (isOneShotArmed && !isFrozen) {
-                    if (triggerFound) {
-                        isOneShotArmed = false; 
-                        isFrozen = true;
-                        document.getElementById('btn-freeze').textContent = "FREEZE: ON"; 
-                        document.getElementById('btn-freeze').classList.replace('bg-neutral-800', 'bg-blue-800');
-                        
-                        const btnOs = document.getElementById('btn-trig-oneshot');
-                        btnOs.textContent = "1-SHOT: CAUGHT"; 
-                        btnOs.className = "flex-1 py-1 bg-green-800 border border-green-600 text-[9px] font-bold text-white";
-                    } 
-                }
-                
+                if (isOneShotArmed && !isFrozen && triggerFound) {
+                    isOneShotArmed = false; isFrozen = true;
+                    document.getElementById('btn-freeze').textContent = "FREEZE: ON"; 
+                    document.getElementById('btn-freeze').classList.replace('bg-neutral-800', 'bg-blue-800');
+                    const btnOs = document.getElementById('btn-trig-oneshot');
+                    btnOs.textContent = "1-SHOT: CAUGHT"; btnOs.className = "flex-1 py-1 bg-green-800 border border-green-600 text-[9px] font-bold text-white";
+                } 
                 if (lastTriggerIndex === -1) lastTriggerIndex = 0;
 
-                Object.keys(displays).forEach(key => {
-                    const d = displays[key]; if (!d.show) return;
-                    const visCtx = d.visCvs.getContext('2d'); visCtx.clearRect(0, 0, d.visCvs.width, d.visCvs.height);
-                    if (d.timeData) drawOscilloscope(visCtx, d.visCvs, d.timeData, lastTriggerIndex, '#fbbf24');
-                    if (isMemOverlay && memorySnapshot && memorySnapshot.displays[key] && memorySnapshot.displays[key].timeData) {
-                        drawOscilloscope(visCtx, d.visCvs, memorySnapshot.displays[key].timeData, 0, '#ef4444', 2.5);
+                // Draw multiplexed channels
+                Object.keys(channels).forEach(key => {
+                    const ch = channels[key];
+                    if (!ch.active) return;
+                    if (ch.timeData) drawOscilloscope(visCtx, mainDisplay.visCvs, ch.timeData, lastTriggerIndex, ch.color);
+                    if (isMemOverlay && memorySnapshot && memorySnapshot.channels[key] && memorySnapshot.channels[key].timeData) {
+                        drawOscilloscope(visCtx, mainDisplay.visCvs, memorySnapshot.channels[key].timeData, 0, '#ef4444', 2.5); // Ghost layer
                     }
-                    drawOscilloscopeGrid(visCtx, d.visCvs); drawMeasurementTools(visCtx, d.visCvs, null);
                 });
+
+                drawMeasurementTools(visCtx, mainDisplay.visCvs, null);
+                updateCursorReadouts();
                 return;
             }
 
             // --- SPECTRUM & WATERFALL LOGIC ---
-            Object.keys(displays).forEach(key => {
-                const d = displays[key];
-                if (!d.show) return;
+            drawGrid(visCtx, mainDisplay.visCvs);
 
-                const visCtx = d.visCvs.getContext('2d');
-                const wfCtx = d.wfCvs.getContext('2d');
-                visCtx.clearRect(0, 0, d.visCvs.width, d.visCvs.height);
+            if (viewMode === 'waterfall' || viewMode === 'both') {
+                wfCtx.drawImage(mainDisplay.wfCvs, 0, 1);
+                // Determine primary trace for waterfall (prioritize Combined, then Left, then Right)
+                let primaryData = null;
+                if (channels.combined.active && channels.combined.data) primaryData = channels.combined.data;
+                else if (channels.left.active && channels.left.data) primaryData = channels.left.data;
+                else if (channels.right.active && channels.right.data) primaryData = channels.right.data;
+                
+                if (primaryData) drawWaterfallRow(wfCtx, mainDisplay.wfCvs, primaryData);
+            } 
 
-                if (!d.analyser || isFrozen) {
-                    if (d.data) {
-                        if (viewMode === 'spectrum' || viewMode === 'both') drawTrace(visCtx, d.visCvs, d.data, '#22d3ee', true); 
-                        if (isMemOverlay && memorySnapshot && memorySnapshot.displays[key] && memorySnapshot.displays[key].data) {
-                            drawTrace(visCtx, d.visCvs, memorySnapshot.displays[key].data, '#ef4444', false, 2.5);
-                        }
-                        drawGrid(visCtx, d.visCvs);
-                        drawMeasurementTools(visCtx, d.visCvs, d.data);
+            if (viewMode === 'spectrum' || viewMode === 'both') {
+                Object.keys(channels).forEach(key => {
+                    const ch = channels[key];
+                    if (!ch.active || !ch.data) return;
+                    drawTrace(visCtx, mainDisplay.visCvs, ch.data, ch.color, ch.fill, 1.5);
+                    if (isMemOverlay && memorySnapshot && memorySnapshot.channels[key] && memorySnapshot.channels[key].data) {
+                        drawTrace(visCtx, mainDisplay.visCvs, memorySnapshot.channels[key].data, '#ef4444', false, 2.5);
                     }
-                    return;
-                }
+                });
+            }
 
-                const bufferLength = d.analyser.frequencyBinCount;
-                if (!d.rawData || d.rawData.length !== bufferLength) d.rawData = new Float32Array(bufferLength);
-                d.analyser.getFloatFrequencyData(d.rawData);
-
-                if (!d.data || d.data.length !== bufferLength) {
-                    d.data = new Float32Array(d.rawData);
-                    for(let i = 0; i < bufferLength; i++) { if (!isFinite(d.data[i])) d.data[i] = -200; }
-                } else {
-                    for (let i = 0; i < bufferLength; i++) {
-                        let oldVal = isFinite(d.data[i]) ? d.data[i] : -200;
-                        let newVal = isFinite(d.rawData[i]) ? d.rawData[i] : -200;
-                        d.data[i] = (averagingAlpha * oldVal) + ((1 - averagingAlpha) * newVal);
-                    }
-                }
-
-                if (viewMode === 'waterfall' || viewMode === 'both') {
-                    wfCtx.drawImage(d.wfCvs, 0, 1);
-                    drawWaterfallRow(wfCtx, d.wfCvs, d.data);
-                } 
-                if (viewMode === 'spectrum' || viewMode === 'both') drawTrace(visCtx, d.visCvs, d.data, '#22d3ee', true, 1.5);
-                if (isMemOverlay && memorySnapshot && memorySnapshot.displays[key] && memorySnapshot.displays[key].data) {
-                    drawTrace(visCtx, d.visCvs, memorySnapshot.displays[key].data, '#ef4444', false, 2.5);
-                }
-
-                drawGrid(visCtx, d.visCvs);
-                drawMeasurementTools(visCtx, d.visCvs, d.data);
-            });
-            
+            // Use combined data for measurement peaks if available, else first active
+            let activeDataForMeas = channels.combined.active ? channels.combined.data : (channels.left.active ? channels.left.data : channels.right.data);
+            drawMeasurementTools(visCtx, mainDisplay.visCvs, activeDataForMeas);
             updateCursorReadouts();
         }
 
         // --- Extracted Drawing Primitives ---
-        function drawTrace(ctx, cvs, data, strokeColor = '#22d3ee', doFill = true, lineWidth = 1.5) {
+        function drawTrace(ctx, cvs, data, strokeColor, fillStyle, lineWidth = 1.5) {
             const bufferLength = data.length; const binSize = actualNyquist / bufferLength; const p = getPadding();
             ctx.lineWidth = lineWidth; ctx.strokeStyle = strokeColor; ctx.beginPath();
             let hasMoved = false; const startB = Math.max(0, Math.floor(zoomMinFreq / binSize)); const endB = Math.min(bufferLength, Math.ceil(zoomMaxFreq / binSize));
@@ -868,13 +822,13 @@
                 if (!hasMoved) { ctx.moveTo(x, y); hasMoved = true; } else ctx.lineTo(x, y);
             }
             ctx.stroke();
-            if (doFill) {
+            if (fillStyle) {
                 ctx.lineTo(getXPosition(endB * binSize, cvs.width), cvs.height - p.bottom); ctx.lineTo(p.left, cvs.height - p.bottom);
-                ctx.fillStyle = 'rgba(34, 211, 238, 0.1)'; ctx.fill();
+                ctx.fillStyle = fillStyle; ctx.fill();
             }
         }
 
-        function drawOscilloscope(ctx, cvs, timeData, triggerIndex, strokeColor = '#fbbf24', lineWidth = 1.5) {
+        function drawOscilloscope(ctx, cvs, timeData, triggerIndex, strokeColor, lineWidth = 1.5) {
             const sampleRate = actualNyquist * 2; const samplesToDraw = Math.min(timeData.length - triggerIndex, Math.floor((scopeTimeWindowMs / 1000) * sampleRate));
             ctx.lineWidth = lineWidth; ctx.strokeStyle = strokeColor; ctx.beginPath(); let hasMoved = false;
             for (let i = 0; i < samplesToDraw; i++) {
@@ -984,17 +938,16 @@
         // 7. MEMORY & STORAGE LOGIC
         // ==========================================
         function captureMemory() {
-            memorySnapshot = { nyquist: actualNyquist, displays: {} };
-            Object.keys(displays).forEach(key => {
-                const d = displays[key]; let tempSpec = d.data;
-                if (!tempSpec && d.analyser) { tempSpec = new Float32Array(d.analyser.frequencyBinCount); d.analyser.getFloatFrequencyData(tempSpec); }
-                let tempTime = d.timeData;
-                if (!tempTime && d.analyser) { tempTime = new Float32Array(d.analyser.fftSize); d.analyser.getFloatTimeDomainData(tempTime); }
+            memorySnapshot = { nyquist: actualNyquist, channels: {}, wfImage: mainDisplay.wfCvs.toDataURL('image/png') };
+            Object.keys(channels).forEach(key => {
+                const ch = channels[key]; let tempSpec = ch.data;
+                if (!tempSpec && ch.analyser) { tempSpec = new Float32Array(ch.analyser.frequencyBinCount); ch.analyser.getFloatFrequencyData(tempSpec); }
+                let tempTime = ch.timeData;
+                if (!tempTime && ch.analyser) { tempTime = new Float32Array(ch.analyser.fftSize); ch.analyser.getFloatTimeDomainData(tempTime); }
 
-                memorySnapshot.displays[key] = {
+                memorySnapshot.channels[key] = {
                     data: tempSpec ? Array.from(tempSpec).map(v => isFinite(v) ? v : -200) : null,
-                    timeData: tempTime ? Array.from(tempTime.slice(lastTriggerIndex)) : null,
-                    wfImage: d.wfCvs.toDataURL('image/png')
+                    timeData: tempTime ? Array.from(tempTime.slice(lastTriggerIndex)) : null
                 };
             });
             isMemOverlay = true; document.getElementById('btn-mem-overlay').textContent = "OVERLAY: ON"; document.getElementById('btn-mem-overlay').classList.replace('bg-neutral-800', 'bg-red-900');
@@ -1014,17 +967,18 @@
             if (isFrozen) { document.getElementById('btn-freeze').click(); return; }
             actualNyquist = memorySnapshot.nyquist;
             
-            Object.keys(displays).forEach(key => {
-                const d = displays[key]; const mem = memorySnapshot.displays[key]; if (!mem) return;
-                if (mem.data) d.data = new Float32Array(mem.data); if (mem.timeData) d.timeData = new Float32Array(mem.timeData);
-                if (mem.wfImage) {
-                    const img = new Image();
-                    img.onload = () => {
-                        const wfCtx = d.wfCvs.getContext('2d'); wfCtx.clearRect(0, 0, d.wfCvs.width, d.wfCvs.height);
-                        wfCtx.drawImage(img, 0, 0, d.wfCvs.width, d.wfCvs.height);
-                    }; img.src = mem.wfImage;
-                }
+            Object.keys(channels).forEach(key => {
+                const ch = channels[key]; const mem = memorySnapshot.channels[key]; if (!mem) return;
+                if (mem.data) ch.data = new Float32Array(mem.data); if (mem.timeData) ch.timeData = new Float32Array(mem.timeData);
             });
+            if (memorySnapshot.wfImage) {
+                const img = new Image();
+                img.onload = () => {
+                    const wfCtx = mainDisplay.wfCvs.getContext('2d'); wfCtx.clearRect(0, 0, mainDisplay.wfCvs.width, mainDisplay.wfCvs.height);
+                    wfCtx.drawImage(img, 0, 0, mainDisplay.wfCvs.width, mainDisplay.wfCvs.height);
+                }; img.src = memorySnapshot.wfImage;
+            }
+            
             lastTriggerIndex = 0; isFrozen = true; document.getElementById('btn-freeze').textContent = "FREEZE: ON"; document.getElementById('btn-freeze').classList.replace('bg-neutral-800', 'bg-blue-800');
             isMemOverlay = false; document.getElementById('btn-mem-overlay').textContent = "OVERLAY: OFF"; document.getElementById('btn-mem-overlay').classList.replace('bg-red-900', 'bg-neutral-800');
             this.textContent = "RESUME"; this.classList.add('bg-green-800');
@@ -1070,10 +1024,27 @@
         }
 
         function toggleDisplay(key) {
-            displays[key].show = !displays[key].show; displays[key].container.style.display = displays[key].show ? 'block' : 'none';
+            channels[key].active = !channels[key].active;
             const btn = document.getElementById('btn-show-' + key);
-            btn.classList.toggle('bg-neutral-600', displays[key].show); btn.classList.toggle('bg-neutral-800', !displays[key].show);
-            btn.classList.toggle('text-white', displays[key].show); btn.classList.toggle('text-neutral-400', !displays[key].show);
+            
+            btn.classList.toggle('bg-neutral-600', channels[key].active); btn.classList.toggle('bg-neutral-800', !channels[key].active);
+            btn.classList.toggle('text-white', channels[key].active); btn.classList.toggle('text-neutral-400', !channels[key].active);
+            
+            // Add accent colors to buttons to denote trace color
+            if (key === 'combined') {
+                if (channels[key].active) btn.style.boxShadow = '0 2px 0 #22d3ee'; else btn.style.boxShadow = 'none';
+            } else if (key === 'left') {
+                if (channels[key].active) btn.style.boxShadow = '0 2px 0 #4ade80'; else btn.style.boxShadow = 'none';
+            } else if (key === 'right') {
+                if (channels[key].active) btn.style.boxShadow = '0 2px 0 #f472b6'; else btn.style.boxShadow = 'none';
+            }
+
+            // Update badge
+            let activeNames = [];
+            if (channels.combined.active) activeNames.push(`<span class="text-cyan-400">L+R</span>`);
+            if (channels.left.active) activeNames.push(`<span class="text-green-400">L</span>`);
+            if (channels.right.active) activeNames.push(`<span class="text-pink-400">R</span>`);
+            document.getElementById('ch-indicator').innerHTML = activeNames.length > 0 ? activeNames.join(' | ') : '--';
         }
 
         document.getElementById('btn-show-combined').onclick = () => toggleDisplay('combined');
@@ -1093,9 +1064,7 @@
             this.classList.toggle('bg-red-800', viewMode === 'lissajous');
             
             if (viewMode === 'waterfall' || viewMode === 'spectrum' || viewMode === 'oscilloscope' || viewMode === 'lissajous') {
-                Object.values(displays).forEach(d => {
-                    const wfCtx = d.wfCvs.getContext('2d'); wfCtx.fillStyle = '#171717'; wfCtx.fillRect(0, 0, d.wfCvs.width, d.wfCvs.height);
-                });
+                const wfCtx = mainDisplay.wfCvs.getContext('2d'); wfCtx.fillStyle = '#171717'; wfCtx.fillRect(0, 0, mainDisplay.wfCvs.width, mainDisplay.wfCvs.height);
             }
             isOneShotArmed = false; const btnOs = document.getElementById('btn-trig-oneshot');
             btnOs.textContent = "1-SHOT"; btnOs.className = "flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[9px] font-bold text-neutral-400";
@@ -1122,7 +1091,7 @@
                 cursorX1Freq = Math.max(zoomMinFreq, Math.min(zoomMaxFreq, cursorX1Freq)); cursorX2Freq = Math.max(zoomMinFreq, Math.min(zoomMaxFreq, cursorX2Freq));
                 cursorY1Db = Math.max(displayMinDb, Math.min(displayMaxDb, cursorY1Db)); cursorY2Db = Math.max(displayMinDb, Math.min(displayMaxDb, cursorY2Db));
             }
-            const hBound = displays.combined.visCvs.height || 350;
+            const hBound = mainDisplay.visCvs.height || 350;
             wfCursorY1Px = Math.max(0, Math.min(hBound, wfCursorY1Px));
             wfCursorY2Px = Math.max(0, Math.min(hBound, wfCursorY2Px));
         }
@@ -1213,7 +1182,7 @@
                 if (viewMode === 'oscilloscope') {
                     scopeCursorY1Amp = scopeMaxAmp * 0.33; scopeCursorY2Amp = -scopeMaxAmp * 0.33;
                 } else if (viewMode === 'waterfall') {
-                    const hBound = displays.combined.visCvs.height || 350;
+                    const hBound = mainDisplay.visCvs.height || 350;
                     wfCursorY1Px = hBound * 0.33; wfCursorY2Px = hBound * 0.66;
                 } else {
                     cursorY1Db = displayMaxDb - (displayMaxDb - displayMinDb) * 0.33; cursorY2Db = displayMaxDb - (displayMaxDb - displayMinDb) * 0.66;
@@ -1345,22 +1314,23 @@
 
         function handlePointerUp() { activeDrag = null; }
 
-        Object.values(displays).forEach(d => {
-            d.visCvs.addEventListener('mousedown', (e) => handlePointerDown(e, d.visCvs)); d.visCvs.addEventListener('touchstart', (e) => handlePointerDown(e, d.visCvs), { passive: false });
-        });
+        mainDisplay.visCvs.addEventListener('mousedown', (e) => handlePointerDown(e, mainDisplay.visCvs)); 
+        mainDisplay.visCvs.addEventListener('touchstart', (e) => handlePointerDown(e, mainDisplay.visCvs), { passive: false });
+        
         window.addEventListener('mousemove', handlePointerMove); window.addEventListener('mouseup', handlePointerUp);
         window.addEventListener('touchmove', handlePointerMove, { passive: false }); window.addEventListener('touchend', handlePointerUp);
 
         // --- Layout Resizing ---
         const resizeObserver = new ResizeObserver(entries => {
             for (let entry of entries) {
-                const id = entry.target.id.split('-')[1]; const w = entry.contentRect.width; const h = entry.contentRect.height;
-                displays[id].visCvs.width = w; displays[id].visCvs.height = h;
-                let oldData; const wfCtx = displays[id].wfCvs.getContext('2d', { willReadFrequently: true });
-                if (displays[id].wfCvs.width > 0 && displays[id].wfCvs.height > 0) {
-                    try { oldData = wfCtx.getImageData(0, 0, displays[id].wfCvs.width, displays[id].wfCvs.height); } catch(e){}
+                const w = entry.contentRect.width; const h = entry.contentRect.height;
+                mainDisplay.visCvs.width = w; mainDisplay.visCvs.height = h;
+                
+                let oldData; const wfCtx = mainDisplay.wfCvs.getContext('2d', { willReadFrequently: true });
+                if (mainDisplay.wfCvs.width > 0 && mainDisplay.wfCvs.height > 0) {
+                    try { oldData = wfCtx.getImageData(0, 0, mainDisplay.wfCvs.width, mainDisplay.wfCvs.height); } catch(e){}
                 }
-                displays[id].wfCvs.width = w; displays[id].wfCvs.height = h;
+                mainDisplay.wfCvs.width = w; mainDisplay.wfCvs.height = h;
                 
                 if (viewMode === 'waterfall' || viewMode === 'both') {
                     wfCtx.fillStyle = '#171717'; wfCtx.fillRect(0,0,w,h); if (oldData) wfCtx.putImageData(oldData, 0, 0);
@@ -1369,7 +1339,7 @@
                 }
             }
         });
-        Object.values(displays).forEach(d => resizeObserver.observe(d.container));
+        resizeObserver.observe(mainDisplay.container);
 
         // ==========================================
         // 9. SCROLL WHEEL FINE-TUNING
