@@ -2,10 +2,9 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <!-- Ensures proper scaling on mobile without allowing user zoom, mimicking a native app -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="description" content="Professional Web-Based Audio Spectrum Analyzer and Oscilloscope">
-    <title>Audio Spectrum Visualizer - REV 1.30.0</title>
+    <title>Audio Spectrum Visualizer - REV 1.31.0</title>
     
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎛️</text></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -24,7 +23,6 @@
         .industrial-scroll::-webkit-scrollbar-thumb:hover { background: #a3a3a3; }
 
         .canvas-container {
-            resize: vertical;
             border: 1px solid #525252;
             cursor: crosshair;
         }
@@ -64,17 +62,17 @@
 </head>
 <body class="flex flex-col items-center px-1 md:px-2 pt-1 pb-2 font-sans h-screen overflow-hidden relative">
 
-    <!-- Fixed Toast Notification Container for Error Handling -->
+    <!-- Fixed Toast Notification Container -->
     <div id="toast-container" class="fixed top-5 left-1/2 transform -translate-x-1/2 z-50 flex flex-col items-center w-full px-4 pointer-events-none">
         <div id="message-box" class="transition-all duration-300 opacity-0 transform -translate-y-4 p-3 border shadow-none text-xs font-mono max-w-xl text-center w-full">
         </div>
     </div>
 
-    <!-- Ultra-compact, single-row mobile header -->
+    <!-- Header -->
     <header class="w-full max-w-7xl flex-none flex flex-row justify-between items-center bg-neutral-800 py-1 px-2 border-b border-neutral-600 mb-2">
         <div class="flex items-center gap-2">
             <h1 class="text-xs md:text-sm font-bold text-neutral-100 uppercase tracking-wider hidden sm:block">
-                Signal Analyzer <span class="text-neutral-500 text-[9px] font-mono align-top ml-0.5">V1.30.0</span>
+                Signal Analyzer <span class="text-neutral-500 text-[9px] font-mono align-top ml-0.5">V1.31.0</span>
             </h1>
             <div class="text-[9px] uppercase font-bold text-neutral-400">
                 <span id="engine-status" class="text-yellow-500 font-mono bg-neutral-900 px-1 border border-neutral-700">READY</span>
@@ -96,9 +94,9 @@
 
     <main class="w-full max-w-7xl flex-1 flex flex-col gap-2 overflow-hidden">
 
-        <!-- Single Multiplexed Canvas Container -->
-        <section id="displays-wrapper" class="order-1 md:order-2 w-full flex-none flex flex-col gap-2">
-            <div id="display-main" class="canvas-container w-full min-h-[200px] h-[35vh] md:h-[350px] bg-neutral-950 relative" title="Double-click to reset trace offsets">
+        <!-- REV 1.31.0: Canvas Container set to flex-1 to absorb all remaining viewport height -->
+        <section id="displays-wrapper" class="order-1 md:order-2 w-full flex-1 flex flex-col gap-2 min-h-[250px]">
+            <div id="display-main" class="canvas-container w-full flex-1 bg-neutral-950 relative" title="Double-click to reset trace offsets">
                 <div class="absolute top-0 left-0 text-[10px] font-mono font-bold text-neutral-400 z-20 bg-neutral-900 px-2 py-0.5 border-b border-r border-neutral-700">
                     CH: <span id="ch-indicator" class="text-white">L+R</span>
                 </div>
@@ -110,8 +108,8 @@
             </div>
         </section>
 
-        <!-- Instrument Control Panel -->
-        <section class="order-2 md:order-1 w-full flex-1 overflow-y-auto industrial-scroll pr-1 pb-10 flex flex-col gap-1">
+        <!-- REV 1.31.0: Controls set to flex-none to only occupy required height -->
+        <section class="order-2 md:order-1 w-full flex-none overflow-y-auto industrial-scroll pr-1 pb-2 flex flex-col gap-1 max-h-[45vh] md:max-h-none">
             
             <div class="w-full flex justify-between items-end px-1 flex-none">
                 <h2 class="text-neutral-500 font-bold text-[10px] tracking-widest uppercase">Bench Controls</h2>
@@ -126,7 +124,6 @@
                 <div class="flex flex-col gap-2">
                     <h3 class="text-[10px] uppercase tracking-wider text-neutral-500 font-bold border-b border-neutral-600 pb-1">Routing</h3>
                     <button id="btn-mode" class="py-1 bg-blue-800 hover:bg-blue-700 border border-blue-600 text-[10px] font-bold text-white">MODE: SPECTRUM</button>
-                    <!-- Toggles multiple active channels -->
                     <div class="flex gap-1">
                         <button id="btn-show-combined" class="flex-1 py-1 bg-neutral-600 border border-neutral-500 text-[10px] font-bold text-white shadow-[0_2px_0_#22d3ee]">L+R</button>
                         <button id="btn-show-left" class="flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[10px] font-bold text-neutral-400">L</button>
@@ -293,7 +290,6 @@
         let zoomMinFreq = 0, zoomMaxFreq = 22000;
         let actualNyquist = 22050; 
         
-        // Cursors 
         let cursorX1Freq = 1000, cursorX2Freq = 5000;
         let cursorY1Db = -40, cursorY2Db = -60;
         let wfCursorY1Px = 50, wfCursorY2Px = 150;
@@ -301,7 +297,6 @@
         let lastDrawTime = 0;
         let msPerRowAverage = 16.67; 
 
-        // Oscilloscope Globals
         let scopeTimeWindowMs = 20; 
         let scopeMaxAmp = 1.0; 
         let scopeCursorX1Ms = 5, scopeCursorX2Ms = 15;
@@ -532,6 +527,7 @@
             }
         }
 
+        // REV 1.31.0: Trigger cursor now mimics active channel color
         function drawOscilloscopeGrid(ctx, cvs) { 
             const p = getPadding();
             const w = cvs.width;
@@ -563,17 +559,18 @@
                 ctx.fillStyle = '#a3a3a3'; ctx.fillText(trueVoltage > 0 ? '+' + trueVoltage.toFixed(2) : trueVoltage.toFixed(2), p.left - 8, y + 4);
             });
 
-            if (scopeTriggerSource !== null) {
+            if (scopeTriggerSource !== null && channels[scopeTriggerSource]) {
+                const trigColor = channels[scopeTriggerSource].color;
                 const trigY = getScopeYPosition(scopeTriggerLevel, cvs.height);
                 ctx.save(); 
-                ctx.strokeStyle = '#f472b6'; 
+                ctx.strokeStyle = trigColor; 
                 ctx.setLineDash([4, 4]);
                 ctx.beginPath(); 
                 ctx.moveTo(p.left, trigY); 
                 ctx.lineTo(w, trigY); 
                 ctx.stroke(); 
                 
-                ctx.fillStyle = '#f472b6'; 
+                ctx.fillStyle = trigColor; 
                 ctx.textAlign = 'left'; 
                 ctx.fillText('TRIG', p.left + 5, trigY - 4);
                 ctx.restore(); 
@@ -597,7 +594,6 @@
         // 5. AUDIO INITIALIZATION & ERROR HANDLING
         // ==========================================
         async function initAudio(sourceType) {
-            // REV 1.30.0 Feature Detection: Ensure mediaDevices exists
             if (!navigator.mediaDevices) {
                 showToast("ERROR: MediaDevices API not supported. Requires HTTPS or Localhost context.", true);
                 return;
@@ -615,7 +611,6 @@
                     if (!navigator.mediaDevices.getUserMedia) throw new Error("Microphone API not supported in this browser.");
                     stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 } else {
-                    // REV 1.30.0 Feature Detection: Ensure getDisplayMedia exists for System Audio
                     if (!navigator.mediaDevices.getDisplayMedia) {
                         throw new Error("System Audio capture is restricted. You are likely on a mobile device or a local file:// protocol.");
                     }
@@ -653,7 +648,6 @@
                 statusEl.textContent = `LIVE (${sourceType.toUpperCase()})`; statusEl.className = "text-green-500 font-mono bg-neutral-900 px-1 border border-neutral-700";
                 stream.getTracks().forEach(t => t.onended = () => stopAudio());
             } catch (err) {
-                // Catch W3C compliance errors and output to the UI safely without crashing
                 showToast("ERROR: " + err.message, true); 
                 stopAudio();
             }
