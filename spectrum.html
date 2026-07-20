@@ -4,23 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="description" content="Professional Web-Based Audio Spectrum Analyzer and Oscilloscope">
-    <title>Audio Spectrum Visualizer - REV 1.28.0</title>
+    <title>Audio Spectrum Visualizer - REV 1.29.0</title>
     
-    <!-- Pro Tip: Inline SVG Favicons are a zero-latency way to brand web apps without external image requests -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎛️</text></svg>">
-    
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* Strict, Industrial CSS Resets */
         body, html {
             height: 100%;
             margin: 0;
-            background-color: #171717; /* Neutral 900 */
-            color: #d4d4d4; /* Neutral 300 */
+            background-color: #171717; 
+            color: #d4d4d4; 
         }
         
-        /* Application-style custom scrollbar for the control panel */
         .industrial-scroll::-webkit-scrollbar { width: 10px; }
         .industrial-scroll::-webkit-scrollbar-track { background: #262626; border-left: 1px solid #404040; }
         .industrial-scroll::-webkit-scrollbar-thumb { background: #525252; border-radius: 0px; border: 1px solid #262626; }
@@ -72,11 +68,11 @@
         </div>
     </div>
 
-    <!-- REV 1.28.0: Ultra-compact, single-row mobile header -->
+    <!-- Ultra-compact, single-row mobile header -->
     <header class="w-full max-w-7xl flex-none flex flex-row justify-between items-center bg-neutral-800 py-1 px-2 border-b border-neutral-600 mb-2">
         <div class="flex items-center gap-2">
             <h1 class="text-xs md:text-sm font-bold text-neutral-100 uppercase tracking-wider hidden sm:block">
-                Signal Analyzer <span class="text-neutral-500 text-[9px] font-mono align-top ml-0.5">V1.28.0</span>
+                Signal Analyzer <span class="text-neutral-500 text-[9px] font-mono align-top ml-0.5">V1.29.0</span>
             </h1>
             <div class="text-[9px] uppercase font-bold text-neutral-400">
                 <span id="engine-status" class="text-yellow-500 font-mono bg-neutral-900 px-1 border border-neutral-700">READY</span>
@@ -98,9 +94,9 @@
 
     <main class="w-full max-w-7xl flex-1 flex flex-col gap-2 overflow-hidden">
 
-        <!-- REV 1.28.0: Single Multiplexed Canvas Container -->
+        <!-- Single Multiplexed Canvas Container -->
         <section id="displays-wrapper" class="order-1 md:order-2 w-full flex-none flex flex-col gap-2">
-            <div id="display-main" class="canvas-container w-full min-h-[200px] h-[35vh] md:h-[350px] bg-neutral-950 relative">
+            <div id="display-main" class="canvas-container w-full min-h-[200px] h-[35vh] md:h-[350px] bg-neutral-950 relative" title="Double-click to reset trace offsets">
                 <div class="absolute top-0 left-0 text-[10px] font-mono font-bold text-neutral-400 z-20 bg-neutral-900 px-2 py-0.5 border-b border-r border-neutral-700">
                     CH: <span id="ch-indicator" class="text-white">L+R</span>
                 </div>
@@ -128,7 +124,7 @@
                 <div class="flex flex-col gap-2">
                     <h3 class="text-[10px] uppercase tracking-wider text-neutral-500 font-bold border-b border-neutral-600 pb-1">Routing</h3>
                     <button id="btn-mode" class="py-1 bg-blue-800 hover:bg-blue-700 border border-blue-600 text-[10px] font-bold text-white">MODE: SPECTRUM</button>
-                    <!-- Toggles multiple active channels now -->
+                    <!-- Toggles multiple active channels -->
                     <div class="flex gap-1">
                         <button id="btn-show-combined" class="flex-1 py-1 bg-neutral-600 border border-neutral-500 text-[10px] font-bold text-white shadow-[0_2px_0_#22d3ee]">L+R</button>
                         <button id="btn-show-left" class="flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[10px] font-bold text-neutral-400">L</button>
@@ -323,20 +319,20 @@
         const statusEl = document.getElementById('engine-status');
         
         // ==========================================
-        // 2. MULTIPLEXED CHANNEL TRACKING (REV 1.28.0)
+        // 2. MULTIPLEXED CHANNEL TRACKING (REV 1.29.0)
         // ==========================================
         
-        // All channels use the same master canvas now.
         const mainDisplay = {
             container: document.getElementById('display-main'),
             visCvs: document.getElementById('vis-main'), 
             wfCvs: document.getElementById('wf-main')
         };
 
+        // REV 1.29.0: Added offsetY tracking for vertical isolation
         const channels = {
-            combined: { active: true, analyser: null, data: null, timeData: null, rawData: null, rawTimeData: null, color: '#22d3ee', fill: 'rgba(34, 211, 238, 0.1)', name: 'L+R' },
-            left: { active: false, analyser: null, data: null, timeData: null, rawData: null, rawTimeData: null, color: '#4ade80', fill: 'rgba(74, 222, 128, 0.1)', name: 'L' },
-            right: { active: false, analyser: null, data: null, timeData: null, rawData: null, rawTimeData: null, color: '#f472b6', fill: 'rgba(244, 114, 182, 0.1)', name: 'R' }
+            combined: { active: true, analyser: null, data: null, timeData: null, rawData: null, rawTimeData: null, color: '#22d3ee', fill: 'rgba(34, 211, 238, 0.1)', name: 'L+R', offsetY: 0 },
+            left: { active: false, analyser: null, data: null, timeData: null, rawData: null, rawTimeData: null, color: '#4ade80', fill: 'rgba(74, 222, 128, 0.1)', name: 'L', offsetY: 0 },
+            right: { active: false, analyser: null, data: null, timeData: null, rawData: null, rawTimeData: null, color: '#f472b6', fill: 'rgba(244, 114, 182, 0.1)', name: 'R', offsetY: 0 }
         };
 
         const controls = {
@@ -385,7 +381,6 @@
             } else {
                 targetSize = Math.pow(2, parseInt(controls.bandwidth.el.value));
             }
-            
             Object.values(channels).forEach(ch => {
                 if (ch.analyser && ch.analyser.fftSize !== targetSize) {
                     ch.analyser.fftSize = targetSize;
@@ -688,7 +683,6 @@
             if (!isFrozen) {
                 Object.values(channels).forEach(ch => {
                     if (ch.analyser) {
-                        // Time Domain (Scope/Lissajous)
                         if (viewMode === 'oscilloscope' || viewMode === 'lissajous') {
                             if (!ch.rawTimeData || ch.rawTimeData.length !== ch.analyser.fftSize) {
                                 ch.rawTimeData = new Float32Array(ch.analyser.fftSize); 
@@ -696,9 +690,7 @@
                             }
                             ch.analyser.getFloatTimeDomainData(ch.rawTimeData);
                             for(let i=0; i<ch.rawTimeData.length; i++) ch.timeData[i] = ch.rawTimeData[i];
-                        }
-                        // Frequency Domain (Spectrum/Waterfall)
-                        else {
+                        } else {
                             const bufferLength = ch.analyser.frequencyBinCount;
                             if (!ch.rawData || ch.rawData.length !== bufferLength) ch.rawData = new Float32Array(bufferLength);
                             ch.analyser.getFloatFrequencyData(ch.rawData);
@@ -721,7 +713,6 @@
             // --- LISSAJOUS RENDERING ---
             if (viewMode === 'lissajous') {
                 drawLissajousGrid(visCtx, mainDisplay.visCvs, scopeMaxAmp);
-                // Requires both L and R arrays to exist
                 if (channels.left.timeData && channels.right.timeData) {
                     drawLissajous(visCtx, mainDisplay.visCvs, channels.left.timeData, channels.right.timeData, scopeMaxAmp, '#ef4444'); 
                 }
@@ -766,13 +757,13 @@
                 } 
                 if (lastTriggerIndex === -1) lastTriggerIndex = 0;
 
-                // Draw multiplexed channels
+                // REV 1.29.0: Apply individual channel offsetY
                 Object.keys(channels).forEach(key => {
                     const ch = channels[key];
                     if (!ch.active) return;
-                    if (ch.timeData) drawOscilloscope(visCtx, mainDisplay.visCvs, ch.timeData, lastTriggerIndex, ch.color);
+                    if (ch.timeData) drawOscilloscope(visCtx, mainDisplay.visCvs, ch.timeData, lastTriggerIndex, ch.color, ch.offsetY, 1.5);
                     if (isMemOverlay && memorySnapshot && memorySnapshot.channels[key] && memorySnapshot.channels[key].timeData) {
-                        drawOscilloscope(visCtx, mainDisplay.visCvs, memorySnapshot.channels[key].timeData, 0, '#ef4444', 2.5); // Ghost layer
+                        drawOscilloscope(visCtx, mainDisplay.visCvs, memorySnapshot.channels[key].timeData, 0, '#ef4444', ch.offsetY, 2.5);
                     }
                 });
 
@@ -786,7 +777,6 @@
 
             if (viewMode === 'waterfall' || viewMode === 'both') {
                 wfCtx.drawImage(mainDisplay.wfCvs, 0, 1);
-                // Determine primary trace for waterfall (prioritize Combined, then Left, then Right)
                 let primaryData = null;
                 if (channels.combined.active && channels.combined.data) primaryData = channels.combined.data;
                 else if (channels.left.active && channels.left.data) primaryData = channels.left.data;
@@ -796,44 +786,50 @@
             } 
 
             if (viewMode === 'spectrum' || viewMode === 'both') {
+                // REV 1.29.0: Apply individual channel offsetY
                 Object.keys(channels).forEach(key => {
                     const ch = channels[key];
                     if (!ch.active || !ch.data) return;
-                    drawTrace(visCtx, mainDisplay.visCvs, ch.data, ch.color, ch.fill, 1.5);
+                    drawTrace(visCtx, mainDisplay.visCvs, ch.data, ch.color, ch.fill, ch.offsetY, 1.5);
                     if (isMemOverlay && memorySnapshot && memorySnapshot.channels[key] && memorySnapshot.channels[key].data) {
-                        drawTrace(visCtx, mainDisplay.visCvs, memorySnapshot.channels[key].data, '#ef4444', false, 2.5);
+                        drawTrace(visCtx, mainDisplay.visCvs, memorySnapshot.channels[key].data, '#ef4444', false, ch.offsetY, 2.5);
                     }
                 });
             }
 
-            // Use combined data for measurement peaks if available, else first active
-            let activeDataForMeas = channels.combined.active ? channels.combined.data : (channels.left.active ? channels.left.data : channels.right.data);
-            drawMeasurementTools(visCtx, mainDisplay.visCvs, activeDataForMeas);
+            let activeChannelForMeas = channels.combined.active ? channels.combined : (channels.left.active ? channels.left : channels.right);
+            drawMeasurementTools(visCtx, mainDisplay.visCvs, activeChannelForMeas);
             updateCursorReadouts();
         }
 
         // --- Extracted Drawing Primitives ---
-        function drawTrace(ctx, cvs, data, strokeColor, fillStyle, lineWidth = 1.5) {
+        // REV 1.29.0: Incorporates dynamic Y translation based on the specific channel's offset
+        function drawTrace(ctx, cvs, data, strokeColor, fillStyle, offsetY = 0, lineWidth = 1.5) {
             const bufferLength = data.length; const binSize = actualNyquist / bufferLength; const p = getPadding();
             ctx.lineWidth = lineWidth; ctx.strokeStyle = strokeColor; ctx.beginPath();
             let hasMoved = false; const startB = Math.max(0, Math.floor(zoomMinFreq / binSize)); const endB = Math.min(bufferLength, Math.ceil(zoomMaxFreq / binSize));
             for (let i = startB; i < endB; i++) {
-                const x = getXPosition(i * binSize, cvs.width); const val = Math.max(displayMinDb, Math.min(displayMaxDb, data[i])); const y = getYPosition(val, cvs.height);
+                const x = getXPosition(i * binSize, cvs.width); 
+                const val = Math.max(displayMinDb, Math.min(displayMaxDb, data[i])); 
+                const y = getYPosition(val, cvs.height) + offsetY; // Apply Translation
                 if (!hasMoved) { ctx.moveTo(x, y); hasMoved = true; } else ctx.lineTo(x, y);
             }
             ctx.stroke();
             if (fillStyle) {
+                // Fill down to the absolute bottom of the graphical area regardless of trace offset
                 ctx.lineTo(getXPosition(endB * binSize, cvs.width), cvs.height - p.bottom); ctx.lineTo(p.left, cvs.height - p.bottom);
                 ctx.fillStyle = fillStyle; ctx.fill();
             }
         }
 
-        function drawOscilloscope(ctx, cvs, timeData, triggerIndex, strokeColor, lineWidth = 1.5) {
+        // REV 1.29.0: Incorporates dynamic Y translation based on the specific channel's offset
+        function drawOscilloscope(ctx, cvs, timeData, triggerIndex, strokeColor, offsetY = 0, lineWidth = 1.5) {
             const sampleRate = actualNyquist * 2; const samplesToDraw = Math.min(timeData.length - triggerIndex, Math.floor((scopeTimeWindowMs / 1000) * sampleRate));
             ctx.lineWidth = lineWidth; ctx.strokeStyle = strokeColor; ctx.beginPath(); let hasMoved = false;
             for (let i = 0; i < samplesToDraw; i++) {
                 const timeMs = (i / sampleRate) * 1000; const x = getScopeXPosition(timeMs, cvs.width);
-                const val = Math.max(-scopeMaxAmp, Math.min(scopeMaxAmp, timeData[triggerIndex + i])); const y = getScopeYPosition(val, cvs.height);
+                const val = Math.max(-scopeMaxAmp, Math.min(scopeMaxAmp, timeData[triggerIndex + i])); 
+                const y = getScopeYPosition(val, cvs.height) + offsetY; // Apply Translation
                 if (!hasMoved) { ctx.moveTo(x, y); hasMoved = true; } else ctx.lineTo(x, y);
             }
             ctx.stroke();
@@ -873,7 +869,7 @@
             ctx.restore();
         }
 
-        function drawMeasurementTools(ctx, cvs, data) {
+        function drawMeasurementTools(ctx, cvs, channelInfo) {
             const p = getPadding();
             const gH = cvs.height - p.bottom;
 
@@ -893,7 +889,9 @@
 
             if (viewMode === 'lissajous') return; 
 
-            if (showPeaks && viewMode !== 'waterfall' && data) {
+            if (showPeaks && viewMode !== 'waterfall' && channelInfo && channelInfo.data) {
+                const data = channelInfo.data;
+                const offsetY = channelInfo.offsetY || 0;
                 const bufferLength = data.length; const binSize = actualNyquist / bufferLength; let localPeaks = [];
                 const startB = Math.max(0, Math.floor(zoomMinFreq / binSize)); const endB = Math.min(bufferLength, Math.ceil(zoomMaxFreq / binSize));
                 for (let i = startB + 1; i < endB - 1; i++) {
@@ -906,7 +904,9 @@
                     if (!tooClose) distinctPeaks.push(peak);
                 }
                 distinctPeaks.forEach((peak, idx) => {
-                    const x = getXPosition(peak.freq, cvs.width), y = getYPosition(peak.db, cvs.height);
+                    const x = getXPosition(peak.freq, cvs.width);
+                    const y = getYPosition(peak.db, cvs.height) + offsetY; // Peaks travel with trace offset
+                    
                     ctx.strokeStyle = 'rgba(0,0,0,0.85)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI*2); ctx.stroke();
                     ctx.strokeStyle = '#f472b6'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI*2); ctx.stroke();
                     ctx.font = '10px monospace'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
@@ -1030,7 +1030,6 @@
             btn.classList.toggle('bg-neutral-600', channels[key].active); btn.classList.toggle('bg-neutral-800', !channels[key].active);
             btn.classList.toggle('text-white', channels[key].active); btn.classList.toggle('text-neutral-400', !channels[key].active);
             
-            // Add accent colors to buttons to denote trace color
             if (key === 'combined') {
                 if (channels[key].active) btn.style.boxShadow = '0 2px 0 #22d3ee'; else btn.style.boxShadow = 'none';
             } else if (key === 'left') {
@@ -1039,7 +1038,6 @@
                 if (channels[key].active) btn.style.boxShadow = '0 2px 0 #f472b6'; else btn.style.boxShadow = 'none';
             }
 
-            // Update badge
             let activeNames = [];
             if (channels.combined.active) activeNames.push(`<span class="text-cyan-400">L+R</span>`);
             if (channels.left.active) activeNames.push(`<span class="text-green-400">L</span>`);
@@ -1239,12 +1237,16 @@
             }
         }
 
+        // REV 1.29.0: Trace hit-detection logic
         function handlePointerDown(e, cvs) {
-            const rect = cvs.getBoundingClientRect(); const clientX = e.touches && e.touches.length > 0 ? e.touches[0].clientX : e.clientX;
+            const rect = cvs.getBoundingClientRect(); 
+            const clientX = e.touches && e.touches.length > 0 ? e.touches[0].clientX : e.clientX;
             const clientY = e.touches && e.touches.length > 0 ? e.touches[0].clientY : e.clientY;
-            const x = clientX - rect.left; const y = clientY - rect.top;
+            const x = clientX - rect.left; 
+            const y = clientY - rect.top;
             
-            activeDrag = null; const hitTest = 25; 
+            activeDrag = null; 
+            const hitTest = 25; 
             
             if (viewMode === 'oscilloscope') {
                 if (scopeTriggerSource !== null) {
@@ -1279,14 +1281,70 @@
                     else if (Math.abs(y - getYPosition(cursorY2Db, cvs.height)) < hitTest) activeDrag = { id: 'y2', cvs };
                 }
             }
+
+            // REV 1.29.0: Trace Drag Hit-Test (Fallback if no cursors/triggers grabbed)
+            if (!activeDrag && (viewMode === 'spectrum' || viewMode === 'oscilloscope' || viewMode === 'both')) {
+                let closestDist = 30; // Pixel radius for grabbing a trace
+                let selectedTrace = null;
+                
+                Object.keys(channels).forEach(key => {
+                    const ch = channels[key];
+                    if (!ch.active) return;
+                    
+                    let traceY = null;
+                    if ((viewMode === 'spectrum' || viewMode === 'both') && ch.data) {
+                        const binSize = actualNyquist / ch.data.length;
+                        const freq = getFreqFromX(x, cvs.width);
+                        const bin = Math.max(0, Math.min(ch.data.length - 1, Math.round(freq / binSize)));
+                        const val = Math.max(displayMinDb, Math.min(displayMaxDb, ch.data[bin]));
+                        traceY = getYPosition(val, cvs.height) + ch.offsetY;
+                    } else if (viewMode === 'oscilloscope' && ch.timeData) {
+                        const ms = getMsFromScopeX(x, cvs.width);
+                        const sampleRate = actualNyquist * 2;
+                        const index = lastTriggerIndex + Math.max(0, Math.round((ms / 1000) * sampleRate));
+                        if (index < ch.timeData.length) {
+                            const val = Math.max(-scopeMaxAmp, Math.min(scopeMaxAmp, ch.timeData[index]));
+                            traceY = getScopeYPosition(val, cvs.height) + ch.offsetY;
+                        }
+                    }
+                    
+                    if (traceY !== null) {
+                        const dist = Math.abs(y - traceY);
+                        if (dist < closestDist) {
+                            closestDist = dist;
+                            selectedTrace = key;
+                        }
+                    }
+                });
+                
+                if (selectedTrace) {
+                    activeDrag = { 
+                        id: 'trace', 
+                        key: selectedTrace, 
+                        startY: y, 
+                        startOffset: channels[selectedTrace].offsetY 
+                    };
+                    cvs.style.cursor = 'grabbing';
+                }
+            }
         }
 
+        // REV 1.29.0: Handle continuous movement for trace offsets
         function handlePointerMove(e) {
             if (!activeDrag) return; if (e.cancelable) e.preventDefault(); 
-            const rect = activeDrag.cvs.getBoundingClientRect(); const clientX = e.touches && e.touches.length > 0 ? e.touches[0].clientX : e.clientX;
+            const rect = (activeDrag.cvs || mainDisplay.visCvs).getBoundingClientRect(); 
+            const clientX = e.touches && e.touches.length > 0 ? e.touches[0].clientX : e.clientX;
             const clientY = e.touches && e.touches.length > 0 ? e.touches[0].clientY : e.clientY;
-            const x = clientX - rect.left; const y = clientY - rect.top;
+            const x = clientX - rect.left; 
+            const y = clientY - rect.top;
             
+            // Trace Dragging Logic
+            if (activeDrag.id === 'trace') {
+                channels[activeDrag.key].offsetY = activeDrag.startOffset + (y - activeDrag.startY);
+                return;
+            }
+
+            // Standard Element Dragging Logic
             if (viewMode === 'oscilloscope') {
                 if (activeDrag.id === 'trig') {
                     scopeTriggerLevel = getAmpFromScopeY(y, activeDrag.cvs.height);
@@ -1312,11 +1370,20 @@
             clampCursors(); updateCursorReadouts();
         }
 
-        function handlePointerUp() { activeDrag = null; }
+        function handlePointerUp() { 
+            activeDrag = null; 
+            mainDisplay.visCvs.style.cursor = 'crosshair'; 
+        }
 
         mainDisplay.visCvs.addEventListener('mousedown', (e) => handlePointerDown(e, mainDisplay.visCvs)); 
         mainDisplay.visCvs.addEventListener('touchstart', (e) => handlePointerDown(e, mainDisplay.visCvs), { passive: false });
         
+        // REV 1.29.0: Reset offsets via double-click
+        mainDisplay.visCvs.addEventListener('dblclick', () => {
+            Object.values(channels).forEach(ch => ch.offsetY = 0);
+            showToast("TRACE OFFSETS ZEROED", false);
+        });
+
         window.addEventListener('mousemove', handlePointerMove); window.addEventListener('mouseup', handlePointerUp);
         window.addEventListener('touchmove', handlePointerMove, { passive: false }); window.addEventListener('touchend', handlePointerUp);
 
@@ -1361,6 +1428,9 @@
             scopeTimeWindowMs = 20; scopeMaxAmp = 1.0; scopeTriggerLevel = 0.0; scopeTriggerSource = null; setTriggerSource(null);
             cursorsXEnabled = false; cursorsYEnabled = false; isOneShotArmed = false; isMemOverlay = false; memorySnapshot = null;
             
+            // REV 1.29.0 reset offsets
+            Object.values(channels).forEach(ch => ch.offsetY = 0);
+
             controls.gain.el.value = 2; controls.gain.disp.textContent = "2.0x"; if (gainNode) gainNode.gain.setTargetAtTime(2, audioCtx.currentTime, 0.05);
             controls.avg.el.value = 0; controls.avg.disp.textContent = "OFF";
             controls.bandwidth.el.value = 11; controls.bandwidth.disp.textContent = "2048"; applyFftSize(); 
