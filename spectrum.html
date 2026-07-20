@@ -2,9 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <!-- Ensures proper scaling on mobile without allowing user zoom, mimicking a native app -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="description" content="Professional Web-Based Audio Spectrum Analyzer and Oscilloscope">
-    <title>Audio Spectrum Visualizer - REV 1.29.0</title>
+    <title>Audio Spectrum Visualizer - REV 1.30.0</title>
     
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎛️</text></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -63,6 +64,7 @@
 </head>
 <body class="flex flex-col items-center px-1 md:px-2 pt-1 pb-2 font-sans h-screen overflow-hidden relative">
 
+    <!-- Fixed Toast Notification Container for Error Handling -->
     <div id="toast-container" class="fixed top-5 left-1/2 transform -translate-x-1/2 z-50 flex flex-col items-center w-full px-4 pointer-events-none">
         <div id="message-box" class="transition-all duration-300 opacity-0 transform -translate-y-4 p-3 border shadow-none text-xs font-mono max-w-xl text-center w-full">
         </div>
@@ -72,7 +74,7 @@
     <header class="w-full max-w-7xl flex-none flex flex-row justify-between items-center bg-neutral-800 py-1 px-2 border-b border-neutral-600 mb-2">
         <div class="flex items-center gap-2">
             <h1 class="text-xs md:text-sm font-bold text-neutral-100 uppercase tracking-wider hidden sm:block">
-                Signal Analyzer <span class="text-neutral-500 text-[9px] font-mono align-top ml-0.5">V1.29.0</span>
+                Signal Analyzer <span class="text-neutral-500 text-[9px] font-mono align-top ml-0.5">V1.30.0</span>
             </h1>
             <div class="text-[9px] uppercase font-bold text-neutral-400">
                 <span id="engine-status" class="text-yellow-500 font-mono bg-neutral-900 px-1 border border-neutral-700">READY</span>
@@ -83,7 +85,7 @@
             <button id="btn-mic" class="px-2 py-0.5 bg-neutral-700 hover:bg-neutral-600 border border-neutral-500 text-neutral-200 transition-none text-[9px] font-bold">
                 Mic
             </button>
-            <button id="btn-system" class="px-2 py-0.5 bg-neutral-700 hover:bg-neutral-600 border border-neutral-500 text-neutral-200 transition-none text-[9px] font-bold">
+            <button id="btn-system" class="px-2 py-0.5 bg-neutral-700 hover:bg-neutral-600 border border-neutral-500 text-neutral-200 transition-none text-[9px] font-bold" title="Requires Localhost or HTTPS">
                 Sys Audio
             </button>
             <button id="btn-stop" class="hidden px-2 py-0.5 bg-red-900 hover:bg-red-800 border border-red-700 text-red-200 transition-none text-[9px] font-bold">
@@ -319,7 +321,7 @@
         const statusEl = document.getElementById('engine-status');
         
         // ==========================================
-        // 2. MULTIPLEXED CHANNEL TRACKING (REV 1.29.0)
+        // 2. MULTIPLEXED CHANNEL TRACKING
         // ==========================================
         
         const mainDisplay = {
@@ -328,7 +330,6 @@
             wfCvs: document.getElementById('wf-main')
         };
 
-        // REV 1.29.0: Added offsetY tracking for vertical isolation
         const channels = {
             combined: { active: true, analyser: null, data: null, timeData: null, rawData: null, rawTimeData: null, color: '#22d3ee', fill: 'rgba(34, 211, 238, 0.1)', name: 'L+R', offsetY: 0 },
             left: { active: false, analyser: null, data: null, timeData: null, rawData: null, rawTimeData: null, color: '#4ade80', fill: 'rgba(74, 222, 128, 0.1)', name: 'L', offsetY: 0 },
@@ -593,9 +594,15 @@
         }
 
         // ==========================================
-        // 5. AUDIO INITIALIZATION
+        // 5. AUDIO INITIALIZATION & ERROR HANDLING
         // ==========================================
         async function initAudio(sourceType) {
+            // REV 1.30.0 Feature Detection: Ensure mediaDevices exists
+            if (!navigator.mediaDevices) {
+                showToast("ERROR: MediaDevices API not supported. Requires HTTPS or Localhost context.", true);
+                return;
+            }
+
             showToast("INITIALIZING AUDIO ENGINE", false);
             statusEl.textContent = "INITIALIZING";
             statusEl.className = "text-yellow-500 font-mono bg-neutral-900 px-1 border border-neutral-700";
@@ -605,12 +612,18 @@
 
             try {
                 if (sourceType === 'mic') {
+                    if (!navigator.mediaDevices.getUserMedia) throw new Error("Microphone API not supported in this browser.");
                     stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 } else {
+                    // REV 1.30.0 Feature Detection: Ensure getDisplayMedia exists for System Audio
+                    if (!navigator.mediaDevices.getDisplayMedia) {
+                        throw new Error("System Audio capture is restricted. You are likely on a mobile device or a local file:// protocol.");
+                    }
                     showToast("SYSTEM AUDIO: Select 'Entire Screen' and enable 'Share system audio'.", false);
                     stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+                    
                     const audioTracks = stream.getAudioTracks();
-                    if (!audioTracks.length) throw new Error("No audio track detected.");
+                    if (!audioTracks.length) throw new Error("No audio track detected. You must explicitly check 'Share audio' in the system prompt.");
                 }
 
                 if (audioCtx.state === 'suspended') await audioCtx.resume();
@@ -640,7 +653,9 @@
                 statusEl.textContent = `LIVE (${sourceType.toUpperCase()})`; statusEl.className = "text-green-500 font-mono bg-neutral-900 px-1 border border-neutral-700";
                 stream.getTracks().forEach(t => t.onended = () => stopAudio());
             } catch (err) {
-                showToast("ERROR: " + err.message, true); stopAudio();
+                // Catch W3C compliance errors and output to the UI safely without crashing
+                showToast("ERROR: " + err.message, true); 
+                stopAudio();
             }
         }
 
@@ -757,7 +772,6 @@
                 } 
                 if (lastTriggerIndex === -1) lastTriggerIndex = 0;
 
-                // REV 1.29.0: Apply individual channel offsetY
                 Object.keys(channels).forEach(key => {
                     const ch = channels[key];
                     if (!ch.active) return;
@@ -786,7 +800,6 @@
             } 
 
             if (viewMode === 'spectrum' || viewMode === 'both') {
-                // REV 1.29.0: Apply individual channel offsetY
                 Object.keys(channels).forEach(key => {
                     const ch = channels[key];
                     if (!ch.active || !ch.data) return;
@@ -803,7 +816,6 @@
         }
 
         // --- Extracted Drawing Primitives ---
-        // REV 1.29.0: Incorporates dynamic Y translation based on the specific channel's offset
         function drawTrace(ctx, cvs, data, strokeColor, fillStyle, offsetY = 0, lineWidth = 1.5) {
             const bufferLength = data.length; const binSize = actualNyquist / bufferLength; const p = getPadding();
             ctx.lineWidth = lineWidth; ctx.strokeStyle = strokeColor; ctx.beginPath();
@@ -811,25 +823,23 @@
             for (let i = startB; i < endB; i++) {
                 const x = getXPosition(i * binSize, cvs.width); 
                 const val = Math.max(displayMinDb, Math.min(displayMaxDb, data[i])); 
-                const y = getYPosition(val, cvs.height) + offsetY; // Apply Translation
+                const y = getYPosition(val, cvs.height) + offsetY; 
                 if (!hasMoved) { ctx.moveTo(x, y); hasMoved = true; } else ctx.lineTo(x, y);
             }
             ctx.stroke();
             if (fillStyle) {
-                // Fill down to the absolute bottom of the graphical area regardless of trace offset
                 ctx.lineTo(getXPosition(endB * binSize, cvs.width), cvs.height - p.bottom); ctx.lineTo(p.left, cvs.height - p.bottom);
                 ctx.fillStyle = fillStyle; ctx.fill();
             }
         }
 
-        // REV 1.29.0: Incorporates dynamic Y translation based on the specific channel's offset
         function drawOscilloscope(ctx, cvs, timeData, triggerIndex, strokeColor, offsetY = 0, lineWidth = 1.5) {
             const sampleRate = actualNyquist * 2; const samplesToDraw = Math.min(timeData.length - triggerIndex, Math.floor((scopeTimeWindowMs / 1000) * sampleRate));
             ctx.lineWidth = lineWidth; ctx.strokeStyle = strokeColor; ctx.beginPath(); let hasMoved = false;
             for (let i = 0; i < samplesToDraw; i++) {
                 const timeMs = (i / sampleRate) * 1000; const x = getScopeXPosition(timeMs, cvs.width);
                 const val = Math.max(-scopeMaxAmp, Math.min(scopeMaxAmp, timeData[triggerIndex + i])); 
-                const y = getScopeYPosition(val, cvs.height) + offsetY; // Apply Translation
+                const y = getScopeYPosition(val, cvs.height) + offsetY; 
                 if (!hasMoved) { ctx.moveTo(x, y); hasMoved = true; } else ctx.lineTo(x, y);
             }
             ctx.stroke();
@@ -905,7 +915,7 @@
                 }
                 distinctPeaks.forEach((peak, idx) => {
                     const x = getXPosition(peak.freq, cvs.width);
-                    const y = getYPosition(peak.db, cvs.height) + offsetY; // Peaks travel with trace offset
+                    const y = getYPosition(peak.db, cvs.height) + offsetY; 
                     
                     ctx.strokeStyle = 'rgba(0,0,0,0.85)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI*2); ctx.stroke();
                     ctx.strokeStyle = '#f472b6'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI*2); ctx.stroke();
@@ -1237,7 +1247,6 @@
             }
         }
 
-        // REV 1.29.0: Trace hit-detection logic
         function handlePointerDown(e, cvs) {
             const rect = cvs.getBoundingClientRect(); 
             const clientX = e.touches && e.touches.length > 0 ? e.touches[0].clientX : e.clientX;
@@ -1282,9 +1291,8 @@
                 }
             }
 
-            // REV 1.29.0: Trace Drag Hit-Test (Fallback if no cursors/triggers grabbed)
             if (!activeDrag && (viewMode === 'spectrum' || viewMode === 'oscilloscope' || viewMode === 'both')) {
-                let closestDist = 30; // Pixel radius for grabbing a trace
+                let closestDist = 30; 
                 let selectedTrace = null;
                 
                 Object.keys(channels).forEach(key => {
@@ -1329,7 +1337,6 @@
             }
         }
 
-        // REV 1.29.0: Handle continuous movement for trace offsets
         function handlePointerMove(e) {
             if (!activeDrag) return; if (e.cancelable) e.preventDefault(); 
             const rect = (activeDrag.cvs || mainDisplay.visCvs).getBoundingClientRect(); 
@@ -1338,13 +1345,11 @@
             const x = clientX - rect.left; 
             const y = clientY - rect.top;
             
-            // Trace Dragging Logic
             if (activeDrag.id === 'trace') {
                 channels[activeDrag.key].offsetY = activeDrag.startOffset + (y - activeDrag.startY);
                 return;
             }
 
-            // Standard Element Dragging Logic
             if (viewMode === 'oscilloscope') {
                 if (activeDrag.id === 'trig') {
                     scopeTriggerLevel = getAmpFromScopeY(y, activeDrag.cvs.height);
@@ -1378,7 +1383,6 @@
         mainDisplay.visCvs.addEventListener('mousedown', (e) => handlePointerDown(e, mainDisplay.visCvs)); 
         mainDisplay.visCvs.addEventListener('touchstart', (e) => handlePointerDown(e, mainDisplay.visCvs), { passive: false });
         
-        // REV 1.29.0: Reset offsets via double-click
         mainDisplay.visCvs.addEventListener('dblclick', () => {
             Object.values(channels).forEach(ch => ch.offsetY = 0);
             showToast("TRACE OFFSETS ZEROED", false);
@@ -1428,7 +1432,6 @@
             scopeTimeWindowMs = 20; scopeMaxAmp = 1.0; scopeTriggerLevel = 0.0; scopeTriggerSource = null; setTriggerSource(null);
             cursorsXEnabled = false; cursorsYEnabled = false; isOneShotArmed = false; isMemOverlay = false; memorySnapshot = null;
             
-            // REV 1.29.0 reset offsets
             Object.values(channels).forEach(ch => ch.offsetY = 0);
 
             controls.gain.el.value = 2; controls.gain.disp.textContent = "2.0x"; if (gainNode) gainNode.gain.setTargetAtTime(2, audioCtx.currentTime, 0.05);
