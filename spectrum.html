@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Professional Web-Based Audio Spectrum Analyzer and Oscilloscope">
-    <title>Audio Spectrum Visualizer - REV 1.25.0</title>
+    <title>Audio Spectrum Visualizer - REV 1.26.0</title>
     
     <!-- Pro Tip: Inline SVG Favicons are a zero-latency way to brand web apps without external image requests -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎛️</text></svg>">
@@ -72,7 +72,7 @@
     <header class="w-full max-w-7xl flex flex-col md:flex-row justify-between items-center bg-neutral-800 p-2 md:px-4 border border-neutral-600 mb-2 gap-2 md:gap-0">
         <div class="flex flex-col sm:flex-row items-center sm:gap-4 text-center sm:text-left">
             <h1 class="text-lg font-bold text-neutral-100 uppercase tracking-wider whitespace-nowrap">
-                Spectrum Analyzer <span class="text-neutral-500 text-[10px] font-mono tracking-widest ml-1 align-top">REV 1.25.0</span>
+                Spectrum Analyzer <span class="text-neutral-500 text-[10px] font-mono tracking-widest ml-1 align-top">REV 1.26.0</span>
             </h1>
             <div class="text-neutral-400 text-[10px] uppercase sm:border-l sm:border-neutral-600 sm:pl-4 mt-1 sm:mt-0 font-bold">
                 Status: <span id="engine-status" class="text-yellow-500 font-mono bg-neutral-900 px-1 border border-neutral-700">READY</span>
@@ -92,198 +92,205 @@
         </div>
     </header>
 
-    <div class="w-full max-w-7xl flex justify-between items-end mb-1 px-1">
-        <h2 class="text-neutral-500 font-bold text-[10px] tracking-widest uppercase">Bench Controls</h2>
-        <button id="btn-reset" class="text-[10px] uppercase font-bold text-neutral-400 hover:text-neutral-200 transition-none">
-            [ Restore Defaults ]
-        </button>
-    </div>
+    <!-- REV 1.26.0 MAIN WRAPPER: Flex container handling dynamic mobile vs desktop reordering -->
+    <main class="w-full max-w-7xl flex flex-col gap-4">
 
-    <!-- Instrument Control Panel (High Density Grid) -->
-    <div class="bg-neutral-800 p-3 md:p-4 border border-neutral-600 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-x-6 gap-y-4 mb-4 w-full max-w-7xl">
-        
-        <!-- Display & Mode -->
-        <div class="flex flex-col gap-2">
-            <h3 class="text-[10px] uppercase tracking-wider text-neutral-500 font-bold border-b border-neutral-600 pb-1">Routing</h3>
-            <button id="btn-mode" class="py-1 bg-blue-800 hover:bg-blue-700 border border-blue-600 text-[10px] font-bold text-white">MODE: SPECTRUM</button>
-            <div class="flex gap-1">
-                <button id="btn-show-combined" class="flex-1 py-1 bg-neutral-600 border border-neutral-500 text-[10px] font-bold">L+R</button>
-                <button id="btn-show-left" class="flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[10px] font-bold text-neutral-400">L</button>
-                <button id="btn-show-right" class="flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[10px] font-bold text-neutral-400">R</button>
-            </div>
-        </div>
-
-        <!-- Signal & Processing -->
-        <div class="flex flex-col gap-3">
-            <h3 class="text-[10px] uppercase tracking-wider text-neutral-500 font-bold border-b border-neutral-600 pb-1">Processing</h3>
-            <div class="flex flex-col gap-0.5">
-                <label for="gain" class="text-[9px] font-bold uppercase text-neutral-400 flex justify-between">
-                    <span>Gain</span>
-                    <span id="gain-value" class="text-cyan-400 font-mono">2.0x</span>
-                </label>
-                <input type="range" id="gain" min="0.1" max="10" step="0.1" value="2">
-            </div>
-            <div id="avg-container" class="flex flex-col gap-0.5 mode-spec">
-                <label for="avg" class="text-[9px] font-bold uppercase text-neutral-400 flex justify-between">
-                    <span>Average</span>
-                    <span id="avg-value" class="text-cyan-400 font-mono">OFF</span>
-                </label>
-                <input type="range" id="avg" min="0" max="0.98" step="0.02" value="0">
-            </div>
-            <div class="flex gap-1 mt-0.5">
-                <button id="btn-freeze" class="flex-1 py-1 bg-neutral-800 hover:bg-neutral-700 border border-neutral-600 text-[9px] font-bold text-neutral-300">FREEZE: OFF</button>
-                <button id="btn-peaks" class="flex-1 py-1 bg-neutral-800 hover:bg-neutral-700 border border-neutral-600 text-[9px] font-bold text-neutral-300 mode-spec">PEAKS: OFF</button>
-            </div>
-        </div>
-
-        <!-- Resolution & Scale -->
-        <div class="flex flex-col gap-3">
-            <h3 class="text-[10px] uppercase tracking-wider text-neutral-500 font-bold border-b border-neutral-600 pb-1">Timebase / FFT</h3>
-            <div class="flex flex-col gap-0.5">
-                <label for="bandwidth" class="text-[9px] font-bold uppercase text-neutral-400 flex justify-between">
-                    <span>FFT Size</span>
-                    <span id="bandwidth-value" class="text-cyan-400 font-mono">2048</span>
-                </label>
-                <input type="range" id="bandwidth" min="5" max="15" step="1" value="11">
-            </div>
-            <button id="btn-scale" class="py-1.5 mt-1 bg-neutral-800 hover:bg-neutral-700 border border-neutral-600 text-[9px] font-bold text-neutral-300 mode-spec w-full">X-SCALE: LINEAR</button>
-        </div>
-
-        <!-- Zoom & Trigger Controls -->
-        <div class="flex flex-col gap-2">
-            <h3 class="text-[10px] uppercase tracking-wider text-neutral-500 font-bold border-b border-neutral-600 pb-1">Zoom & Trig</h3>
+        <!-- Visualization Canvases (ORDER 1 on Mobile, ORDER 2 on Desktop) -->
+        <section id="displays-wrapper" class="order-1 md:order-2 w-full flex flex-col gap-2 mb-4">
             
-            <div id="zoom-spectrum" class="grid grid-cols-2 gap-x-3 gap-y-2 mode-spec">
-                <div class="flex flex-col gap-0.5">
-                    <label for="min-freq" class="text-[9px] font-bold uppercase text-neutral-400 flex justify-between">
-                        <span>Min Hz</span>
-                        <span id="min-freq-val" class="text-cyan-400 font-mono">0</span>
-                    </label>
-                    <input type="range" id="min-freq" min="0" max="24000" step="1" value="0">
+            <!-- Combined Display -->
+            <div id="display-combined" class="canvas-container w-full min-h-[200px] h-[350px] bg-neutral-950 relative">
+                <div class="absolute top-0 left-0 text-[10px] font-mono font-bold text-neutral-400 z-20 bg-neutral-900 px-2 py-0.5 border-b border-r border-neutral-700">CH: COMBINED (L+R)</div>
+                <div class="ms-row-badge absolute top-0 right-0 text-[10px] font-mono font-bold text-neutral-400 z-20 bg-neutral-900 px-2 py-0.5 border-b border-l border-neutral-700" style="display: none;">
+                    <span class="val">--</span> ms/row
                 </div>
-                <div class="flex flex-col gap-0.5">
-                    <label for="max-freq" class="text-[9px] font-bold uppercase text-neutral-400 flex justify-between">
-                        <span>Max Hz</span>
-                        <span id="max-freq-val" class="text-cyan-400 font-mono">22000</span>
-                    </label>
-                    <input type="range" id="max-freq" min="100" max="24000" step="100" value="22000">
-                </div>
-                <div class="flex flex-col gap-0.5">
-                    <label for="min-db" class="text-[9px] font-bold uppercase text-neutral-400 flex justify-between">
-                        <span>Min dB</span>
-                        <span id="min-db-val" class="text-cyan-400 font-mono">-140</span>
-                    </label>
-                    <input type="range" id="min-db" min="-140" max="-70" step="1" value="-140">
-                </div>
-                <div class="flex flex-col gap-0.5">
-                    <label for="max-db" class="text-[9px] font-bold uppercase text-neutral-400 flex justify-between">
-                        <span>Max dB</span>
-                        <span id="max-db-val" class="text-cyan-400 font-mono">0</span>
-                    </label>
-                    <input type="range" id="max-db" min="-60" max="0" step="1" value="0">
-                </div>
+                <canvas id="wf-combined" class="absolute inset-0 w-full h-full block z-0"></canvas>
+                <canvas id="vis-combined" class="absolute inset-0 w-full h-full block z-10"></canvas>
             </div>
 
-            <div id="zoom-scope" class="grid grid-cols-1 gap-y-2 mode-scope" style="display: none;">
-                <div id="scope-time-container" class="flex flex-col gap-0.5">
-                    <label for="scope-time" class="text-[9px] font-bold uppercase text-neutral-400 flex justify-between">
-                        <span>Time Base</span>
-                        <span id="scope-time-val" class="text-cyan-400 font-mono">20ms</span>
-                    </label>
-                    <input type="range" id="scope-time" min="1" max="500" step="1" value="20">
+            <!-- Left Channel Display -->
+            <div id="display-left" style="display: none;" class="canvas-container w-full min-h-[200px] h-[350px] bg-neutral-950 relative">
+                <div class="absolute top-0 left-0 text-[10px] font-mono font-bold text-neutral-400 z-20 bg-neutral-900 px-2 py-0.5 border-b border-r border-neutral-700">CH: LEFT</div>
+                <div class="ms-row-badge absolute top-0 right-0 text-[10px] font-mono font-bold text-neutral-400 z-20 bg-neutral-900 px-2 py-0.5 border-b border-l border-neutral-700" style="display: none;">
+                    <span class="val">--</span> ms/row
                 </div>
-                <div class="flex flex-col gap-0.5">
-                    <label for="scope-amp" class="text-[9px] font-bold uppercase text-neutral-400 flex justify-between">
-                        <span>V/Div Zoom</span>
-                        <span id="scope-amp-val" class="text-cyan-400 font-mono">1.00x</span>
-                    </label>
-                    <input type="range" id="scope-amp" min="0.05" max="1" step="0.05" value="1">
+                <canvas id="wf-left" class="absolute inset-0 w-full h-full block z-0"></canvas>
+                <canvas id="vis-left" class="absolute inset-0 w-full h-full block z-10"></canvas>
+            </div>
+
+            <!-- Right Channel Display -->
+            <div id="display-right" style="display: none;" class="canvas-container w-full min-h-[200px] h-[350px] bg-neutral-950 relative">
+                <div class="absolute top-0 left-0 text-[10px] font-mono font-bold text-neutral-400 z-20 bg-neutral-900 px-2 py-0.5 border-b border-r border-neutral-700">CH: RIGHT</div>
+                <div class="ms-row-badge absolute top-0 right-0 text-[10px] font-mono font-bold text-neutral-400 z-20 bg-neutral-900 px-2 py-0.5 border-b border-l border-neutral-700" style="display: none;">
+                    <span class="val">--</span> ms/row
                 </div>
-                <div id="scope-trigger-container" class="flex flex-col gap-0.5 border-t border-neutral-700 pt-1">
-                    <label for="scope-trigger-lvl" class="text-[9px] font-bold uppercase text-neutral-400 flex justify-between">
-                        <span>Trig Level</span>
-                        <span id="scope-trigger-val" class="text-pink-400 font-mono">0.00</span>
-                    </label>
-                    <input type="range" id="scope-trigger-lvl" min="-1" max="1" step="0.01" value="0">
+                <canvas id="wf-right" class="absolute inset-0 w-full h-full block z-0"></canvas>
+                <canvas id="vis-right" class="absolute inset-0 w-full h-full block z-10"></canvas>
+            </div>
+
+        </section>
+
+        <!-- Instrument Control Panel (ORDER 2 on Mobile, ORDER 1 on Desktop) -->
+        <section class="order-2 md:order-1 w-full flex flex-col gap-1 mb-4">
+            
+            <div class="w-full flex justify-between items-end px-1">
+                <h2 class="text-neutral-500 font-bold text-[10px] tracking-widest uppercase">Bench Controls</h2>
+                <button id="btn-reset" class="text-[10px] uppercase font-bold text-neutral-400 hover:text-neutral-200 transition-none">
+                    [ Restore Defaults ]
+                </button>
+            </div>
+
+            <div class="bg-neutral-800 p-3 md:p-4 border border-neutral-600 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-x-6 gap-y-4 w-full">
+                <!-- Display & Mode -->
+                <div class="flex flex-col gap-2">
+                    <h3 class="text-[10px] uppercase tracking-wider text-neutral-500 font-bold border-b border-neutral-600 pb-1">Routing</h3>
+                    <button id="btn-mode" class="py-1 bg-blue-800 hover:bg-blue-700 border border-blue-600 text-[10px] font-bold text-white">MODE: SPECTRUM</button>
+                    <div class="flex gap-1">
+                        <button id="btn-show-combined" class="flex-1 py-1 bg-neutral-600 border border-neutral-500 text-[10px] font-bold">L+R</button>
+                        <button id="btn-show-left" class="flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[10px] font-bold text-neutral-400">L</button>
+                        <button id="btn-show-right" class="flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[10px] font-bold text-neutral-400">R</button>
+                    </div>
                 </div>
-                <div id="scope-trigger-btns" class="flex gap-0.5">
-                    <button id="btn-trig-comb" class="flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[9px] font-bold text-neutral-400">T:L+R</button>
-                    <button id="btn-trig-left" class="flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[9px] font-bold text-neutral-400">T:L</button>
-                    <button id="btn-trig-right" class="flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[9px] font-bold text-neutral-400">T:R</button>
-                    <button id="btn-trig-oneshot" class="flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[9px] font-bold text-neutral-400">1-SHOT</button>
+
+                <!-- Signal & Processing -->
+                <div class="flex flex-col gap-3">
+                    <h3 class="text-[10px] uppercase tracking-wider text-neutral-500 font-bold border-b border-neutral-600 pb-1">Processing</h3>
+                    <div class="flex flex-col gap-0.5">
+                        <label for="gain" class="text-[9px] font-bold uppercase text-neutral-400 flex justify-between">
+                            <span>Gain</span>
+                            <span id="gain-value" class="text-cyan-400 font-mono">2.0x</span>
+                        </label>
+                        <input type="range" id="gain" min="0.1" max="10" step="0.1" value="2">
+                    </div>
+                    <div id="avg-container" class="flex flex-col gap-0.5 mode-spec">
+                        <label for="avg" class="text-[9px] font-bold uppercase text-neutral-400 flex justify-between">
+                            <span>Average</span>
+                            <span id="avg-value" class="text-cyan-400 font-mono">OFF</span>
+                        </label>
+                        <input type="range" id="avg" min="0" max="0.98" step="0.02" value="0">
+                    </div>
+                    <div class="flex gap-1 mt-0.5">
+                        <button id="btn-freeze" class="flex-1 py-1 bg-neutral-800 hover:bg-neutral-700 border border-neutral-600 text-[9px] font-bold text-neutral-300">FREEZE: OFF</button>
+                        <button id="btn-peaks" class="flex-1 py-1 bg-neutral-800 hover:bg-neutral-700 border border-neutral-600 text-[9px] font-bold text-neutral-300 mode-spec">PEAKS: OFF</button>
+                    </div>
+                </div>
+
+                <!-- Resolution & Scale -->
+                <div class="flex flex-col gap-3">
+                    <h3 class="text-[10px] uppercase tracking-wider text-neutral-500 font-bold border-b border-neutral-600 pb-1">Timebase / FFT</h3>
+                    <div class="flex flex-col gap-0.5">
+                        <label for="bandwidth" class="text-[9px] font-bold uppercase text-neutral-400 flex justify-between">
+                            <span>FFT Size</span>
+                            <span id="bandwidth-value" class="text-cyan-400 font-mono">2048</span>
+                        </label>
+                        <input type="range" id="bandwidth" min="5" max="15" step="1" value="11">
+                    </div>
+                    <button id="btn-scale" class="py-1.5 mt-1 bg-neutral-800 hover:bg-neutral-700 border border-neutral-600 text-[9px] font-bold text-neutral-300 mode-spec w-full">X-SCALE: LINEAR</button>
+                </div>
+
+                <!-- Zoom & Trigger Controls -->
+                <div class="flex flex-col gap-2">
+                    <h3 class="text-[10px] uppercase tracking-wider text-neutral-500 font-bold border-b border-neutral-600 pb-1">Zoom & Trig</h3>
+                    
+                    <div id="zoom-spectrum" class="grid grid-cols-2 gap-x-3 gap-y-2 mode-spec">
+                        <div class="flex flex-col gap-0.5">
+                            <label for="min-freq" class="text-[9px] font-bold uppercase text-neutral-400 flex justify-between">
+                                <span>Min Hz</span>
+                                <span id="min-freq-val" class="text-cyan-400 font-mono">0</span>
+                            </label>
+                            <input type="range" id="min-freq" min="0" max="24000" step="1" value="0">
+                        </div>
+                        <div class="flex flex-col gap-0.5">
+                            <label for="max-freq" class="text-[9px] font-bold uppercase text-neutral-400 flex justify-between">
+                                <span>Max Hz</span>
+                                <span id="max-freq-val" class="text-cyan-400 font-mono">22000</span>
+                            </label>
+                            <input type="range" id="max-freq" min="100" max="24000" step="100" value="22000">
+                        </div>
+                        <div class="flex flex-col gap-0.5">
+                            <label for="min-db" class="text-[9px] font-bold uppercase text-neutral-400 flex justify-between">
+                                <span>Min dB</span>
+                                <span id="min-db-val" class="text-cyan-400 font-mono">-140</span>
+                            </label>
+                            <input type="range" id="min-db" min="-140" max="-70" step="1" value="-140">
+                        </div>
+                        <div class="flex flex-col gap-0.5">
+                            <label for="max-db" class="text-[9px] font-bold uppercase text-neutral-400 flex justify-between">
+                                <span>Max dB</span>
+                                <span id="max-db-val" class="text-cyan-400 font-mono">0</span>
+                            </label>
+                            <input type="range" id="max-db" min="-60" max="0" step="1" value="0">
+                        </div>
+                    </div>
+
+                    <div id="zoom-scope" class="grid grid-cols-1 gap-y-2 mode-scope" style="display: none;">
+                        <div id="scope-time-container" class="flex flex-col gap-0.5">
+                            <label for="scope-time" class="text-[9px] font-bold uppercase text-neutral-400 flex justify-between">
+                                <span>Time Base</span>
+                                <span id="scope-time-val" class="text-cyan-400 font-mono">20ms</span>
+                            </label>
+                            <input type="range" id="scope-time" min="1" max="500" step="1" value="20">
+                        </div>
+                        <div class="flex flex-col gap-0.5">
+                            <label for="scope-amp" class="text-[9px] font-bold uppercase text-neutral-400 flex justify-between">
+                                <span>V/Div Zoom</span>
+                                <span id="scope-amp-val" class="text-cyan-400 font-mono">1.00x</span>
+                            </label>
+                            <input type="range" id="scope-amp" min="0.05" max="1" step="0.05" value="1">
+                        </div>
+                        <div id="scope-trigger-container" class="flex flex-col gap-0.5 border-t border-neutral-700 pt-1">
+                            <label for="scope-trigger-lvl" class="text-[9px] font-bold uppercase text-neutral-400 flex justify-between">
+                                <span>Trig Level</span>
+                                <span id="scope-trigger-val" class="text-pink-400 font-mono">0.00</span>
+                            </label>
+                            <input type="range" id="scope-trigger-lvl" min="-1" max="1" step="0.01" value="0">
+                        </div>
+                        <div id="scope-trigger-btns" class="flex gap-0.5">
+                            <button id="btn-trig-comb" class="flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[9px] font-bold text-neutral-400">T:L+R</button>
+                            <button id="btn-trig-left" class="flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[9px] font-bold text-neutral-400">T:L</button>
+                            <button id="btn-trig-right" class="flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[9px] font-bold text-neutral-400">T:R</button>
+                            <button id="btn-trig-oneshot" class="flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[9px] font-bold text-neutral-400">1-SHOT</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Measuring Tools -->
+                <div class="flex flex-col gap-2">
+                    <h3 class="text-[10px] uppercase tracking-wider text-neutral-500 font-bold border-b border-neutral-600 pb-1">Measurement</h3>
+                    <div class="flex gap-1">
+                        <button id="btn-cursor-x" class="flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[9px] font-bold text-neutral-400">X-CURS</button>
+                        <button id="btn-cursor-y" class="flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[9px] font-bold text-neutral-400">Y-CURS</button>
+                    </div>
+                    <div class="text-[10px] font-mono grid grid-cols-2 gap-x-1 gap-y-0.5 bg-neutral-950 p-1.5 border border-neutral-700">
+                        <div><span id="lbl-f1" class="text-neutral-500">F1:</span> <span id="readout-f1" class="text-green-400">--</span></div>
+                        <div><span id="lbl-a1" class="text-neutral-500">A1:</span> <span id="readout-a1" class="text-purple-400">--</span></div>
+                        <div><span id="lbl-f2" class="text-neutral-500">F2:</span> <span id="readout-f2" class="text-green-400">--</span></div>
+                        <div><span id="lbl-a2" class="text-neutral-500">A2:</span> <span id="readout-a2" class="text-purple-400">--</span></div>
+                        <div class="col-span-2 pt-0.5 mt-0.5 border-t border-neutral-800 flex justify-between">
+                            <span><span id="lbl-df" class="text-neutral-500">ΔF:</span> <span id="readout-df" class="text-yellow-400">--</span></span>
+                            <span><span id="lbl-da" class="text-neutral-500">ΔA:</span> <span id="readout-da" class="text-yellow-400">--</span></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Memory & Storage -->
+                <div class="flex flex-col gap-2">
+                    <h3 class="text-[10px] uppercase tracking-wider text-neutral-500 font-bold border-b border-neutral-600 pb-1">I/O</h3>
+                    <button id="btn-mem-capture" class="w-full py-1 bg-neutral-700 hover:bg-neutral-600 border border-neutral-500 text-[10px] font-bold text-white">CAP TO MEM</button>
+                    <div class="flex gap-1">
+                        <button id="btn-mem-overlay" class="flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[9px] font-bold text-neutral-400">OVERLAY</button>
+                        <button id="btn-mem-restore" class="flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[9px] font-bold text-neutral-400">RESTORE</button>
+                    </div>
+                    <div class="flex gap-1">
+                        <button id="btn-mem-save" class="flex-1 py-1 bg-neutral-900 hover:bg-neutral-700 border border-neutral-600 text-[9px] font-bold text-cyan-500">SAVE</button>
+                        <button id="btn-mem-load" class="flex-1 py-1 bg-neutral-900 hover:bg-neutral-700 border border-neutral-600 text-[9px] font-bold text-cyan-500">LOAD</button>
+                        <input type="file" id="mem-file-input" accept=".json" class="hidden">
+                    </div>
                 </div>
             </div>
-        </div>
+        </section>
 
-        <!-- Measuring Tools -->
-        <div class="flex flex-col gap-2">
-            <h3 class="text-[10px] uppercase tracking-wider text-neutral-500 font-bold border-b border-neutral-600 pb-1">Measurement</h3>
-            <div class="flex gap-1">
-                <button id="btn-cursor-x" class="flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[9px] font-bold text-neutral-400">X-CURS</button>
-                <button id="btn-cursor-y" class="flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[9px] font-bold text-neutral-400">Y-CURS</button>
-            </div>
-            <div class="text-[10px] font-mono grid grid-cols-2 gap-x-1 gap-y-0.5 bg-neutral-950 p-1.5 border border-neutral-700">
-                <div><span id="lbl-f1" class="text-neutral-500">F1:</span> <span id="readout-f1" class="text-green-400">--</span></div>
-                <div><span id="lbl-a1" class="text-neutral-500">A1:</span> <span id="readout-a1" class="text-purple-400">--</span></div>
-                <div><span id="lbl-f2" class="text-neutral-500">F2:</span> <span id="readout-f2" class="text-green-400">--</span></div>
-                <div><span id="lbl-a2" class="text-neutral-500">A2:</span> <span id="readout-a2" class="text-purple-400">--</span></div>
-                <div class="col-span-2 pt-0.5 mt-0.5 border-t border-neutral-800 flex justify-between">
-                    <span><span id="lbl-df" class="text-neutral-500">ΔF:</span> <span id="readout-df" class="text-yellow-400">--</span></span>
-                    <span><span id="lbl-da" class="text-neutral-500">ΔA:</span> <span id="readout-da" class="text-yellow-400">--</span></span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Memory & Storage -->
-        <div class="flex flex-col gap-2">
-            <h3 class="text-[10px] uppercase tracking-wider text-neutral-500 font-bold border-b border-neutral-600 pb-1">I/O</h3>
-            <button id="btn-mem-capture" class="w-full py-1 bg-neutral-700 hover:bg-neutral-600 border border-neutral-500 text-[10px] font-bold text-white">CAP TO MEM</button>
-            <div class="flex gap-1">
-                <button id="btn-mem-overlay" class="flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[9px] font-bold text-neutral-400">OVERLAY</button>
-                <button id="btn-mem-restore" class="flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[9px] font-bold text-neutral-400">RESTORE</button>
-            </div>
-            <div class="flex gap-1">
-                <button id="btn-mem-save" class="flex-1 py-1 bg-neutral-900 hover:bg-neutral-700 border border-neutral-600 text-[9px] font-bold text-cyan-500">SAVE</button>
-                <button id="btn-mem-load" class="flex-1 py-1 bg-neutral-900 hover:bg-neutral-700 border border-neutral-600 text-[9px] font-bold text-cyan-500">LOAD</button>
-                <input type="file" id="mem-file-input" accept=".json" class="hidden">
-            </div>
-        </div>
-    </div>
-
-    <!-- Visualization Canvases Wrapper -->
-    <div id="displays-wrapper" class="w-full max-w-7xl flex flex-col gap-2 mb-8">
-        
-        <!-- Combined Display -->
-        <div id="display-combined" class="canvas-container w-full min-h-[200px] h-[350px] bg-neutral-950 relative">
-            <div class="absolute top-0 left-0 text-[10px] font-mono font-bold text-neutral-400 z-20 bg-neutral-900 px-2 py-0.5 border-b border-r border-neutral-700">CH: COMBINED (L+R)</div>
-            <div class="ms-row-badge absolute top-0 right-0 text-[10px] font-mono font-bold text-neutral-400 z-20 bg-neutral-900 px-2 py-0.5 border-b border-l border-neutral-700" style="display: none;">
-                <span class="val">--</span> ms/row
-            </div>
-            <canvas id="wf-combined" class="absolute inset-0 w-full h-full block z-0"></canvas>
-            <canvas id="vis-combined" class="absolute inset-0 w-full h-full block z-10"></canvas>
-        </div>
-
-        <!-- Left Channel Display -->
-        <div id="display-left" style="display: none;" class="canvas-container w-full min-h-[200px] h-[350px] bg-neutral-950 relative">
-            <div class="absolute top-0 left-0 text-[10px] font-mono font-bold text-neutral-400 z-20 bg-neutral-900 px-2 py-0.5 border-b border-r border-neutral-700">CH: LEFT</div>
-            <div class="ms-row-badge absolute top-0 right-0 text-[10px] font-mono font-bold text-neutral-400 z-20 bg-neutral-900 px-2 py-0.5 border-b border-l border-neutral-700" style="display: none;">
-                <span class="val">--</span> ms/row
-            </div>
-            <canvas id="wf-left" class="absolute inset-0 w-full h-full block z-0"></canvas>
-            <canvas id="vis-left" class="absolute inset-0 w-full h-full block z-10"></canvas>
-        </div>
-
-        <!-- Right Channel Display -->
-        <div id="display-right" style="display: none;" class="canvas-container w-full min-h-[200px] h-[350px] bg-neutral-950 relative">
-            <div class="absolute top-0 left-0 text-[10px] font-mono font-bold text-neutral-400 z-20 bg-neutral-900 px-2 py-0.5 border-b border-r border-neutral-700">CH: RIGHT</div>
-            <div class="ms-row-badge absolute top-0 right-0 text-[10px] font-mono font-bold text-neutral-400 z-20 bg-neutral-900 px-2 py-0.5 border-b border-l border-neutral-700" style="display: none;">
-                <span class="val">--</span> ms/row
-            </div>
-            <canvas id="wf-right" class="absolute inset-0 w-full h-full block z-0"></canvas>
-            <canvas id="vis-right" class="absolute inset-0 w-full h-full block z-10"></canvas>
-        </div>
-
-    </div>
+    </main>
 
     <script>
         // ==========================================
@@ -1125,7 +1132,6 @@
         function setTriggerSource(src) {
             if (scopeTriggerSource === src) { scopeTriggerSource = null; } else { scopeTriggerSource = src; }
             
-            // REV 1.25.0: If trigger is turned OFF, safely disarm 1-Shot to prevent logical deadlocks
             if (scopeTriggerSource === null && isOneShotArmed) {
                 isOneShotArmed = false;
                 const btnOs = document.getElementById('btn-trig-oneshot');
@@ -1144,12 +1150,11 @@
         
         document.getElementById('btn-trig-comb').onclick = () => setTriggerSource('combined'); document.getElementById('btn-trig-left').onclick = () => setTriggerSource('left'); document.getElementById('btn-trig-right').onclick = () => setTriggerSource('right');
 
-        // REV 1.25.0 UPDATE: Enforce trigger source prerequisite for 1-Shot arming
         const btnOneShot = document.getElementById('btn-trig-oneshot');
         btnOneShot.onclick = () => {
             if (scopeTriggerSource === null) {
                 showToast("ERROR: SELECT A TRIGGER SOURCE (L+R, L, R) FIRST", true);
-                return; // Prevent arming
+                return; 
             }
 
             if (isOneShotArmed) {
@@ -1369,7 +1374,7 @@
             }, { passive: false }); 
         });
 
-        // --- Defaults Reset ---
+        // --- Defaults Reset (Updated for 1.24.0 Baselines) ---
         document.getElementById('btn-reset').onclick = () => {
             isLogScale = false; isFrozen = false; showPeaks = false; averagingAlpha = 0.0; displayMaxDb = 0; displayMinDb = -140; zoomMinFreq = 0; zoomMaxFreq = 22000;
             scopeTimeWindowMs = 20; scopeMaxAmp = 1.0; scopeTriggerLevel = 0.0; scopeTriggerSource = null; setTriggerSource(null);
