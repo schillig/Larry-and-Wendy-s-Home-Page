@@ -2,10 +2,9 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <!-- W3C Mobile Viewport standard for application-like behavior -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="description" content="Professional Web-Based Audio Spectrum Analyzer and Oscilloscope">
-    <title>Audio Spectrum Visualizer - REV 1.35.0</title>
+    <title>Audio Spectrum Visualizer - REV 1.36.0</title>
     
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎛️</text></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -26,11 +25,9 @@
         .canvas-container {
             border: 1px solid #525252;
             cursor: crosshair;
-            /* Explicitly disable browser pan/zoom to route raw touch events to JS */
             touch-action: none; 
         }
         
-        /* Utilitarian Range Slider */
         input[type=range] {
             -webkit-appearance: none;
             background: transparent;
@@ -70,13 +67,13 @@
         </div>
     </div>
 
-    <!-- Header: Optimized for single-row mobile fit -->
+    <!-- Header -->
     <header class="w-full max-w-7xl flex-none flex flex-row justify-between items-center bg-neutral-800 py-1 px-2 border-b border-neutral-600 mb-2">
         <div class="flex items-center gap-1.5 md:gap-2">
             <h1 class="text-[10px] md:text-sm font-bold text-neutral-100 uppercase tracking-wider flex items-center whitespace-nowrap">
                 <span class="hidden sm:inline">Signal Analyzer</span>
                 <span class="sm:hidden">Analyzer</span>
-                <span class="text-neutral-500 text-[8px] md:text-[9px] font-mono ml-1">V1.35.0</span>
+                <span class="text-neutral-500 text-[8px] md:text-[9px] font-mono ml-1">V1.36.0</span>
             </h1>
             <div class="text-[9px] uppercase font-bold text-neutral-400">
                 <span id="engine-status" class="text-yellow-500 font-mono bg-neutral-900 px-1 border border-neutral-700">READY</span>
@@ -100,7 +97,7 @@
 
         <!-- Canvas Container -->
         <section id="displays-wrapper" class="order-1 md:order-2 w-full flex-1 flex flex-col gap-2 min-h-[250px]">
-            <div id="display-main" class="canvas-container w-full flex-1 bg-neutral-950 relative" title="Drag to Pan / Pinch X: Timebase / Pinch Y: V/DIV / Double-click to Reset">
+            <div id="display-main" class="canvas-container w-full flex-1 bg-neutral-950 relative" title="1-Finger Pan / 2-Finger Zoom / Dbl-Click Reset">
                 <div class="absolute top-0 left-0 text-[10px] font-mono font-bold text-neutral-400 z-20 bg-neutral-900 px-2 py-0.5 border-b border-r border-neutral-700">
                     CH: <span id="ch-indicator" class="text-white">L+R</span>
                 </div>
@@ -204,7 +201,6 @@
 
                     <div id="zoom-scope" class="grid grid-cols-1 gap-y-2 mode-scope" style="display: none;">
                         <div id="scope-time-container" class="flex flex-col gap-0.5">
-                            <!-- REV 1.35.0: Expanded Range for Timebase -->
                             <label for="scope-time" class="text-[9px] font-bold uppercase text-neutral-400 flex justify-between">
                                 <span>Time Base</span>
                                 <span id="scope-time-val" class="text-cyan-400 font-mono">20ms</span>
@@ -212,7 +208,6 @@
                             <input type="range" id="scope-time" min="1" max="5000" step="1" value="20">
                         </div>
                         <div class="flex flex-col gap-0.5">
-                            <!-- REV 1.35.0: Inverted mapping to operate as an explicit multiplier -->
                             <label for="vert-scale" class="text-[9px] font-bold uppercase text-neutral-400 flex justify-between">
                                 <span>Vertical Scale</span>
                                 <span id="vert-scale-val" class="text-cyan-400 font-mono">1.00x</span>
@@ -298,11 +293,9 @@
         let msPerRowAverage = 16.67; 
 
         let scopeTimeWindowMs = 20; 
-        // REV 1.35.0: vertScaleMultiplier replaces scopeMaxAmp logic
         let vertScaleMultiplier = 1.0; 
         let scopeCursorX1Ms = 5, scopeCursorX2Ms = 15;
         let scopeCursorY1Amp = 0.5, scopeCursorY2Amp = -0.5;
-        
         let scopeOffsetXMs = 0;
 
         let scopeTriggerSource = null; 
@@ -316,7 +309,6 @@
         let cursorsXEnabled = false, cursorsYEnabled = false;
         let activeDrag = null;
         
-        // V1.35.0 Pinch Tracking expanded to all axes and modes
         let initialPinchDistX = 0;
         let initialPinchDistY = 0;
         let pinchAxis = null; 
@@ -324,6 +316,16 @@
         let initialVertScale = null;
         let initialPinchMinFreq = 0, initialPinchMaxFreq = 22000;
         let initialPinchMinDb = -140, initialPinchMaxDb = 0;
+
+        // REV 1.36.0: Deep Memory Architecture for Extended Trace Viewing
+        const DEEP_MEM_SECONDS = 6;
+        let deepMemLength = 48000 * DEEP_MEM_SECONDS; 
+        let deepMemL = new Float32Array(deepMemLength);
+        let deepMemR = new Float32Array(deepMemLength);
+        let deepMemC = new Float32Array(deepMemLength);
+        let deepMemPtr = 0;
+        let memNode = null;
+        let dummySink = null;
 
         const statusEl = document.getElementById('engine-status');
         
@@ -445,7 +447,7 @@
         function getScopeYPosition(amp, cvsHeight) {
             const p = getPadding();
             const h = cvsHeight - p.bottom;
-            const visualCeiling = 1.0 / vertScaleMultiplier; // Math translation
+            const visualCeiling = 1.0 / vertScaleMultiplier; 
             return (h / 2) - (amp / visualCeiling) * (h / 2);
         }
 
@@ -644,7 +646,6 @@
 
                 if (audioCtx.state === 'suspended') await audioCtx.resume();
                 actualNyquist = audioCtx.sampleRate / 2;
-                
                 controls.maxFreq.el.max = actualNyquist;
 
                 dummyAudioEl = new Audio(); dummyAudioEl.srcObject = stream; dummyAudioEl.muted = true; dummyAudioEl.play().catch(e => console.warn(e));
@@ -662,6 +663,35 @@
 
                 applyFftSize(); 
 
+                // REV 1.36.0: Deep Memory Allocation
+                deepMemLength = audioCtx.sampleRate * DEEP_MEM_SECONDS;
+                deepMemL = new Float32Array(deepMemLength);
+                deepMemR = new Float32Array(deepMemLength);
+                deepMemC = new Float32Array(deepMemLength);
+                deepMemPtr = 0;
+
+                if (memNode) memNode.disconnect();
+                memNode = audioCtx.createScriptProcessor(4096, 2, 2);
+                memNode.onaudioprocess = (e) => {
+                    if (isFrozen) return;
+                    let inL = e.inputBuffer.getChannelData(0);
+                    let inR = e.inputBuffer.getChannelData(1);
+                    for(let i = 0; i < inL.length; i++) {
+                        deepMemL[deepMemPtr] = inL[i];
+                        // Fallback to mono if right channel is empty
+                        deepMemR[deepMemPtr] = inR[i] !== undefined ? inR[i] : inL[i];
+                        deepMemC[deepMemPtr] = (deepMemL[deepMemPtr] + deepMemR[deepMemPtr]) / 2.0;
+                        deepMemPtr = (deepMemPtr + 1) % deepMemLength;
+                    }
+                };
+
+                if (dummySink) dummySink.disconnect();
+                dummySink = audioCtx.createGain();
+                dummySink.gain.value = 0;
+                gainNode.connect(memNode);
+                memNode.connect(dummySink);
+                dummySink.connect(audioCtx.destination);
+
                 document.getElementById('btn-mic').classList.add('hidden');
                 document.getElementById('btn-system').classList.add('hidden');
                 document.getElementById('btn-stop').classList.remove('hidden');
@@ -677,6 +707,8 @@
         function stopAudio() {
             if (stream) stream.getTracks().forEach(t => t.stop());
             if (dummyAudioEl) { dummyAudioEl.srcObject = null; dummyAudioEl = null; }
+            if (memNode) { memNode.disconnect(); memNode = null; }
+            if (dummySink) { dummySink.disconnect(); dummySink = null; }
             document.getElementById('btn-mic').classList.remove('hidden');
             document.getElementById('btn-system').classList.remove('hidden');
             document.getElementById('btn-stop').classList.add('hidden');
@@ -710,16 +742,23 @@
             }
 
             if (!isFrozen) {
-                Object.values(channels).forEach(ch => {
-                    if (ch.analyser) {
-                        if (viewMode === 'oscilloscope' || viewMode === 'lissajous') {
-                            if (!ch.rawTimeData || ch.rawTimeData.length !== ch.analyser.fftSize) {
-                                ch.rawTimeData = new Float32Array(ch.analyser.fftSize); 
-                                ch.timeData = new Float32Array(ch.analyser.fftSize);
-                            }
-                            ch.analyser.getFloatTimeDomainData(ch.rawTimeData);
-                            for(let i=0; i<ch.rawTimeData.length; i++) ch.timeData[i] = ch.rawTimeData[i];
-                        } else {
+                // REV 1.36.0: Fetch Time Domain Data from Deep Memory Buffer
+                if (viewMode === 'oscilloscope' || viewMode === 'lissajous') {
+                    const flatten = (src) => {
+                        let flat = new Float32Array(deepMemLength);
+                        flat.set(src.subarray(deepMemPtr), 0);
+                        flat.set(src.subarray(0, deepMemPtr), deepMemLength - deepMemPtr);
+                        return flat;
+                    };
+                    channels.left.timeData = flatten(deepMemL);
+                    channels.right.timeData = flatten(deepMemR);
+                    channels.combined.timeData = flatten(deepMemC);
+                }
+                
+                // Keep Spectrum running natively via AnalyserNode
+                if (viewMode !== 'oscilloscope' && viewMode !== 'lissajous') {
+                    Object.values(channels).forEach(ch => {
+                        if (ch.analyser) {
                             const bufferLength = ch.analyser.frequencyBinCount;
                             if (!ch.rawData || ch.rawData.length !== bufferLength) ch.rawData = new Float32Array(bufferLength);
                             ch.analyser.getFloatFrequencyData(ch.rawData);
@@ -735,8 +774,8 @@
                                 }
                             }
                         }
-                    }
-                });
+                    });
+                }
             }
 
             if (viewMode === 'lissajous') {
@@ -757,24 +796,27 @@
                 
                 let triggerFound = false;
                 const visualCeiling = 1.0 / vertScaleMultiplier;
+                const sampleRate = actualNyquist * 2; 
+                const samplesToDraw = Math.floor((scopeTimeWindowMs / 1000) * sampleRate);
+                
                 if (!isFrozen && scopeTriggerSource !== null && channels[scopeTriggerSource] && channels[scopeTriggerSource].timeData) {
                     let searchData = channels[scopeTriggerSource].timeData;
-                    const sampleRate = actualNyquist * 2; 
-                    const samplesToDraw = Math.floor((scopeTimeWindowMs / 1000) * sampleRate);
-                    const searchLimit = Math.max(1, searchData.length - samplesToDraw);
-                    lastTriggerIndex = -1;
                     
+                    // REV 1.36.0: Robust Right-Aligned Scope Trigger Search
+                    lastTriggerIndex = Math.max(0, searchData.length - samplesToDraw);
                     const hysteresis = visualCeiling * 0.05;
                     let armedForEdge = false;
 
-                    for (let i = 0; i < searchLimit - 1; i++) {
-                        if (searchData[i] < scopeTriggerLevel - hysteresis) { armedForEdge = true; }
-                        if (armedForEdge && searchData[i+1] >= scopeTriggerLevel) {
+                    for (let i = lastTriggerIndex; i > 0; i--) {
+                        if (searchData[i] > scopeTriggerLevel + hysteresis) { armedForEdge = true; }
+                        if (armedForEdge && searchData[i-1] <= scopeTriggerLevel) {
                             lastTriggerIndex = i; triggerFound = true; break;
                         }
                     }
                 } else if (!isFrozen) {
-                    lastTriggerIndex = 0;
+                    const activeData = channels.combined.active ? channels.combined.timeData : (channels.left.active ? channels.left.timeData : channels.right.timeData);
+                    const bufferSize = activeData ? activeData.length : deepMemLength;
+                    lastTriggerIndex = Math.max(0, bufferSize - samplesToDraw);
                 }
 
                 if (isOneShotArmed && !isFrozen && triggerFound) {
@@ -784,7 +826,6 @@
                     const btnOs = document.getElementById('btn-trig-oneshot');
                     btnOs.textContent = "1-SHOT: CAUGHT"; btnOs.className = "flex-1 py-1 bg-green-800 border border-green-600 text-[9px] font-bold text-white";
                 } 
-                if (lastTriggerIndex === -1) lastTriggerIndex = 0;
 
                 Object.keys(channels).forEach(key => {
                     const ch = channels[key];
@@ -828,7 +869,6 @@
             updateCursorReadouts();
         }
 
-        // --- Extracted Drawing Primitives ---
         function drawTrace(ctx, cvs, data, strokeColor, fillStyle, offsetY = 0, lineWidth = 1.5) {
             const bufferLength = data.length; const binSize = actualNyquist / bufferLength; const p = getPadding();
             ctx.lineWidth = lineWidth; ctx.strokeStyle = strokeColor; ctx.beginPath();
@@ -978,12 +1018,9 @@
             Object.keys(channels).forEach(key => {
                 const ch = channels[key]; let tempSpec = ch.data;
                 if (!tempSpec && ch.analyser) { tempSpec = new Float32Array(ch.analyser.frequencyBinCount); ch.analyser.getFloatFrequencyData(tempSpec); }
-                let tempTime = ch.timeData;
-                if (!tempTime && ch.analyser) { tempTime = new Float32Array(ch.analyser.fftSize); ch.analyser.getFloatTimeDomainData(tempTime); }
-
                 memorySnapshot.channels[key] = {
                     data: tempSpec ? Array.from(tempSpec).map(v => isFinite(v) ? v : -200) : null,
-                    timeData: tempTime ? Array.from(tempTime.slice(lastTriggerIndex)) : null
+                    timeData: ch.timeData ? Array.from(ch.timeData) : null
                 };
             });
             isMemOverlay = true; document.getElementById('btn-mem-overlay').textContent = "OVERLAY: ON"; document.getElementById('btn-mem-overlay').classList.replace('bg-neutral-800', 'bg-red-900');
@@ -1148,7 +1185,6 @@
         controls.maxDb.el.oninput = (e) => { let val = parseInt(e.target.value); if (val <= displayMinDb + 10) val = displayMinDb + 10; displayMaxDb = val; e.target.value = val; controls.maxDb.disp.textContent = val; clampCursors(); updateCursorReadouts(); };
 
         controls.scopeTime.el.oninput = (e) => { scopeTimeWindowMs = parseInt(e.target.value); controls.scopeTime.disp.textContent = scopeTimeWindowMs + "ms"; clampCursors(); updateCursorReadouts(); };
-        // V1.35.0 Bind multiplier to Vertical Scale slider
         controls.vertScale.el.oninput = (e) => { vertScaleMultiplier = parseFloat(e.target.value); controls.vertScale.disp.textContent = vertScaleMultiplier.toFixed(2) + 'x'; clampCursors(); updateCursorReadouts(); };
         
         controls.scopeTrigger.el.oninput = (e) => { 
@@ -1290,7 +1326,7 @@
             }
         }
 
-        // V1.35.0: Universal Gesture Handling (Pinch & Trace Drag applied to all views)
+        // REV 1.36.0: Omni-Directional Pan Integration
         function handlePointerDown(e, cvs) {
             
             if (e.touches && e.touches.length === 2) {
@@ -1304,7 +1340,6 @@
                 initialPinchDistX = dx;
                 initialPinchDistY = dy;
 
-                // Cache all potential scaling states for any mode
                 initialTimebase = scopeTimeWindowMs;
                 initialVertScale = vertScaleMultiplier;
                 initialPinchMinFreq = zoomMinFreq;
@@ -1394,19 +1429,24 @@
                     }
                 });
                 
+                // REV 1.36.0: Enhanced Pan Object
                 activeDrag = { 
                     id: 'pan', 
                     key: selectedTrace, 
                     startX: x,
                     startY: y, 
                     startOffsetY: selectedTrace ? channels[selectedTrace].offsetY : 0,
-                    startOffsetX: scopeOffsetXMs
+                    startOffsetX: scopeOffsetXMs,
+                    startMinFreq: zoomMinFreq,
+                    startMaxFreq: zoomMaxFreq,
+                    startMinDb: displayMinDb,
+                    startMaxDb: displayMaxDb,
+                    panAxis: null
                 };
                 cvs.style.cursor = 'grabbing';
             }
         }
 
-        // V1.35.0: Process Universal Pinch Adjustments
         function handlePointerMove(e) {
             if (!activeDrag) return; 
 
@@ -1423,16 +1463,15 @@
                         
                         if (viewMode === 'oscilloscope') {
                             let newTimebase = initialTimebase * ratio;
-                            newTimebase = Math.max(1, Math.min(5000, newTimebase)); // Extended to 5000ms
+                            newTimebase = Math.max(1, Math.min(5000, newTimebase));
                             scopeTimeWindowMs = newTimebase;
                             controls.scopeTime.el.value = scopeTimeWindowMs;
                             controls.scopeTime.disp.textContent = Math.round(scopeTimeWindowMs) + "ms";
                         } else {
-                            // Scale Frequency Span
                             const span = initialPinchMaxFreq - initialPinchMinFreq;
                             const center = initialPinchMinFreq + span / 2;
                             let newSpan = span * ratio;
-                            newSpan = Math.max(100, Math.min(24000, newSpan)); // Prevent flatline zooms
+                            newSpan = Math.max(100, Math.min(24000, newSpan)); 
                             
                             zoomMinFreq = Math.max(0, Math.round(center - newSpan / 2));
                             zoomMaxFreq = Math.min(actualNyquist, Math.round(center + newSpan / 2));
@@ -1446,21 +1485,17 @@
                 } else if (pinchAxis === 'y') {
                     const currentDistY = Math.abs(touch1.clientY - touch2.clientY);
                     if (initialPinchDistY > 0 && currentDistY > 0) {
-                        // Invert ratio: pinching out (dist increases) scales up the multiplier
                         const ratio = currentDistY / initialPinchDistY; 
                         
                         if (viewMode === 'oscilloscope') {
                             let newScale = initialVertScale * ratio;
                             newScale = Math.max(0.01, Math.min(100.0, newScale));
-                            
-                            // Snap to slider grid logic loosely to prevent crazy floats
                             newScale = Math.round(newScale * 100) / 100;
                             
                             vertScaleMultiplier = newScale;
                             controls.vertScale.el.value = vertScaleMultiplier;
                             controls.vertScale.disp.textContent = vertScaleMultiplier.toFixed(2) + "x";
                         } else {
-                            // Scale dB Span (Pinching Y alters display min/max)
                             const invertRatio = initialPinchDistY / currentDistY; 
                             const span = initialPinchMaxDb - initialPinchMinDb;
                             const center = initialPinchMinDb + span / 2;
@@ -1490,22 +1525,62 @@
             const x = clientX - rect.left; 
             const y = clientY - rect.top;
             
+            // REV 1.36.0: Omni-Directional 1-Finger Pan
             if (activeDrag.id === 'pan') {
-                if (activeDrag.key) {
-                    channels[activeDrag.key].offsetY = activeDrag.startOffsetY + (y - activeDrag.startY);
+                const dx = x - activeDrag.startX;
+                const dy = y - activeDrag.startY;
+
+                if (!activeDrag.panAxis && (Math.abs(dx) > 5 || Math.abs(dy) > 5)) {
+                    activeDrag.panAxis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
                 }
-                if (viewMode === 'oscilloscope' && isFrozen) {
-                    const deltaXMs = ((x - activeDrag.startX) / rect.width) * scopeTimeWindowMs;
-                    let targetOffset = activeDrag.startOffsetX - deltaXMs;
-                    
-                    const sampleRate = actualNyquist * 2;
-                    const activeData = channels.combined.active ? channels.combined.timeData : (channels.left.active ? channels.left.timeData : channels.right.timeData);
-                    const bufferSize = activeData ? activeData.length : 32768; 
-                    
-                    const minOffsetMs = -(lastTriggerIndex / sampleRate) * 1000;
-                    const maxOffsetMs = ((bufferSize - lastTriggerIndex) / sampleRate) * 1000 - scopeTimeWindowMs;
-                    
-                    scopeOffsetXMs = Math.max(minOffsetMs, Math.min(targetOffset, maxOffsetMs));
+
+                if (activeDrag.panAxis === 'y') {
+                    if (activeDrag.key) {
+                        channels[activeDrag.key].offsetY = activeDrag.startOffsetY + dy;
+                    } else if (viewMode !== 'oscilloscope') {
+                        const dbSpan = activeDrag.startMaxDb - activeDrag.startMinDb;
+                        const deltaDb = (dy / rect.height) * dbSpan;
+                        let newMin = activeDrag.startMinDb + deltaDb;
+                        let newMax = activeDrag.startMaxDb + deltaDb;
+
+                        if (newMax > 0) { newMin -= newMax; newMax = 0; }
+                        if (newMin < -140) { newMax += Math.abs(newMin + 140); newMin = -140; if (newMax > 0) newMax = 0; }
+                        
+                        displayMinDb = Math.round(newMin);
+                        displayMaxDb = Math.round(newMax);
+
+                        controls.minDb.el.value = displayMinDb;
+                        controls.minDb.disp.textContent = displayMinDb;
+                        controls.maxDb.el.value = displayMaxDb;
+                        controls.maxDb.disp.textContent = displayMaxDb;
+                    }
+                } else if (activeDrag.panAxis === 'x') {
+                    if (viewMode === 'oscilloscope') {
+                        const deltaXMs = (dx / rect.width) * scopeTimeWindowMs;
+                        let targetOffset = activeDrag.startOffsetX - deltaXMs;
+                        
+                        const sampleRate = actualNyquist * 2;
+                        const minOffsetMs = -(lastTriggerIndex / sampleRate) * 1000;
+                        const maxOffsetMs = ((deepMemLength - lastTriggerIndex) / sampleRate) * 1000 - scopeTimeWindowMs;
+                        
+                        scopeOffsetXMs = Math.max(minOffsetMs, Math.min(targetOffset, maxOffsetMs));
+                    } else if (viewMode === 'spectrum' || viewMode === 'waterfall' || viewMode === 'both') {
+                        const freqSpan = activeDrag.startMaxFreq - activeDrag.startMinFreq;
+                        const deltaFreq = (dx / rect.width) * freqSpan;
+                        let newMin = activeDrag.startMinFreq - deltaFreq;
+                        let newMax = activeDrag.startMaxFreq - deltaFreq;
+
+                        if (newMin < 0) { newMax += Math.abs(newMin); newMin = 0; }
+                        if (newMax > actualNyquist) { newMin -= (newMax - actualNyquist); newMax = actualNyquist; if (newMin < 0) newMin = 0; }
+
+                        zoomMinFreq = Math.round(newMin);
+                        zoomMaxFreq = Math.round(newMax);
+
+                        controls.minFreq.el.value = zoomMinFreq;
+                        controls.minFreq.disp.textContent = zoomMinFreq;
+                        controls.maxFreq.el.value = zoomMaxFreq;
+                        controls.maxFreq.disp.textContent = zoomMaxFreq;
+                    }
                 }
                 updateCursorReadouts();
                 return;
