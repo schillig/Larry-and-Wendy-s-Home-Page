@@ -4,12 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="description" content="Professional Web-Based Audio Spectrum Analyzer and Oscilloscope">
-    <title>Audio Spectrum Visualizer - REV 1.39.0</title>
+    <title>Audio Spectrum Visualizer - REV 1.40.0</title>
     
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎛️</text></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Strict, Industrial CSS Resets */
         body, html {
             height: 100%;
             margin: 0;
@@ -59,7 +58,6 @@
             text-transform: uppercase;
         }
 
-        /* OSD Text Shadow for Hardware Parity against bright waveforms */
         .osd-text {
             text-shadow: 1px 1px 1px rgba(0,0,0,0.9), -1px -1px 1px rgba(0,0,0,0.9);
         }
@@ -78,7 +76,7 @@
             <h1 class="text-[10px] md:text-sm font-bold text-neutral-100 uppercase tracking-wider flex items-center whitespace-nowrap">
                 <span class="hidden sm:inline">Signal Analyzer</span>
                 <span class="sm:hidden">Analyzer</span>
-                <span class="text-neutral-500 text-[8px] md:text-[9px] font-mono ml-1">V1.39.0</span>
+                <span class="text-neutral-500 text-[8px] md:text-[9px] font-mono ml-1">V1.40.0</span>
             </h1>
             <div class="text-[9px] uppercase font-bold text-neutral-400">
                 <span id="engine-status" class="text-yellow-500 font-mono bg-neutral-900 px-1 border border-neutral-700">READY</span>
@@ -104,21 +102,37 @@
         <section id="displays-wrapper" class="order-1 md:order-2 w-full flex-1 flex flex-col gap-2 min-h-[250px]">
             <div id="display-main" class="canvas-container w-full flex-1 bg-neutral-950 relative" title="1-Finger Pan / 2-Finger Zoom / Dbl-Click Reset">
                 
-                <!-- REV 1.39.0: Hardware Heads-Up Display Overlay. Pointer-events-none ensures gestures drop through to canvas. -->
                 <div id="osd-layer" class="absolute inset-0 z-30 pointer-events-none flex flex-col justify-between p-1.5 font-mono text-[9px] md:text-[11px] font-bold text-neutral-300 pb-[30px] pl-[60px] pr-2">
                     
-                    <div class="flex justify-between items-start w-full">
+                    <!-- Top Corners: Routing & Mode -->
+                    <div class="flex justify-between items-start w-full relative">
                         <div class="flex flex-col gap-0.5 osd-text">
                             <span id="osd-ch-combined" class="text-cyan-400">CH L+R: --</span>
                             <span id="osd-ch-left" class="text-green-400">CH L: --</span>
                             <span id="osd-ch-right" class="text-pink-400">CH R: --</span>
                         </div>
+                        
+                        <!-- REV 1.40.0: Top-Center Cursor Readouts -->
+                        <div id="osd-cursors" class="absolute top-0 left-1/2 transform -translate-x-1/2 flex flex-col items-center gap-0.5 osd-text w-full max-w-[250px]" style="display: none;">
+                            <div id="osd-curs-x-container" class="flex gap-2 text-green-400 bg-neutral-900/60 px-1.5 rounded" style="display: none;">
+                                <span><span id="osd-lbl-x1" class="text-neutral-400">X1:</span> <span id="osd-val-x1">--</span></span>
+                                <span><span id="osd-lbl-x2" class="text-neutral-400">X2:</span> <span id="osd-val-x2">--</span></span>
+                                <span><span id="osd-lbl-dx" class="text-neutral-400">ΔX:</span> <span id="osd-val-dx">--</span></span>
+                            </div>
+                            <div id="osd-curs-y-container" class="flex gap-2 text-purple-400 bg-neutral-900/60 px-1.5 rounded" style="display: none;">
+                                <span><span id="osd-lbl-y1" class="text-neutral-400">Y1:</span> <span id="osd-val-y1">--</span></span>
+                                <span><span id="osd-lbl-y2" class="text-neutral-400">Y2:</span> <span id="osd-val-y2">--</span></span>
+                                <span><span id="osd-lbl-dy" class="text-neutral-400">ΔY:</span> <span id="osd-val-dy">--</span></span>
+                            </div>
+                        </div>
+
                         <div class="flex flex-col items-end gap-0.5 text-right osd-text">
                             <span id="osd-trigger" class="text-white">TRIG: AUTO</span>
                             <span id="osd-mode" class="text-yellow-400">MODE: SPECTRUM</span>
                         </div>
                     </div>
                     
+                    <!-- Bottom Corners: Span & Scale -->
                     <div class="flex justify-between items-end w-full">
                         <div class="flex flex-col gap-0.5 osd-text">
                             <span id="osd-timebase" class="text-white">M: --</span>
@@ -256,19 +270,10 @@
 
                 <div class="flex flex-col gap-2">
                     <h3 class="text-[10px] uppercase tracking-wider text-neutral-500 font-bold border-b border-neutral-600 pb-1">Measurement</h3>
+                    <!-- REV 1.40.0: Removed old data grid, preserving only activation toggles -->
                     <div class="flex gap-1">
                         <button id="btn-cursor-x" class="flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[9px] font-bold text-neutral-400">X-CURS</button>
                         <button id="btn-cursor-y" class="flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[9px] font-bold text-neutral-400">Y-CURS</button>
-                    </div>
-                    <div class="text-[10px] font-mono grid grid-cols-2 gap-x-1 gap-y-0.5 bg-neutral-950 p-1.5 border border-neutral-700">
-                        <div><span id="lbl-f1" class="text-neutral-500">F1:</span> <span id="readout-f1" class="text-green-400">--</span></div>
-                        <div><span id="lbl-a1" class="text-neutral-500">A1:</span> <span id="readout-a1" class="text-purple-400">--</span></div>
-                        <div><span id="lbl-f2" class="text-neutral-500">F2:</span> <span id="readout-f2" class="text-green-400">--</span></div>
-                        <div><span id="lbl-a2" class="text-neutral-500">A2:</span> <span id="readout-a2" class="text-purple-400">--</span></div>
-                        <div class="col-span-2 pt-0.5 mt-0.5 border-t border-neutral-800 flex justify-between">
-                            <span><span id="lbl-df" class="text-neutral-500">ΔF:</span> <span id="readout-df" class="text-yellow-400">--</span></span>
-                            <span><span id="lbl-da" class="text-neutral-500">ΔA:</span> <span id="readout-da" class="text-yellow-400">--</span></span>
-                        </div>
                     </div>
                 </div>
 
@@ -421,7 +426,7 @@
             });
         }
 
-        const getPadding = () => ({ left: 55, bottom: 30 }); // Slightly higher bottom padding for OSD clearance
+        const getPadding = () => ({ left: 55, bottom: 30 }); 
         
         function getXPosition(freq, cvsWidth) {
             const p = getPadding();
@@ -490,7 +495,6 @@
             return Math.round(freq);
         }
         
-        // REV 1.39.0: Centralized OSD (Heads-Up Display) Update Function
         function updateOSD() {
             const isScope = viewMode === 'oscilloscope';
             const isSpec = viewMode === 'spectrum' || viewMode === 'both' || viewMode === 'waterfall';
@@ -500,7 +504,6 @@
 
             const visualCeiling = 1.0 / vertScaleMultiplier;
             const currentGain = gainNode ? gainNode.gain.value : 1.0;
-            // 8 Vertical divisions total (spanning top to bottom) -> half top, half bottom. 2 * visualCeiling total range.
             const trueVPerDiv = (visualCeiling * 2 / 8) / currentGain; 
 
             document.getElementById('osd-ch-combined').style.display = channels.combined.active ? 'block' : 'none';
@@ -513,7 +516,7 @@
             document.getElementById('osd-ch-right').textContent = `CH R: ${trueVPerDiv.toFixed(2)} V/DIV`;
 
             if (isScope || isLiss) {
-                const timePerDiv = scopeTimeWindowMs / 10; // 10 horizontal divisions
+                const timePerDiv = scopeTimeWindowMs / 10; 
                 document.getElementById('osd-timebase').textContent = `M: ${timePerDiv.toFixed(1)} ms/DIV`;
                 document.getElementById('osd-memory').textContent = `POS: ${scopeOffsetXMs.toFixed(1)} ms`;
 
@@ -548,18 +551,16 @@
             const p = getPadding();
             const w = cvs.width;
             const h = cvs.height - p.bottom;
-            const hDivs = 10; // Strict standard time/freq divisions
-            const vDivs = 8;  // Strict standard voltage/amplitude divisions
+            const hDivs = 10; 
+            const vDivs = 8;  
 
             ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle'; // Center text explicitly on the grid line
+            ctx.textBaseline = 'middle'; 
             ctx.font = '10px monospace';
 
-            // --- Draw 10 Horizontal Divisions (Vertical Lines) ---
             for (let i = 0; i <= hDivs; i++) {
                 const px = p.left + (i * (w - p.left) / hDivs);
 
-                // Hardware Graticule Styling: Solid center and edges, dotted interior lines
                 if (i === 0 || i === hDivs || i === hDivs / 2) {
                     ctx.strokeStyle = '#525252'; ctx.setLineDash([]);
                 } else {
@@ -590,7 +591,6 @@
                 if(label) ctx.fillText(label, px, h + 9);
             }
 
-            // --- Draw 8 Vertical Divisions (Horizontal Lines) ---
             ctx.textAlign = 'right';
             for (let i = 0; i <= vDivs; i++) {
                 const py = i * (h / vDivs);
@@ -620,9 +620,8 @@
                 }
                 if(label) ctx.fillText(label, p.left - 8, py);
             }
-            ctx.textBaseline = 'alphabetic'; // Reset global canvas state
+            ctx.textBaseline = 'alphabetic'; 
 
-            // --- Draw Trigger Cursor ---
             if (viewMode === 'oscilloscope' && scopeTriggerSource !== null && channels[scopeTriggerSource]) {
                 const trigColor = channels[scopeTriggerSource].color;
                 const trigY = getScopeYPosition(scopeTriggerLevel, cvs.height);
@@ -641,7 +640,6 @@
                 ctx.restore(); 
             }
             
-            // Render Lissajous central crosshairs specifically
             if(viewMode === 'lissajous') {
                 const centerX = p.left + (w - p.left) / 2;
                 ctx.fillStyle = '#a3a3a3'; ctx.textAlign = 'center'; ctx.fillText('- L +', centerX, h + 20);
@@ -733,7 +731,7 @@
                 statusEl.textContent = `LIVE (${sourceType.toUpperCase()})`; statusEl.className = "text-green-500 font-mono bg-neutral-900 px-1 border border-neutral-700";
                 stream.getTracks().forEach(t => t.onended = () => stopAudio());
                 
-                updateOSD(); // Push initial values to HUD
+                updateOSD();
             } catch (err) {
                 showToast("ERROR: " + err.message, true); 
                 stopAudio();
@@ -884,7 +882,6 @@
                 if (primaryData) drawWaterfallRow(wfCtx, mainDisplay.wfCvs, primaryData);
             } 
             
-            // Draw universal hardware graticule over waterfall but under spectrum lines
             drawHardwareGraticule(visCtx, mainDisplay.visCvs);
 
             if (viewMode === 'spectrum' || viewMode === 'both') {
@@ -1315,12 +1312,27 @@
             updateCursorReadouts(); 
         };
 
+        // REV 1.40.0: Render Cursor Readouts dynamically into the HUD overlay
         function updateCursorReadouts() {
-            const isWaterfall = viewMode === 'waterfall'; const isScope = viewMode === 'oscilloscope'; const isLissajous = viewMode === 'lissajous';
+            const isWaterfall = viewMode === 'waterfall'; 
+            const isScope = viewMode === 'oscilloscope'; 
+            const isLissajous = viewMode === 'lissajous';
+
+            const osdCursors = document.getElementById('osd-cursors');
+            const contX = document.getElementById('osd-curs-x-container');
+            const contY = document.getElementById('osd-curs-y-container');
+            
+            if (!cursorsXEnabled && !cursorsYEnabled) {
+                osdCursors.style.display = 'none';
+            } else {
+                osdCursors.style.display = 'flex';
+                contX.style.display = cursorsXEnabled ? 'flex' : 'none';
+                contY.style.display = cursorsYEnabled ? 'flex' : 'none';
+            }
 
             if (isScope || isLissajous) {
-                document.getElementById('lbl-f1').textContent = 'T1:'; document.getElementById('lbl-f2').textContent = 'T2:'; document.getElementById('lbl-df').textContent = 'ΔT:';
-                document.getElementById('lbl-a1').textContent = 'V1:'; document.getElementById('lbl-a2').textContent = 'V2:'; document.getElementById('lbl-da').textContent = 'ΔV:';
+                document.getElementById('osd-lbl-x1').textContent = 'T1:'; document.getElementById('osd-lbl-x2').textContent = 'T2:'; document.getElementById('osd-lbl-dx').textContent = 'ΔT:';
+                document.getElementById('osd-lbl-y1').textContent = 'V1:'; document.getElementById('osd-lbl-y2').textContent = 'V2:'; document.getElementById('osd-lbl-dy').textContent = 'ΔV:';
                 
                 const currentGain = gainNode ? gainNode.gain.value : 1.0;
                 let dtStr = '--';
@@ -1332,37 +1344,37 @@
                 let absoluteX1 = scopeCursorX1Ms + scopeOffsetXMs;
                 let absoluteX2 = scopeCursorX2Ms + scopeOffsetXMs;
 
-                document.getElementById('readout-f1').textContent = (cursorsXEnabled && !isLissajous) ? absoluteX1.toFixed(2) + 'ms' : '--';
-                document.getElementById('readout-f2').textContent = (cursorsXEnabled && !isLissajous) ? absoluteX2.toFixed(2) + 'ms' : '--';
-                document.getElementById('readout-df').textContent = dtStr;
-                document.getElementById('readout-a1').textContent = (cursorsYEnabled && !isLissajous) ? (scopeCursorY1Amp > 0 ? '+' : '') + (scopeCursorY1Amp / currentGain).toFixed(3) : '--';
-                document.getElementById('readout-a2').textContent = (cursorsYEnabled && !isLissajous) ? (scopeCursorY2Amp > 0 ? '+' : '') + (scopeCursorY2Amp / currentGain).toFixed(3) : '--';
-                document.getElementById('readout-da').textContent = (cursorsYEnabled && !isLissajous) ? Math.abs((scopeCursorY2Amp - scopeCursorY1Amp) / currentGain).toFixed(3) : '--';
+                document.getElementById('osd-val-x1').textContent = (cursorsXEnabled && !isLissajous) ? absoluteX1.toFixed(2) + 'ms' : '--';
+                document.getElementById('osd-val-x2').textContent = (cursorsXEnabled && !isLissajous) ? absoluteX2.toFixed(2) + 'ms' : '--';
+                document.getElementById('osd-val-dx').textContent = dtStr;
+                document.getElementById('osd-val-y1').textContent = (cursorsYEnabled && !isLissajous) ? (scopeCursorY1Amp > 0 ? '+' : '') + (scopeCursorY1Amp / currentGain).toFixed(3) : '--';
+                document.getElementById('osd-val-y2').textContent = (cursorsYEnabled && !isLissajous) ? (scopeCursorY2Amp > 0 ? '+' : '') + (scopeCursorY2Amp / currentGain).toFixed(3) : '--';
+                document.getElementById('osd-val-dy').textContent = (cursorsYEnabled && !isLissajous) ? Math.abs((scopeCursorY2Amp - scopeCursorY1Amp) / currentGain).toFixed(3) : '--';
             } else if (isWaterfall) {
-                document.getElementById('lbl-f1').textContent = 'F1:'; document.getElementById('lbl-f2').textContent = 'F2:'; document.getElementById('lbl-df').textContent = 'ΔF:';
-                document.getElementById('lbl-a1').textContent = 'T1:'; document.getElementById('lbl-a2').textContent = 'T2:'; document.getElementById('lbl-da').textContent = 'ΔT:';
+                document.getElementById('osd-lbl-x1').textContent = 'F1:'; document.getElementById('osd-lbl-x2').textContent = 'F2:'; document.getElementById('osd-lbl-dx').textContent = 'ΔF:';
+                document.getElementById('osd-lbl-y1').textContent = 'T1:'; document.getElementById('osd-lbl-y2').textContent = 'T2:'; document.getElementById('osd-lbl-dy').textContent = 'ΔT:';
 
-                document.getElementById('readout-f1').textContent = cursorsXEnabled ? formatFreqLabel(cursorX1Freq) : '--';
-                document.getElementById('readout-f2').textContent = cursorsXEnabled ? formatFreqLabel(cursorX2Freq) : '--';
-                document.getElementById('readout-df').textContent = cursorsXEnabled ? formatFreqLabel(Math.abs(cursorX2Freq - cursorX1Freq)) : '--';
+                document.getElementById('osd-val-x1').textContent = cursorsXEnabled ? formatFreqLabel(cursorX1Freq) : '--';
+                document.getElementById('osd-val-x2').textContent = cursorsXEnabled ? formatFreqLabel(cursorX2Freq) : '--';
+                document.getElementById('osd-val-dx').textContent = cursorsXEnabled ? formatFreqLabel(Math.abs(cursorX2Freq - cursorX1Freq)) : '--';
                 
                 const t1Str = (wfCursorY1Px * msPerRowAverage).toFixed(0);
                 const t2Str = (wfCursorY2Px * msPerRowAverage).toFixed(0);
                 const deltaTStr = (Math.abs(wfCursorY2Px - wfCursorY1Px) * msPerRowAverage).toFixed(0);
 
-                document.getElementById('readout-a1').textContent = cursorsYEnabled ? `-${t1Str}ms` : '--';
-                document.getElementById('readout-a2').textContent = cursorsYEnabled ? `-${t2Str}ms` : '--';
-                document.getElementById('readout-da').textContent = cursorsYEnabled ? `${deltaTStr}ms` : '--';
+                document.getElementById('osd-val-y1').textContent = cursorsYEnabled ? `-${t1Str}ms` : '--';
+                document.getElementById('osd-val-y2').textContent = cursorsYEnabled ? `-${t2Str}ms` : '--';
+                document.getElementById('osd-val-dy').textContent = cursorsYEnabled ? `${deltaTStr}ms` : '--';
             } else {
-                document.getElementById('lbl-f1').textContent = 'F1:'; document.getElementById('lbl-f2').textContent = 'F2:'; document.getElementById('lbl-df').textContent = 'ΔF:';
-                document.getElementById('lbl-a1').textContent = 'A1:'; document.getElementById('lbl-a2').textContent = 'A2:'; document.getElementById('lbl-da').textContent = 'ΔA:';
+                document.getElementById('osd-lbl-x1').textContent = 'F1:'; document.getElementById('osd-lbl-x2').textContent = 'F2:'; document.getElementById('osd-lbl-dx').textContent = 'ΔF:';
+                document.getElementById('osd-lbl-y1').textContent = 'A1:'; document.getElementById('osd-lbl-y2').textContent = 'A2:'; document.getElementById('osd-lbl-dy').textContent = 'ΔA:';
 
-                document.getElementById('readout-f1').textContent = cursorsXEnabled ? formatFreqLabel(cursorX1Freq) : '--';
-                document.getElementById('readout-f2').textContent = cursorsXEnabled ? formatFreqLabel(cursorX2Freq) : '--';
-                document.getElementById('readout-df').textContent = cursorsXEnabled ? formatFreqLabel(Math.abs(cursorX2Freq - cursorX1Freq)) : '--';
-                document.getElementById('readout-a1').textContent = cursorsYEnabled ? cursorY1Db.toFixed(1) : '--';
-                document.getElementById('readout-a2').textContent = cursorsYEnabled ? cursorY2Db.toFixed(1) : '--';
-                document.getElementById('readout-da').textContent = cursorsYEnabled ? Math.abs(cursorY2Db - cursorY1Db).toFixed(1) : '--';
+                document.getElementById('osd-val-x1').textContent = cursorsXEnabled ? formatFreqLabel(cursorX1Freq) : '--';
+                document.getElementById('osd-val-x2').textContent = cursorsXEnabled ? formatFreqLabel(cursorX2Freq) : '--';
+                document.getElementById('osd-val-dx').textContent = cursorsXEnabled ? formatFreqLabel(Math.abs(cursorX2Freq - cursorX1Freq)) : '--';
+                document.getElementById('osd-val-y1').textContent = cursorsYEnabled ? cursorY1Db.toFixed(1) : '--';
+                document.getElementById('osd-val-y2').textContent = cursorsYEnabled ? cursorY2Db.toFixed(1) : '--';
+                document.getElementById('osd-val-dy').textContent = cursorsYEnabled ? Math.abs(cursorY2Db - cursorY1Db).toFixed(1) : '--';
             }
         }
 
@@ -1547,7 +1559,7 @@
                 
                 clampCursors(); 
                 updateCursorReadouts();
-                updateOSD(); // Instantly update glass overlays
+                updateOSD(); 
                 return;
             }
 
@@ -1611,7 +1623,7 @@
                     }
                 }
                 updateCursorReadouts();
-                updateOSD(); // Push to HUD
+                updateOSD();
                 return;
             }
 
