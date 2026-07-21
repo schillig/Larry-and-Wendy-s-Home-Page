@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="description" content="Professional Web-Based Audio Spectrum Analyzer and Oscilloscope">
-    <title>Audio Spectrum Visualizer - REV 1.32.0</title>
+    <title>Audio Spectrum Visualizer - REV 1.33.0</title>
     
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎛️</text></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -25,6 +25,8 @@
         .canvas-container {
             border: 1px solid #525252;
             cursor: crosshair;
+            /* MDN Best Practice: Disables browser zoom/pan over the canvas to allow raw JS touch handling */
+            touch-action: none; 
         }
         
         /* Utilitarian Range Slider */
@@ -67,11 +69,14 @@
         </div>
     </div>
 
-    <!-- Header -->
+    <!-- Header: Optimized for single-row mobile fit -->
     <header class="w-full max-w-7xl flex-none flex flex-row justify-between items-center bg-neutral-800 py-1 px-2 border-b border-neutral-600 mb-2">
-        <div class="flex items-center gap-2">
-            <h1 class="text-xs md:text-sm font-bold text-neutral-100 uppercase tracking-wider hidden sm:block">
-                Signal Analyzer <span class="text-neutral-500 text-[9px] font-mono align-top ml-0.5">V1.32.0</span>
+        <div class="flex items-center gap-1.5 md:gap-2">
+            <!-- V1.33.0: Responsive text scaling and abbreviation ensures no wrap -->
+            <h1 class="text-[10px] md:text-sm font-bold text-neutral-100 uppercase tracking-wider flex items-center whitespace-nowrap">
+                <span class="hidden sm:inline">Signal Analyzer</span>
+                <span class="sm:hidden">Analyzer</span>
+                <span class="text-neutral-500 text-[8px] md:text-[9px] font-mono ml-1">V1.33.0</span>
             </h1>
             <div class="text-[9px] uppercase font-bold text-neutral-400">
                 <span id="engine-status" class="text-yellow-500 font-mono bg-neutral-900 px-1 border border-neutral-700">READY</span>
@@ -95,7 +100,7 @@
 
         <!-- Canvas Container -->
         <section id="displays-wrapper" class="order-1 md:order-2 w-full flex-1 flex flex-col gap-2 min-h-[250px]">
-            <div id="display-main" class="canvas-container w-full flex-1 bg-neutral-950 relative" title="Drag to Pan / Double-click to Reset">
+            <div id="display-main" class="canvas-container w-full flex-1 bg-neutral-950 relative" title="Drag to Pan / Pinch to Zoom / Double-click to Reset">
                 <div class="absolute top-0 left-0 text-[10px] font-mono font-bold text-neutral-400 z-20 bg-neutral-900 px-2 py-0.5 border-b border-r border-neutral-700">
                     CH: <span id="ch-indicator" class="text-white">L+R</span>
                 </div>
@@ -290,13 +295,11 @@
         let lastDrawTime = 0;
         let msPerRowAverage = 16.67; 
 
-        // Oscilloscope Globals
         let scopeTimeWindowMs = 20; 
         let scopeMaxAmp = 1.0; 
         let scopeCursorX1Ms = 5, scopeCursorX2Ms = 15;
         let scopeCursorY1Amp = 0.5, scopeCursorY2Amp = -0.5;
         
-        // REV 1.32.0: Absolute X tracking offset in Scope Mode
         let scopeOffsetXMs = 0;
 
         let scopeTriggerSource = null; 
@@ -309,6 +312,10 @@
 
         let cursorsXEnabled = false, cursorsYEnabled = false;
         let activeDrag = null;
+        
+        // V1.33.0 Pinch Tracking
+        let initialPinchDistance = null;
+        let initialTimebase = null;
 
         const statusEl = document.getElementById('engine-status');
         
@@ -447,6 +454,11 @@
             }
             return Math.round(freq);
         }
+        
+        // V1.33.0 Helper for Pinch Math
+        function getTouchDistance(touch1, touch2) {
+            return Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY);
+        }
 
         // ==========================================
         // 4. CANVAS RENDERING PRIMITIVES
@@ -524,7 +536,6 @@
             }
         }
 
-        // REV 1.32.0: Oscilloscope grid renders absolute tracking time 
         function drawOscilloscopeGrid(ctx, cvs) { 
             const p = getPadding();
             const w = cvs.width;
@@ -535,7 +546,7 @@
             ctx.font = '10px monospace';
             for (let i = 0; i <= timeSteps; i++) {
                 const ms = (scopeTimeWindowMs / timeSteps) * i;
-                const absoluteMs = ms + scopeOffsetXMs; // Annotate grid with absolute pan position
+                const absoluteMs = ms + scopeOffsetXMs; 
                 
                 const x = getScopeXPosition(ms, w);
                 ctx.strokeStyle = '#404040';
@@ -687,7 +698,6 @@
                 document.querySelectorAll('.ms-row-badge').forEach(el => el.style.display = 'none');
             }
 
-            // --- DATA ACQUISITION & PROCESSING ---
             if (!isFrozen) {
                 Object.values(channels).forEach(ch => {
                     if (ch.analyser) {
@@ -718,7 +728,6 @@
                 });
             }
 
-            // --- LISSAJOUS RENDERING ---
             if (viewMode === 'lissajous') {
                 drawLissajousGrid(visCtx, mainDisplay.visCvs, scopeMaxAmp);
                 if (channels.left.timeData && channels.right.timeData) {
@@ -731,7 +740,6 @@
                 return;
             }
 
-            // --- OSCILLOSCOPE RENDERING ---
             if (viewMode === 'oscilloscope') {
                 drawOscilloscopeGrid(visCtx, mainDisplay.visCvs);
                 
@@ -779,7 +787,6 @@
                 return;
             }
 
-            // --- SPECTRUM & WATERFALL LOGIC ---
             drawGrid(visCtx, mainDisplay.visCvs);
 
             if (viewMode === 'waterfall' || viewMode === 'both') {
@@ -826,11 +833,9 @@
             }
         }
 
-        // REV 1.32.0: Applies absolute horizontal X shifting dynamically on render
         function drawOscilloscope(ctx, cvs, timeData, triggerIndex, strokeColor, offsetY = 0, lineWidth = 1.5) {
             const sampleRate = actualNyquist * 2; 
             
-            // Map the absolute pan duration to a discrete sample offset index
             const startSampleOffset = Math.floor((scopeOffsetXMs / 1000) * sampleRate);
             const actualStartIndex = triggerIndex + startSampleOffset;
             
@@ -840,8 +845,6 @@
             
             for (let i = 0; i < samplesToDraw; i++) {
                 const dataIndex = actualStartIndex + i;
-                
-                // Do not attempt to draw values outside the physical memory boundary
                 if (dataIndex < 0 || dataIndex >= timeData.length) continue;
                 
                 const timeMs = (i / sampleRate) * 1000; 
@@ -1000,7 +1003,7 @@
             }
             
             lastTriggerIndex = 0; 
-            scopeOffsetXMs = 0; // Restore drops you back to actual trigger moment
+            scopeOffsetXMs = 0; 
             isFrozen = true; document.getElementById('btn-freeze').textContent = "FREEZE: ON"; document.getElementById('btn-freeze').classList.replace('bg-neutral-800', 'bg-blue-800');
             isMemOverlay = false; document.getElementById('btn-mem-overlay').textContent = "OVERLAY: OFF"; document.getElementById('btn-mem-overlay').classList.replace('bg-red-900', 'bg-neutral-800');
             this.textContent = "RESUME"; this.classList.add('bg-green-800');
@@ -1104,7 +1107,7 @@
             if (!isFrozen) { 
                 const btnRes = document.getElementById('btn-mem-restore'); 
                 btnRes.textContent = "RESTORE"; btnRes.classList.remove('bg-green-800'); 
-                scopeOffsetXMs = 0; // Clear X offset returning to live view
+                scopeOffsetXMs = 0; 
             }
         };
         
@@ -1219,7 +1222,6 @@
             updateCursorReadouts(); 
         };
 
-        // REV 1.32.0: Update Readouts to reflect absolute time mapping
         function updateCursorReadouts() {
             const isWaterfall = viewMode === 'waterfall'; const isScope = viewMode === 'oscilloscope'; const isLissajous = viewMode === 'lissajous';
 
@@ -1234,7 +1236,6 @@
                     if (dt > 0) { const freq = 1000 / dt; dtStr = `${dt.toFixed(2)}ms (${freq.toFixed(1)}Hz)`; } else { dtStr = '0.00ms'; }
                 }
 
-                // Cursors track absolute time (relative to trigger index)
                 let absoluteX1 = scopeCursorX1Ms + scopeOffsetXMs;
                 let absoluteX2 = scopeCursorX2Ms + scopeOffsetXMs;
 
@@ -1272,7 +1273,18 @@
             }
         }
 
+        // REV 1.33.0: Intercept Multi-Touch for Pinch Zooming
         function handlePointerDown(e, cvs) {
+            // Check for Pinch Gesture first
+            if (e.touches && e.touches.length === 2) {
+                if (viewMode === 'oscilloscope') {
+                    initialPinchDistance = getTouchDistance(e.touches[0], e.touches[1]);
+                    initialTimebase = scopeTimeWindowMs;
+                    activeDrag = { id: 'pinch' };
+                }
+                return; // Exit standard pointer logic
+            }
+
             const rect = cvs.getBoundingClientRect(); 
             const clientX = e.touches && e.touches.length > 0 ? e.touches[0].clientX : e.clientX;
             const clientY = e.touches && e.touches.length > 0 ? e.touches[0].clientY : e.clientY;
@@ -1316,7 +1328,6 @@
                 }
             }
 
-            // REV 1.32.0: Unified Trace Drag and X-Pan logic
             if (!activeDrag && (viewMode === 'spectrum' || viewMode === 'oscilloscope' || viewMode === 'both')) {
                 let closestDist = 30; 
                 let selectedTrace = null;
@@ -1351,10 +1362,9 @@
                     }
                 });
                 
-                // Allow panning even if we didn't hit a specific trace, just track the drag globally
                 activeDrag = { 
                     id: 'pan', 
-                    key: selectedTrace, // null if background clicked
+                    key: selectedTrace, 
                     startX: x,
                     startY: y, 
                     startOffsetY: selectedTrace ? channels[selectedTrace].offsetY : 0,
@@ -1364,9 +1374,32 @@
             }
         }
 
-        // REV 1.32.0: X-Scrubbing integration
+        // REV 1.33.0: Process Pinch Zoom Math dynamically
         function handlePointerMove(e) {
-            if (!activeDrag) return; if (e.cancelable) e.preventDefault(); 
+            if (!activeDrag) return; 
+
+            // Handle Pinch Zooming First
+            if (activeDrag.id === 'pinch' && e.touches && e.touches.length === 2) {
+                if (e.cancelable) e.preventDefault(); // Stop browser zooming
+                const currentDistance = getTouchDistance(e.touches[0], e.touches[1]);
+                if (initialPinchDistance > 0 && initialTimebase > 0) {
+                    const ratio = initialPinchDistance / currentDistance;
+                    let newTimebase = initialTimebase * ratio;
+                    
+                    // Clamp to the physical slider ranges
+                    newTimebase = Math.max(1, Math.min(500, newTimebase)); 
+                    
+                    scopeTimeWindowMs = newTimebase;
+                    controls.scopeTime.el.value = scopeTimeWindowMs;
+                    controls.scopeTime.disp.textContent = Math.round(scopeTimeWindowMs) + "ms";
+                    
+                    clampCursors(); 
+                    updateCursorReadouts();
+                }
+                return;
+            }
+
+            if (e.cancelable) e.preventDefault(); 
             const rect = (activeDrag.cvs || mainDisplay.visCvs).getBoundingClientRect(); 
             const clientX = e.touches && e.touches.length > 0 ? e.touches[0].clientX : e.clientX;
             const clientY = e.touches && e.touches.length > 0 ? e.touches[0].clientY : e.clientY;
@@ -1374,18 +1407,13 @@
             const y = clientY - rect.top;
             
             if (activeDrag.id === 'pan') {
-                // If a specific trace was grabbed, adjust its Y height
                 if (activeDrag.key) {
                     channels[activeDrag.key].offsetY = activeDrag.startOffsetY + (y - activeDrag.startY);
                 }
-                
-                // If we are in Scope mode and frozen, allow horizontal timeline scrubbing
                 if (viewMode === 'oscilloscope' && isFrozen) {
-                    // Dragging left (-x) produces positive delta, shifting viewport right
                     const deltaXMs = ((x - activeDrag.startX) / rect.width) * scopeTimeWindowMs;
                     let targetOffset = activeDrag.startOffsetX - deltaXMs;
                     
-                    // Clamp constraints based on physical buffer memory allocation
                     const sampleRate = actualNyquist * 2;
                     const activeData = channels.combined.active ? channels.combined.timeData : (channels.left.active ? channels.left.timeData : channels.right.timeData);
                     const bufferSize = activeData ? activeData.length : 32768; 
@@ -1426,6 +1454,7 @@
 
         function handlePointerUp() { 
             activeDrag = null; 
+            initialPinchDistance = null; // Clear pinch state
             mainDisplay.visCvs.style.cursor = 'crosshair'; 
         }
 
@@ -1434,7 +1463,7 @@
         
         mainDisplay.visCvs.addEventListener('dblclick', () => {
             Object.values(channels).forEach(ch => ch.offsetY = 0);
-            scopeOffsetXMs = 0; // Double-clicking restores X-axis center
+            scopeOffsetXMs = 0; 
             showToast("TRACE OFFSETS ZEROED", false);
         });
 
