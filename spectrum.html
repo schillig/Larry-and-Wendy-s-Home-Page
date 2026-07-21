@@ -2,9 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <!-- W3C Mobile Viewport standard for application-like behavior -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="description" content="Professional Web-Based Audio Spectrum Analyzer and Oscilloscope">
-    <title>Audio Spectrum Visualizer - REV 1.33.0</title>
+    <title>Audio Spectrum Visualizer - REV 1.34.0</title>
     
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎛️</text></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -25,7 +26,7 @@
         .canvas-container {
             border: 1px solid #525252;
             cursor: crosshair;
-            /* MDN Best Practice: Disables browser zoom/pan over the canvas to allow raw JS touch handling */
+            /* Explicitly disable browser pan/zoom to route raw touch events to JS */
             touch-action: none; 
         }
         
@@ -72,11 +73,10 @@
     <!-- Header: Optimized for single-row mobile fit -->
     <header class="w-full max-w-7xl flex-none flex flex-row justify-between items-center bg-neutral-800 py-1 px-2 border-b border-neutral-600 mb-2">
         <div class="flex items-center gap-1.5 md:gap-2">
-            <!-- V1.33.0: Responsive text scaling and abbreviation ensures no wrap -->
             <h1 class="text-[10px] md:text-sm font-bold text-neutral-100 uppercase tracking-wider flex items-center whitespace-nowrap">
                 <span class="hidden sm:inline">Signal Analyzer</span>
                 <span class="sm:hidden">Analyzer</span>
-                <span class="text-neutral-500 text-[8px] md:text-[9px] font-mono ml-1">V1.33.0</span>
+                <span class="text-neutral-500 text-[8px] md:text-[9px] font-mono ml-1">V1.34.0</span>
             </h1>
             <div class="text-[9px] uppercase font-bold text-neutral-400">
                 <span id="engine-status" class="text-yellow-500 font-mono bg-neutral-900 px-1 border border-neutral-700">READY</span>
@@ -100,7 +100,7 @@
 
         <!-- Canvas Container -->
         <section id="displays-wrapper" class="order-1 md:order-2 w-full flex-1 flex flex-col gap-2 min-h-[250px]">
-            <div id="display-main" class="canvas-container w-full flex-1 bg-neutral-950 relative" title="Drag to Pan / Pinch to Zoom / Double-click to Reset">
+            <div id="display-main" class="canvas-container w-full flex-1 bg-neutral-950 relative" title="Drag to Pan / Pinch X: Timebase / Pinch Y: V/DIV / Double-click to Reset">
                 <div class="absolute top-0 left-0 text-[10px] font-mono font-bold text-neutral-400 z-20 bg-neutral-900 px-2 py-0.5 border-b border-r border-neutral-700">
                     CH: <span id="ch-indicator" class="text-white">L+R</span>
                 </div>
@@ -299,7 +299,6 @@
         let scopeMaxAmp = 1.0; 
         let scopeCursorX1Ms = 5, scopeCursorX2Ms = 15;
         let scopeCursorY1Amp = 0.5, scopeCursorY2Amp = -0.5;
-        
         let scopeOffsetXMs = 0;
 
         let scopeTriggerSource = null; 
@@ -313,9 +312,12 @@
         let cursorsXEnabled = false, cursorsYEnabled = false;
         let activeDrag = null;
         
-        // V1.33.0 Pinch Tracking
-        let initialPinchDistance = null;
+        // V1.34.0 Axis-Locked Pinch Tracking State
+        let initialPinchDistX = 0;
+        let initialPinchDistY = 0;
+        let pinchAxis = null; // 'x' or 'y'
         let initialTimebase = null;
+        let initialAmp = null;
 
         const statusEl = document.getElementById('engine-status');
         
@@ -453,11 +455,6 @@
                 return Number.isInteger(kVal) ? kVal + 'k' : kVal.toFixed(2).replace(/0+$/, '').replace(/\.$/, '') + 'k';
             }
             return Math.round(freq);
-        }
-        
-        // V1.33.0 Helper for Pinch Math
-        function getTouchDistance(touch1, touch2) {
-            return Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY);
         }
 
         // ==========================================
@@ -1273,13 +1270,26 @@
             }
         }
 
-        // REV 1.33.0: Intercept Multi-Touch for Pinch Zooming
+        // REV 1.34.0: Intercept Multi-Touch for X/Y Axis-Locked Pinch Zooming
         function handlePointerDown(e, cvs) {
-            // Check for Pinch Gesture first
+            
+            // Check for Pinch Gesture
             if (e.touches && e.touches.length === 2) {
                 if (viewMode === 'oscilloscope') {
-                    initialPinchDistance = getTouchDistance(e.touches[0], e.touches[1]);
+                    const touch1 = e.touches[0];
+                    const touch2 = e.touches[1];
+                    
+                    const dx = Math.abs(touch2.clientX - touch1.clientX);
+                    const dy = Math.abs(touch2.clientY - touch1.clientY);
+                    
+                    // Determine dominant axis to prevent erratic zooming
+                    pinchAxis = dx > dy ? 'x' : 'y';
+                    
+                    initialPinchDistX = dx;
+                    initialPinchDistY = dy;
                     initialTimebase = scopeTimeWindowMs;
+                    initialAmp = scopeMaxAmp;
+                    
                     activeDrag = { id: 'pinch' };
                 }
                 return; // Exit standard pointer logic
@@ -1374,28 +1384,46 @@
             }
         }
 
-        // REV 1.33.0: Process Pinch Zoom Math dynamically
+        // REV 1.34.0: Process Axis-Locked Pinch Zooming
         function handlePointerMove(e) {
             if (!activeDrag) return; 
 
             // Handle Pinch Zooming First
             if (activeDrag.id === 'pinch' && e.touches && e.touches.length === 2) {
-                if (e.cancelable) e.preventDefault(); // Stop browser zooming
-                const currentDistance = getTouchDistance(e.touches[0], e.touches[1]);
-                if (initialPinchDistance > 0 && initialTimebase > 0) {
-                    const ratio = initialPinchDistance / currentDistance;
-                    let newTimebase = initialTimebase * ratio;
-                    
-                    // Clamp to the physical slider ranges
-                    newTimebase = Math.max(1, Math.min(500, newTimebase)); 
-                    
-                    scopeTimeWindowMs = newTimebase;
-                    controls.scopeTime.el.value = scopeTimeWindowMs;
-                    controls.scopeTime.disp.textContent = Math.round(scopeTimeWindowMs) + "ms";
-                    
-                    clampCursors(); 
-                    updateCursorReadouts();
+                if (e.cancelable) e.preventDefault(); 
+                
+                const touch1 = e.touches[0];
+                const touch2 = e.touches[1];
+
+                if (pinchAxis === 'x') {
+                    const currentDistX = Math.abs(touch1.clientX - touch2.clientX);
+                    if (initialPinchDistX > 0 && currentDistX > 0) {
+                        const ratio = initialPinchDistX / currentDistX;
+                        let newTimebase = initialTimebase * ratio;
+                        newTimebase = Math.max(1, Math.min(500, newTimebase)); 
+                        
+                        scopeTimeWindowMs = newTimebase;
+                        controls.scopeTime.el.value = scopeTimeWindowMs;
+                        controls.scopeTime.disp.textContent = Math.round(scopeTimeWindowMs) + "ms";
+                    }
+                } else if (pinchAxis === 'y') {
+                    const currentDistY = Math.abs(touch1.clientY - touch2.clientY);
+                    if (initialPinchDistY > 0 && currentDistY > 0) {
+                        const ratio = initialPinchDistY / currentDistY;
+                        let newAmp = initialAmp * ratio;
+                        
+                        newAmp = Math.max(0.05, Math.min(1.0, newAmp));
+                        // Snap to slider increments for precise UI binding
+                        newAmp = Math.round(newAmp * 20) / 20; 
+                        
+                        scopeMaxAmp = newAmp;
+                        controls.scopeAmp.el.value = scopeMaxAmp;
+                        controls.scopeAmp.disp.textContent = scopeMaxAmp.toFixed(2) + "x";
+                    }
                 }
+                
+                clampCursors(); 
+                updateCursorReadouts();
                 return;
             }
 
@@ -1454,7 +1482,12 @@
 
         function handlePointerUp() { 
             activeDrag = null; 
-            initialPinchDistance = null; // Clear pinch state
+            // Clear gesture tracking
+            pinchAxis = null;
+            initialPinchDistX = 0;
+            initialPinchDistY = 0;
+            initialAmp = null;
+            
             mainDisplay.visCvs.style.cursor = 'crosshair'; 
         }
 
