@@ -5,7 +5,7 @@
     <!-- W3C Mobile Viewport standard for application-like behavior -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="description" content="Professional Web-Based Audio Spectrum Analyzer and Oscilloscope">
-    <title>Audio Spectrum Visualizer - REV 1.34.0</title>
+    <title>Audio Spectrum Visualizer - REV 1.35.0</title>
     
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎛️</text></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -76,7 +76,7 @@
             <h1 class="text-[10px] md:text-sm font-bold text-neutral-100 uppercase tracking-wider flex items-center whitespace-nowrap">
                 <span class="hidden sm:inline">Signal Analyzer</span>
                 <span class="sm:hidden">Analyzer</span>
-                <span class="text-neutral-500 text-[8px] md:text-[9px] font-mono ml-1">V1.34.0</span>
+                <span class="text-neutral-500 text-[8px] md:text-[9px] font-mono ml-1">V1.35.0</span>
             </h1>
             <div class="text-[9px] uppercase font-bold text-neutral-400">
                 <span id="engine-status" class="text-yellow-500 font-mono bg-neutral-900 px-1 border border-neutral-700">READY</span>
@@ -204,18 +204,20 @@
 
                     <div id="zoom-scope" class="grid grid-cols-1 gap-y-2 mode-scope" style="display: none;">
                         <div id="scope-time-container" class="flex flex-col gap-0.5">
+                            <!-- REV 1.35.0: Expanded Range for Timebase -->
                             <label for="scope-time" class="text-[9px] font-bold uppercase text-neutral-400 flex justify-between">
                                 <span>Time Base</span>
                                 <span id="scope-time-val" class="text-cyan-400 font-mono">20ms</span>
                             </label>
-                            <input type="range" id="scope-time" min="1" max="500" step="1" value="20">
+                            <input type="range" id="scope-time" min="1" max="5000" step="1" value="20">
                         </div>
                         <div class="flex flex-col gap-0.5">
-                            <label for="scope-amp" class="text-[9px] font-bold uppercase text-neutral-400 flex justify-between">
-                                <span>V/Div Zoom</span>
-                                <span id="scope-amp-val" class="text-cyan-400 font-mono">1.00x</span>
+                            <!-- REV 1.35.0: Inverted mapping to operate as an explicit multiplier -->
+                            <label for="vert-scale" class="text-[9px] font-bold uppercase text-neutral-400 flex justify-between">
+                                <span>Vertical Scale</span>
+                                <span id="vert-scale-val" class="text-cyan-400 font-mono">1.00x</span>
                             </label>
-                            <input type="range" id="scope-amp" min="0.05" max="1" step="0.05" value="1">
+                            <input type="range" id="vert-scale" min="0.01" max="100" step="0.01" value="1">
                         </div>
                         <div id="scope-trigger-container" class="flex flex-col gap-0.5 border-t border-neutral-700 pt-1">
                             <label for="scope-trigger-lvl" class="text-[9px] font-bold uppercase text-neutral-400 flex justify-between">
@@ -296,9 +298,11 @@
         let msPerRowAverage = 16.67; 
 
         let scopeTimeWindowMs = 20; 
-        let scopeMaxAmp = 1.0; 
+        // REV 1.35.0: vertScaleMultiplier replaces scopeMaxAmp logic
+        let vertScaleMultiplier = 1.0; 
         let scopeCursorX1Ms = 5, scopeCursorX2Ms = 15;
         let scopeCursorY1Amp = 0.5, scopeCursorY2Amp = -0.5;
+        
         let scopeOffsetXMs = 0;
 
         let scopeTriggerSource = null; 
@@ -312,12 +316,14 @@
         let cursorsXEnabled = false, cursorsYEnabled = false;
         let activeDrag = null;
         
-        // V1.34.0 Axis-Locked Pinch Tracking State
+        // V1.35.0 Pinch Tracking expanded to all axes and modes
         let initialPinchDistX = 0;
         let initialPinchDistY = 0;
-        let pinchAxis = null; // 'x' or 'y'
+        let pinchAxis = null; 
         let initialTimebase = null;
-        let initialAmp = null;
+        let initialVertScale = null;
+        let initialPinchMinFreq = 0, initialPinchMaxFreq = 22000;
+        let initialPinchMinDb = -140, initialPinchMaxDb = 0;
 
         const statusEl = document.getElementById('engine-status');
         
@@ -346,7 +352,7 @@
             minDb: { el: document.getElementById('min-db'), disp: document.getElementById('min-db-val') },
             maxDb: { el: document.getElementById('max-db'), disp: document.getElementById('max-db-val') },
             scopeTime: { el: document.getElementById('scope-time'), disp: document.getElementById('scope-time-val') },
-            scopeAmp: { el: document.getElementById('scope-amp'), disp: document.getElementById('scope-amp-val') },
+            vertScale: { el: document.getElementById('vert-scale'), disp: document.getElementById('vert-scale-val') },
             scopeTrigger: { el: document.getElementById('scope-trigger-lvl'), disp: document.getElementById('scope-trigger-val') }
         };
 
@@ -439,14 +445,16 @@
         function getScopeYPosition(amp, cvsHeight) {
             const p = getPadding();
             const h = cvsHeight - p.bottom;
-            return (h / 2) - (amp / scopeMaxAmp) * (h / 2);
+            const visualCeiling = 1.0 / vertScaleMultiplier; // Math translation
+            return (h / 2) - (amp / visualCeiling) * (h / 2);
         }
 
         function getAmpFromScopeY(y, cvsHeight) {
             const p = getPadding();
             const h = cvsHeight - p.bottom;
+            const visualCeiling = 1.0 / vertScaleMultiplier;
             const normalizedY = ((h / 2) - y) / (h / 2);
-            return normalizedY * scopeMaxAmp;
+            return normalizedY * visualCeiling;
         }
 
         function formatFreqLabel(freq) {
@@ -455,6 +463,10 @@
                 return Number.isInteger(kVal) ? kVal + 'k' : kVal.toFixed(2).replace(/0+$/, '').replace(/\.$/, '') + 'k';
             }
             return Math.round(freq);
+        }
+        
+        function getTouchDistance(touch1, touch2) {
+            return Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY);
         }
 
         // ==========================================
@@ -467,7 +479,8 @@
 
             if (viewMode !== 'waterfall') {
                 ctx.textAlign = 'right'; ctx.font = '10px monospace';
-                for (let db = -140; db <= 0; db += 10) {
+                let dbStep = (displayMaxDb - displayMinDb) > 40 ? 10 : 5;
+                for (let db = Math.floor(displayMinDb / dbStep) * dbStep; db <= displayMaxDb; db += dbStep) {
                     if (db < displayMinDb || db > displayMaxDb) continue;
                     const y = getYPosition(db, cvs.height);
                     ctx.strokeStyle = '#404040'; 
@@ -537,6 +550,7 @@
             const p = getPadding();
             const w = cvs.width;
             const h = cvs.height - p.bottom;
+            const visualCeiling = 1.0 / vertScaleMultiplier;
             
             const timeSteps = 10;
             ctx.textAlign = 'center';
@@ -554,7 +568,7 @@
             }
             
             const currentGain = gainNode ? gainNode.gain.value : 1.0;
-            const ampSteps = [scopeMaxAmp, scopeMaxAmp/2, 0, -scopeMaxAmp/2, -scopeMaxAmp];
+            const ampSteps = [visualCeiling, visualCeiling/2, 0, -visualCeiling/2, -visualCeiling];
             ctx.textAlign = 'right';
             ampSteps.forEach(amp => {
                 const y = getScopeYPosition(amp, cvs.height);
@@ -726,12 +740,13 @@
             }
 
             if (viewMode === 'lissajous') {
-                drawLissajousGrid(visCtx, mainDisplay.visCvs, scopeMaxAmp);
+                const visualCeiling = 1.0 / vertScaleMultiplier;
+                drawLissajousGrid(visCtx, mainDisplay.visCvs, visualCeiling);
                 if (channels.left.timeData && channels.right.timeData) {
-                    drawLissajous(visCtx, mainDisplay.visCvs, channels.left.timeData, channels.right.timeData, scopeMaxAmp, '#ef4444'); 
+                    drawLissajous(visCtx, mainDisplay.visCvs, channels.left.timeData, channels.right.timeData, visualCeiling, '#ef4444'); 
                 }
                 if (isMemOverlay && memorySnapshot && memorySnapshot.channels['left'] && memorySnapshot.channels['right']) {
-                    drawLissajous(visCtx, mainDisplay.visCvs, memorySnapshot.channels['left'].timeData, memorySnapshot.channels['right'].timeData, scopeMaxAmp, '#f87171', 2.5);
+                    drawLissajous(visCtx, mainDisplay.visCvs, memorySnapshot.channels['left'].timeData, memorySnapshot.channels['right'].timeData, visualCeiling, '#f87171', 2.5);
                 }
                 updateCursorReadouts();
                 return;
@@ -741,6 +756,7 @@
                 drawOscilloscopeGrid(visCtx, mainDisplay.visCvs);
                 
                 let triggerFound = false;
+                const visualCeiling = 1.0 / vertScaleMultiplier;
                 if (!isFrozen && scopeTriggerSource !== null && channels[scopeTriggerSource] && channels[scopeTriggerSource].timeData) {
                     let searchData = channels[scopeTriggerSource].timeData;
                     const sampleRate = actualNyquist * 2; 
@@ -748,7 +764,7 @@
                     const searchLimit = Math.max(1, searchData.length - samplesToDraw);
                     lastTriggerIndex = -1;
                     
-                    const hysteresis = scopeMaxAmp * 0.05;
+                    const hysteresis = visualCeiling * 0.05;
                     let armedForEdge = false;
 
                     for (let i = 0; i < searchLimit - 1; i++) {
@@ -832,7 +848,7 @@
 
         function drawOscilloscope(ctx, cvs, timeData, triggerIndex, strokeColor, offsetY = 0, lineWidth = 1.5) {
             const sampleRate = actualNyquist * 2; 
-            
+            const visualCeiling = 1.0 / vertScaleMultiplier;
             const startSampleOffset = Math.floor((scopeOffsetXMs / 1000) * sampleRate);
             const actualStartIndex = triggerIndex + startSampleOffset;
             
@@ -846,7 +862,7 @@
                 
                 const timeMs = (i / sampleRate) * 1000; 
                 const canvasX = getScopeXPosition(timeMs, cvs.width);
-                const val = Math.max(-scopeMaxAmp, Math.min(scopeMaxAmp, timeData[dataIndex])); 
+                const val = Math.max(-visualCeiling, Math.min(visualCeiling, timeData[dataIndex])); 
                 const canvasY = getScopeYPosition(val, cvs.height) + offsetY; 
                 
                 if (!hasMoved) { ctx.moveTo(canvasX, canvasY); hasMoved = true; } 
@@ -1114,7 +1130,9 @@
         function clampCursors() {
             if (viewMode === 'oscilloscope' || viewMode === 'lissajous') {
                 scopeCursorX1Ms = Math.max(0, Math.min(scopeTimeWindowMs, scopeCursorX1Ms)); scopeCursorX2Ms = Math.max(0, Math.min(scopeTimeWindowMs, scopeCursorX2Ms));
-                scopeCursorY1Amp = Math.max(-scopeMaxAmp, Math.min(scopeMaxAmp, scopeCursorY1Amp)); scopeCursorY2Amp = Math.max(-scopeMaxAmp, Math.min(scopeMaxAmp, scopeCursorY2Amp));
+                const visualCeiling = 1.0 / vertScaleMultiplier;
+                scopeCursorY1Amp = Math.max(-visualCeiling, Math.min(visualCeiling, scopeCursorY1Amp)); 
+                scopeCursorY2Amp = Math.max(-visualCeiling, Math.min(visualCeiling, scopeCursorY2Amp));
             } else {
                 cursorX1Freq = Math.max(zoomMinFreq, Math.min(zoomMaxFreq, cursorX1Freq)); cursorX2Freq = Math.max(zoomMinFreq, Math.min(zoomMaxFreq, cursorX2Freq));
                 cursorY1Db = Math.max(displayMinDb, Math.min(displayMaxDb, cursorY1Db)); cursorY2Db = Math.max(displayMinDb, Math.min(displayMaxDb, cursorY2Db));
@@ -1130,7 +1148,8 @@
         controls.maxDb.el.oninput = (e) => { let val = parseInt(e.target.value); if (val <= displayMinDb + 10) val = displayMinDb + 10; displayMaxDb = val; e.target.value = val; controls.maxDb.disp.textContent = val; clampCursors(); updateCursorReadouts(); };
 
         controls.scopeTime.el.oninput = (e) => { scopeTimeWindowMs = parseInt(e.target.value); controls.scopeTime.disp.textContent = scopeTimeWindowMs + "ms"; clampCursors(); updateCursorReadouts(); };
-        controls.scopeAmp.el.oninput = (e) => { scopeMaxAmp = parseFloat(e.target.value); controls.scopeAmp.disp.textContent = scopeMaxAmp.toFixed(2) + 'x'; clampCursors(); updateCursorReadouts(); };
+        // V1.35.0 Bind multiplier to Vertical Scale slider
+        controls.vertScale.el.oninput = (e) => { vertScaleMultiplier = parseFloat(e.target.value); controls.vertScale.disp.textContent = vertScaleMultiplier.toFixed(2) + 'x'; clampCursors(); updateCursorReadouts(); };
         
         controls.scopeTrigger.el.oninput = (e) => { 
             scopeTriggerLevel = parseFloat(e.target.value); 
@@ -1208,7 +1227,8 @@
             btnCursorY.classList.toggle('text-neutral-400', !cursorsYEnabled); btnCursorY.classList.toggle('text-white', cursorsYEnabled);
             if (cursorsYEnabled) {
                 if (viewMode === 'oscilloscope') {
-                    scopeCursorY1Amp = scopeMaxAmp * 0.33; scopeCursorY2Amp = -scopeMaxAmp * 0.33;
+                    const visualCeiling = 1.0 / vertScaleMultiplier;
+                    scopeCursorY1Amp = visualCeiling * 0.33; scopeCursorY2Amp = -visualCeiling * 0.33;
                 } else if (viewMode === 'waterfall') {
                     const hBound = mainDisplay.visCvs.height || 350;
                     wfCursorY1Px = hBound * 0.33; wfCursorY2Px = hBound * 0.66;
@@ -1270,29 +1290,30 @@
             }
         }
 
-        // REV 1.34.0: Intercept Multi-Touch for X/Y Axis-Locked Pinch Zooming
+        // V1.35.0: Universal Gesture Handling (Pinch & Trace Drag applied to all views)
         function handlePointerDown(e, cvs) {
             
-            // Check for Pinch Gesture
             if (e.touches && e.touches.length === 2) {
-                if (viewMode === 'oscilloscope') {
-                    const touch1 = e.touches[0];
-                    const touch2 = e.touches[1];
-                    
-                    const dx = Math.abs(touch2.clientX - touch1.clientX);
-                    const dy = Math.abs(touch2.clientY - touch1.clientY);
-                    
-                    // Determine dominant axis to prevent erratic zooming
-                    pinchAxis = dx > dy ? 'x' : 'y';
-                    
-                    initialPinchDistX = dx;
-                    initialPinchDistY = dy;
-                    initialTimebase = scopeTimeWindowMs;
-                    initialAmp = scopeMaxAmp;
-                    
-                    activeDrag = { id: 'pinch' };
-                }
-                return; // Exit standard pointer logic
+                const touch1 = e.touches[0];
+                const touch2 = e.touches[1];
+                
+                const dx = Math.abs(touch2.clientX - touch1.clientX);
+                const dy = Math.abs(touch2.clientY - touch1.clientY);
+                
+                pinchAxis = dx > dy ? 'x' : 'y';
+                initialPinchDistX = dx;
+                initialPinchDistY = dy;
+
+                // Cache all potential scaling states for any mode
+                initialTimebase = scopeTimeWindowMs;
+                initialVertScale = vertScaleMultiplier;
+                initialPinchMinFreq = zoomMinFreq;
+                initialPinchMaxFreq = zoomMaxFreq;
+                initialPinchMinDb = displayMinDb;
+                initialPinchMaxDb = displayMaxDb;
+                
+                activeDrag = { id: 'pinch' };
+                return; 
             }
 
             const rect = cvs.getBoundingClientRect(); 
@@ -1358,7 +1379,8 @@
                         const sampleRate = actualNyquist * 2;
                         const index = lastTriggerIndex + Math.floor((ms / 1000) * sampleRate);
                         if (index >= 0 && index < ch.timeData.length) {
-                            const val = Math.max(-scopeMaxAmp, Math.min(scopeMaxAmp, ch.timeData[index]));
+                            const visualCeiling = 1.0 / vertScaleMultiplier;
+                            const val = Math.max(-visualCeiling, Math.min(visualCeiling, ch.timeData[index]));
                             traceY = getScopeYPosition(val, cvs.height) + ch.offsetY;
                         }
                     }
@@ -1384,11 +1406,10 @@
             }
         }
 
-        // REV 1.34.0: Process Axis-Locked Pinch Zooming
+        // V1.35.0: Process Universal Pinch Adjustments
         function handlePointerMove(e) {
             if (!activeDrag) return; 
 
-            // Handle Pinch Zooming First
             if (activeDrag.id === 'pinch' && e.touches && e.touches.length === 2) {
                 if (e.cancelable) e.preventDefault(); 
                 
@@ -1399,26 +1420,61 @@
                     const currentDistX = Math.abs(touch1.clientX - touch2.clientX);
                     if (initialPinchDistX > 0 && currentDistX > 0) {
                         const ratio = initialPinchDistX / currentDistX;
-                        let newTimebase = initialTimebase * ratio;
-                        newTimebase = Math.max(1, Math.min(500, newTimebase)); 
                         
-                        scopeTimeWindowMs = newTimebase;
-                        controls.scopeTime.el.value = scopeTimeWindowMs;
-                        controls.scopeTime.disp.textContent = Math.round(scopeTimeWindowMs) + "ms";
+                        if (viewMode === 'oscilloscope') {
+                            let newTimebase = initialTimebase * ratio;
+                            newTimebase = Math.max(1, Math.min(5000, newTimebase)); // Extended to 5000ms
+                            scopeTimeWindowMs = newTimebase;
+                            controls.scopeTime.el.value = scopeTimeWindowMs;
+                            controls.scopeTime.disp.textContent = Math.round(scopeTimeWindowMs) + "ms";
+                        } else {
+                            // Scale Frequency Span
+                            const span = initialPinchMaxFreq - initialPinchMinFreq;
+                            const center = initialPinchMinFreq + span / 2;
+                            let newSpan = span * ratio;
+                            newSpan = Math.max(100, Math.min(24000, newSpan)); // Prevent flatline zooms
+                            
+                            zoomMinFreq = Math.max(0, Math.round(center - newSpan / 2));
+                            zoomMaxFreq = Math.min(actualNyquist, Math.round(center + newSpan / 2));
+                            
+                            controls.minFreq.el.value = zoomMinFreq;
+                            controls.minFreq.disp.textContent = zoomMinFreq;
+                            controls.maxFreq.el.value = zoomMaxFreq;
+                            controls.maxFreq.disp.textContent = zoomMaxFreq;
+                        }
                     }
                 } else if (pinchAxis === 'y') {
                     const currentDistY = Math.abs(touch1.clientY - touch2.clientY);
                     if (initialPinchDistY > 0 && currentDistY > 0) {
-                        const ratio = initialPinchDistY / currentDistY;
-                        let newAmp = initialAmp * ratio;
+                        // Invert ratio: pinching out (dist increases) scales up the multiplier
+                        const ratio = currentDistY / initialPinchDistY; 
                         
-                        newAmp = Math.max(0.05, Math.min(1.0, newAmp));
-                        // Snap to slider increments for precise UI binding
-                        newAmp = Math.round(newAmp * 20) / 20; 
-                        
-                        scopeMaxAmp = newAmp;
-                        controls.scopeAmp.el.value = scopeMaxAmp;
-                        controls.scopeAmp.disp.textContent = scopeMaxAmp.toFixed(2) + "x";
+                        if (viewMode === 'oscilloscope') {
+                            let newScale = initialVertScale * ratio;
+                            newScale = Math.max(0.01, Math.min(100.0, newScale));
+                            
+                            // Snap to slider grid logic loosely to prevent crazy floats
+                            newScale = Math.round(newScale * 100) / 100;
+                            
+                            vertScaleMultiplier = newScale;
+                            controls.vertScale.el.value = vertScaleMultiplier;
+                            controls.vertScale.disp.textContent = vertScaleMultiplier.toFixed(2) + "x";
+                        } else {
+                            // Scale dB Span (Pinching Y alters display min/max)
+                            const invertRatio = initialPinchDistY / currentDistY; 
+                            const span = initialPinchMaxDb - initialPinchMinDb;
+                            const center = initialPinchMinDb + span / 2;
+                            let newSpan = span * invertRatio;
+                            newSpan = Math.max(10, Math.min(140, newSpan)); 
+                            
+                            displayMinDb = Math.max(-140, Math.round(center - newSpan / 2));
+                            displayMaxDb = Math.min(0, Math.round(center + newSpan / 2));
+                            
+                            controls.minDb.el.value = displayMinDb;
+                            controls.minDb.disp.textContent = displayMinDb;
+                            controls.maxDb.el.value = displayMaxDb;
+                            controls.maxDb.disp.textContent = displayMaxDb;
+                        }
                     }
                 }
                 
@@ -1482,11 +1538,11 @@
 
         function handlePointerUp() { 
             activeDrag = null; 
-            // Clear gesture tracking
             pinchAxis = null;
             initialPinchDistX = 0;
             initialPinchDistY = 0;
-            initialAmp = null;
+            initialTimebase = null;
+            initialVertScale = null;
             
             mainDisplay.visCvs.style.cursor = 'crosshair'; 
         }
@@ -1536,7 +1592,7 @@
 
         document.getElementById('btn-reset').onclick = () => {
             isLogScale = false; isFrozen = false; showPeaks = false; averagingAlpha = 0.0; displayMaxDb = 0; displayMinDb = -140; zoomMinFreq = 0; zoomMaxFreq = 22000;
-            scopeTimeWindowMs = 20; scopeMaxAmp = 1.0; scopeTriggerLevel = 0.0; scopeTriggerSource = null; setTriggerSource(null);
+            scopeTimeWindowMs = 20; vertScaleMultiplier = 1.0; scopeTriggerLevel = 0.0; scopeTriggerSource = null; setTriggerSource(null);
             cursorsXEnabled = false; cursorsYEnabled = false; isOneShotArmed = false; isMemOverlay = false; memorySnapshot = null;
             
             Object.values(channels).forEach(ch => ch.offsetY = 0);
@@ -1548,7 +1604,8 @@
 
             controls.minFreq.el.value = 0; controls.minFreq.disp.textContent = "0"; controls.maxFreq.el.value = 22000; controls.maxFreq.disp.textContent = "22000";
             controls.minDb.el.value = -140; controls.minDb.disp.textContent = "-140"; controls.maxDb.el.value = 0; controls.maxDb.disp.textContent = "0";
-            controls.scopeTime.el.value = 20; controls.scopeTime.disp.textContent = "20ms"; controls.scopeAmp.el.value = 1; controls.scopeAmp.disp.textContent = "1.00x";
+            controls.scopeTime.el.value = 20; controls.scopeTime.disp.textContent = "20ms"; 
+            controls.vertScale.el.value = 1; controls.vertScale.disp.textContent = "1.00x";
             controls.scopeTrigger.el.value = 0; controls.scopeTrigger.disp.textContent = "0.00";
 
             const btnFreeze = document.getElementById('btn-freeze'); btnFreeze.textContent = "FREEZE: OFF"; btnFreeze.classList.replace('bg-blue-800', 'bg-neutral-800');
