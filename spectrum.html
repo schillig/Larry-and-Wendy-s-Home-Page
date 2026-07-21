@@ -5,7 +5,7 @@
     <!-- W3C Mobile Viewport standard for application-like behavior -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="description" content="Professional Web-Based Audio Spectrum Analyzer and Oscilloscope">
-    <title>Audio Spectrum Visualizer - REV 1.37.0</title>
+    <title>Audio Spectrum Visualizer - REV 1.38.0</title>
     
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎛️</text></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -70,13 +70,13 @@
         </div>
     </div>
 
-    <!-- Header: Optimized for single-row mobile fit -->
+    <!-- Header -->
     <header class="w-full max-w-7xl flex-none flex flex-row justify-between items-center bg-neutral-800 py-1 px-2 border-b border-neutral-600 mb-2">
         <div class="flex items-center gap-1.5 md:gap-2">
             <h1 class="text-[10px] md:text-sm font-bold text-neutral-100 uppercase tracking-wider flex items-center whitespace-nowrap">
                 <span class="hidden sm:inline">Signal Analyzer</span>
                 <span class="sm:hidden">Analyzer</span>
-                <span class="text-neutral-500 text-[8px] md:text-[9px] font-mono ml-1">V1.37.0</span>
+                <span class="text-neutral-500 text-[8px] md:text-[9px] font-mono ml-1">V1.38.0</span>
             </h1>
             <div class="text-[9px] uppercase font-bold text-neutral-400">
                 <span id="engine-status" class="text-yellow-500 font-mono bg-neutral-900 px-1 border border-neutral-700">READY</span>
@@ -550,40 +550,74 @@
             }
         }
 
+        // REV 1.38.0: Strict 10x8 Division Matrix Graticule Implementation
         function drawOscilloscopeGrid(ctx, cvs) { 
             const p = getPadding();
             const w = cvs.width;
             const h = cvs.height - p.bottom;
             const visualCeiling = 1.0 / vertScaleMultiplier;
             
-            const timeSteps = 10;
+            // --- 10 Horizontal Divisions (Time) ---
+            const hDivs = 10;
             ctx.textAlign = 'center';
             ctx.font = '10px monospace';
-            for (let i = 0; i <= timeSteps; i++) {
-                const ms = (scopeTimeWindowMs / timeSteps) * i;
+            
+            for (let i = 0; i <= hDivs; i++) {
+                const ms = (scopeTimeWindowMs / hDivs) * i;
                 const absoluteMs = ms + scopeOffsetXMs; 
-                
                 const x = getScopeXPosition(ms, w);
-                ctx.strokeStyle = '#404040';
+                
+                // Hardware Graticule Styling: Solid center/edges, dotted interior
+                if (i === 0 || i === hDivs || i === hDivs / 2) {
+                    ctx.strokeStyle = '#525252';
+                    ctx.setLineDash([]);
+                } else {
+                    ctx.strokeStyle = '#404040';
+                    ctx.setLineDash([2, 4]); // Dotted look
+                }
+                
                 ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+                
+                ctx.setLineDash([]); // Reset to solid line style for labels
                 ctx.fillStyle = '#171717';
                 ctx.fillRect(x - 15, h + 2, 30, 14);
-                ctx.fillStyle = '#a3a3a3'; ctx.fillText(absoluteMs.toFixed(1) + 'ms', x, h + 13);
+                ctx.fillStyle = '#a3a3a3'; 
+                ctx.fillText(absoluteMs.toFixed(1) + 'ms', x, h + 13);
             }
             
+            // --- 8 Vertical Divisions (Voltage) ---
+            const vDivs = 8;
             const currentGain = gainNode ? gainNode.gain.value : 1.0;
-            const ampSteps = [visualCeiling, visualCeiling/2, 0, -visualCeiling/2, -visualCeiling];
             ctx.textAlign = 'right';
-            ampSteps.forEach(amp => {
+            ctx.textBaseline = 'middle'; // Center text vertically precisely over the gridline
+            
+            for (let i = 0; i <= vDivs; i++) {
+                // Map from +visualCeiling down to -visualCeiling
+                const amp = visualCeiling - (i * (2 * visualCeiling) / vDivs);
                 const y = getScopeYPosition(amp, cvs.height);
-                ctx.strokeStyle = '#404040';
+                
+                if (i === 0 || i === vDivs || i === vDivs / 2) {
+                    ctx.strokeStyle = '#525252';
+                    ctx.setLineDash([]);
+                } else {
+                    ctx.strokeStyle = '#404040';
+                    ctx.setLineDash([2, 4]); 
+                }
+                
                 ctx.beginPath(); ctx.moveTo(p.left, y); ctx.lineTo(w, y); ctx.stroke();
+                
+                ctx.setLineDash([]); // Reset immediately
                 const trueVoltage = amp / currentGain;
                 ctx.fillStyle = '#171717';
                 ctx.fillRect(5, y - 6, p.left - 10, 12);
-                ctx.fillStyle = '#a3a3a3'; ctx.fillText(trueVoltage > 0 ? '+' + trueVoltage.toFixed(2) : trueVoltage.toFixed(2), p.left - 8, y + 4);
-            });
+                ctx.fillStyle = '#a3a3a3'; 
+                ctx.fillText(trueVoltage > 0 ? '+' + trueVoltage.toFixed(2) : trueVoltage.toFixed(2), p.left - 8, y);
+            }
+            
+            // Clean up global baseline state
+            ctx.textBaseline = 'alphabetic'; 
 
+            // Trigger Cursor UI
             if (scopeTriggerSource !== null && channels[scopeTriggerSource]) {
                 const trigColor = channels[scopeTriggerSource].color;
                 const trigY = getScopeYPosition(scopeTriggerLevel, cvs.height);
@@ -597,7 +631,8 @@
                 
                 ctx.fillStyle = trigColor; 
                 ctx.textAlign = 'left'; 
-                ctx.fillText('TRIG', p.left + 5, trigY - 4);
+                ctx.textBaseline = 'middle';
+                ctx.fillText('TRIG', p.left + 5, trigY - 6);
                 ctx.restore(); 
             }
         }
@@ -1323,7 +1358,6 @@
             }
         }
 
-        // REV 1.37.0: Included W3C resilient exclusion logic for pan routing
         function handlePointerDown(e, cvs) {
             
             if (e.touches && e.touches.length === 2) {
@@ -1391,7 +1425,6 @@
                 }
             }
 
-            // Using inverted logic to capture ALL relevant modes robustly
             if (!activeDrag && viewMode !== 'lissajous') {
                 let closestDist = 30; 
                 let selectedTrace = null;
