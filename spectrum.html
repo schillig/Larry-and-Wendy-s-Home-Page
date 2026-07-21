@@ -2,10 +2,9 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <!-- W3C Mobile Viewport standard for application-like behavior -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="description" content="Professional Web-Based Audio Spectrum Analyzer and Oscilloscope">
-    <title>Audio Spectrum Visualizer - REV 1.38.0</title>
+    <title>Audio Spectrum Visualizer - REV 1.39.0</title>
     
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎛️</text></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -26,11 +25,9 @@
         .canvas-container {
             border: 1px solid #525252;
             cursor: crosshair;
-            /* Explicitly disable browser pan/zoom to route raw touch events to JS */
             touch-action: none; 
         }
         
-        /* Utilitarian Range Slider */
         input[type=range] {
             -webkit-appearance: none;
             background: transparent;
@@ -61,6 +58,11 @@
             border-radius: 0 !important;
             text-transform: uppercase;
         }
+
+        /* OSD Text Shadow for Hardware Parity against bright waveforms */
+        .osd-text {
+            text-shadow: 1px 1px 1px rgba(0,0,0,0.9), -1px -1px 1px rgba(0,0,0,0.9);
+        }
     </style>
 </head>
 <body class="flex flex-col items-center px-1 md:px-2 pt-1 pb-2 font-sans h-screen overflow-hidden relative">
@@ -76,7 +78,7 @@
             <h1 class="text-[10px] md:text-sm font-bold text-neutral-100 uppercase tracking-wider flex items-center whitespace-nowrap">
                 <span class="hidden sm:inline">Signal Analyzer</span>
                 <span class="sm:hidden">Analyzer</span>
-                <span class="text-neutral-500 text-[8px] md:text-[9px] font-mono ml-1">V1.38.0</span>
+                <span class="text-neutral-500 text-[8px] md:text-[9px] font-mono ml-1">V1.39.0</span>
             </h1>
             <div class="text-[9px] uppercase font-bold text-neutral-400">
                 <span id="engine-status" class="text-yellow-500 font-mono bg-neutral-900 px-1 border border-neutral-700">READY</span>
@@ -98,15 +100,41 @@
 
     <main class="w-full max-w-7xl flex-1 flex flex-col gap-2 overflow-hidden">
 
-        <!-- Canvas Container -->
+        <!-- Canvas Container with On-Screen Display (OSD) Overlay -->
         <section id="displays-wrapper" class="order-1 md:order-2 w-full flex-1 flex flex-col gap-2 min-h-[250px]">
             <div id="display-main" class="canvas-container w-full flex-1 bg-neutral-950 relative" title="1-Finger Pan / 2-Finger Zoom / Dbl-Click Reset">
-                <div class="absolute top-0 left-0 text-[10px] font-mono font-bold text-neutral-400 z-20 bg-neutral-900 px-2 py-0.5 border-b border-r border-neutral-700">
-                    CH: <span id="ch-indicator" class="text-white">L+R</span>
+                
+                <!-- REV 1.39.0: Hardware Heads-Up Display Overlay. Pointer-events-none ensures gestures drop through to canvas. -->
+                <div id="osd-layer" class="absolute inset-0 z-30 pointer-events-none flex flex-col justify-between p-1.5 font-mono text-[9px] md:text-[11px] font-bold text-neutral-300 pb-[30px] pl-[60px] pr-2">
+                    
+                    <div class="flex justify-between items-start w-full">
+                        <div class="flex flex-col gap-0.5 osd-text">
+                            <span id="osd-ch-combined" class="text-cyan-400">CH L+R: --</span>
+                            <span id="osd-ch-left" class="text-green-400">CH L: --</span>
+                            <span id="osd-ch-right" class="text-pink-400">CH R: --</span>
+                        </div>
+                        <div class="flex flex-col items-end gap-0.5 text-right osd-text">
+                            <span id="osd-trigger" class="text-white">TRIG: AUTO</span>
+                            <span id="osd-mode" class="text-yellow-400">MODE: SPECTRUM</span>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-between items-end w-full">
+                        <div class="flex flex-col gap-0.5 osd-text">
+                            <span id="osd-timebase" class="text-white">M: --</span>
+                            <span id="osd-memory" class="text-neutral-400">POS: --</span>
+                        </div>
+                        <div class="flex flex-col items-end gap-0.5 text-right osd-text">
+                            <span id="osd-freq-span" class="text-white">SPAN: --</span>
+                            <span id="osd-db-span" class="text-neutral-400">SCALE: --</span>
+                        </div>
+                    </div>
                 </div>
-                <div class="ms-row-badge absolute top-0 right-0 text-[10px] font-mono font-bold text-neutral-400 z-20 bg-neutral-900 px-2 py-0.5 border-b border-l border-neutral-700" style="display: none;">
+
+                <div class="ms-row-badge absolute top-12 right-2 text-[9px] font-mono font-bold text-neutral-400 z-20 bg-neutral-900/80 px-1 border border-neutral-700" style="display: none;">
                     <span class="val">--</span> ms/row
                 </div>
+
                 <canvas id="wf-main" class="absolute inset-0 w-full h-full block z-0"></canvas>
                 <canvas id="vis-main" class="absolute inset-0 w-full h-full block z-10"></canvas>
             </div>
@@ -126,12 +154,12 @@
                 
                 <div class="flex flex-col gap-2">
                     <h3 class="text-[10px] uppercase tracking-wider text-neutral-500 font-bold border-b border-neutral-600 pb-1">Routing</h3>
-                    <button id="btn-mode" class="py-1 bg-blue-800 hover:bg-blue-700 border border-blue-600 text-[10px] font-bold text-white">MODE: SPECTRUM</button>
-                    <div class="flex gap-1">
+                    <div class="flex gap-1 mt-1">
                         <button id="btn-show-combined" class="flex-1 py-1 bg-neutral-600 border border-neutral-500 text-[10px] font-bold text-white shadow-[0_2px_0_#22d3ee]">L+R</button>
                         <button id="btn-show-left" class="flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[10px] font-bold text-neutral-400">L</button>
                         <button id="btn-show-right" class="flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[10px] font-bold text-neutral-400">R</button>
                     </div>
+                    <button id="btn-mode" class="py-1 mt-1 bg-blue-800 hover:bg-blue-700 border border-blue-600 text-[10px] font-bold text-white">CYCLE MODE</button>
                 </div>
 
                 <div class="flex flex-col gap-3">
@@ -175,28 +203,24 @@
                         <div class="flex flex-col gap-0.5">
                             <label for="min-freq" class="text-[9px] font-bold uppercase text-neutral-400 flex justify-between">
                                 <span>Min Hz</span>
-                                <span id="min-freq-val" class="text-cyan-400 font-mono">0</span>
                             </label>
                             <input type="range" id="min-freq" min="0" max="24000" step="1" value="0">
                         </div>
                         <div class="flex flex-col gap-0.5">
                             <label for="max-freq" class="text-[9px] font-bold uppercase text-neutral-400 flex justify-between">
                                 <span>Max Hz</span>
-                                <span id="max-freq-val" class="text-cyan-400 font-mono">22000</span>
                             </label>
                             <input type="range" id="max-freq" min="100" max="24000" step="100" value="22000">
                         </div>
                         <div class="flex flex-col gap-0.5">
                             <label for="min-db" class="text-[9px] font-bold uppercase text-neutral-400 flex justify-between">
                                 <span>Min dB</span>
-                                <span id="min-db-val" class="text-cyan-400 font-mono">-140</span>
                             </label>
                             <input type="range" id="min-db" min="-140" max="-70" step="1" value="-140">
                         </div>
                         <div class="flex flex-col gap-0.5">
                             <label for="max-db" class="text-[9px] font-bold uppercase text-neutral-400 flex justify-between">
                                 <span>Max dB</span>
-                                <span id="max-db-val" class="text-cyan-400 font-mono">0</span>
                             </label>
                             <input type="range" id="max-db" min="-60" max="0" step="1" value="0">
                         </div>
@@ -205,22 +229,19 @@
                     <div id="zoom-scope" class="grid grid-cols-1 gap-y-2 mode-scope" style="display: none;">
                         <div id="scope-time-container" class="flex flex-col gap-0.5">
                             <label for="scope-time" class="text-[9px] font-bold uppercase text-neutral-400 flex justify-between">
-                                <span>Time Base</span>
-                                <span id="scope-time-val" class="text-cyan-400 font-mono">20ms</span>
+                                <span>Time Base (Span)</span>
                             </label>
                             <input type="range" id="scope-time" min="1" max="5000" step="1" value="20">
                         </div>
                         <div class="flex flex-col gap-0.5">
                             <label for="vert-scale" class="text-[9px] font-bold uppercase text-neutral-400 flex justify-between">
                                 <span>Vertical Scale</span>
-                                <span id="vert-scale-val" class="text-cyan-400 font-mono">1.00x</span>
                             </label>
                             <input type="range" id="vert-scale" min="0.01" max="100" step="0.01" value="1">
                         </div>
                         <div id="scope-trigger-container" class="flex flex-col gap-0.5 border-t border-neutral-700 pt-1">
                             <label for="scope-trigger-lvl" class="text-[9px] font-bold uppercase text-neutral-400 flex justify-between">
                                 <span>Trig Level</span>
-                                <span id="scope-trigger-val" class="text-pink-400 font-mono">0.00</span>
                             </label>
                             <input type="range" id="scope-trigger-lvl" min="-1" max="1" step="0.01" value="0">
                         </div>
@@ -351,13 +372,13 @@
             gain: { el: document.getElementById('gain'), disp: document.getElementById('gain-value') },
             avg: { el: document.getElementById('avg'), disp: document.getElementById('avg-value') },
             bandwidth: { el: document.getElementById('bandwidth'), disp: document.getElementById('bandwidth-value') },
-            minFreq: { el: document.getElementById('min-freq'), disp: document.getElementById('min-freq-val') },
-            maxFreq: { el: document.getElementById('max-freq'), disp: document.getElementById('max-freq-val') },
-            minDb: { el: document.getElementById('min-db'), disp: document.getElementById('min-db-val') },
-            maxDb: { el: document.getElementById('max-db'), disp: document.getElementById('max-db-val') },
-            scopeTime: { el: document.getElementById('scope-time'), disp: document.getElementById('scope-time-val') },
-            vertScale: { el: document.getElementById('vert-scale'), disp: document.getElementById('vert-scale-val') },
-            scopeTrigger: { el: document.getElementById('scope-trigger-lvl'), disp: document.getElementById('scope-trigger-val') }
+            minFreq: { el: document.getElementById('min-freq') },
+            maxFreq: { el: document.getElementById('max-freq') },
+            minDb: { el: document.getElementById('min-db') },
+            maxDb: { el: document.getElementById('max-db') },
+            scopeTime: { el: document.getElementById('scope-time') },
+            vertScale: { el: document.getElementById('vert-scale') },
+            scopeTrigger: { el: document.getElementById('scope-trigger-lvl') }
         };
 
         // ==========================================
@@ -400,7 +421,7 @@
             });
         }
 
-        const getPadding = () => ({ left: 55, bottom: 25 });
+        const getPadding = () => ({ left: 55, bottom: 30 }); // Slightly higher bottom padding for OSD clearance
         
         function getXPosition(freq, cvsWidth) {
             const p = getPadding();
@@ -469,156 +490,140 @@
             return Math.round(freq);
         }
         
-        function getTouchDistance(touch1, touch2) {
-            return Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY);
-        }
+        // REV 1.39.0: Centralized OSD (Heads-Up Display) Update Function
+        function updateOSD() {
+            const isScope = viewMode === 'oscilloscope';
+            const isSpec = viewMode === 'spectrum' || viewMode === 'both' || viewMode === 'waterfall';
+            const isLiss = viewMode === 'lissajous';
 
-        // ==========================================
-        // 4. CANVAS RENDERING PRIMITIVES
-        // ==========================================
-        function drawGrid(ctx, cvs) {
-            const p = getPadding();
-            const gH = cvs.height - p.bottom;
-            const freqRange = zoomMaxFreq - zoomMinFreq;
+            document.getElementById('osd-mode').textContent = `MODE: ${viewMode.toUpperCase()}`;
 
-            if (viewMode !== 'waterfall') {
-                ctx.textAlign = 'right'; ctx.font = '10px monospace';
-                let dbStep = (displayMaxDb - displayMinDb) > 40 ? 10 : 5;
-                for (let db = Math.floor(displayMinDb / dbStep) * dbStep; db <= displayMaxDb; db += dbStep) {
-                    if (db < displayMinDb || db > displayMaxDb) continue;
-                    const y = getYPosition(db, cvs.height);
-                    ctx.strokeStyle = '#404040'; 
-                    ctx.beginPath(); ctx.moveTo(p.left, y); ctx.lineTo(cvs.width, y); ctx.stroke();
-                    
-                    ctx.fillStyle = '#171717';
-                    ctx.fillRect(5, y - 6, p.left - 10, 12);
-                    ctx.fillStyle = '#a3a3a3'; ctx.fillText(`${db} dB`, p.left - 8, y + 4);
-                }
-            }
+            const visualCeiling = 1.0 / vertScaleMultiplier;
+            const currentGain = gainNode ? gainNode.gain.value : 1.0;
+            // 8 Vertical divisions total (spanning top to bottom) -> half top, half bottom. 2 * visualCeiling total range.
+            const trueVPerDiv = (visualCeiling * 2 / 8) / currentGain; 
 
-            ctx.textAlign = 'center';
-            let freqStep = 2000;
-            if (freqRange <= 50) freqStep = 5;
-            else if (freqRange <= 100) freqStep = 10;
-            else if (freqRange <= 250) freqStep = 25;
-            else if (freqRange <= 500) freqStep = 50;
-            else if (freqRange <= 1000) freqStep = 100;
-            else if (freqRange <= 2000) freqStep = 200;
-            else if (freqRange <= 5000) freqStep = 500;
-            else if (freqRange <= 10000) freqStep = 1000;
-            
-            if (isLogScale) {
-                let logSteps = [];
-                if (freqRange > 8000) {
-                    for (let pow = 0; pow <= 5; pow++) {
-                        const base = Math.pow(10, pow);
-                        [1, 2, 5].forEach(m => logSteps.push(base * m));
-                    }
-                } else if (freqRange > 2000) {
-                    for (let pow = 0; pow <= 5; pow++) {
-                        const base = Math.pow(10, pow);
-                        for(let i=1; i<=9; i++) logSteps.push(base * i);
-                    }
-                } else {
-                    const startFreq = Math.max(0, Math.ceil(zoomMinFreq / freqStep) * freqStep);
-                    for (let freq = startFreq; freq <= zoomMaxFreq; freq += freqStep) {
-                        logSteps.push(freq);
-                    }
-                }
-                if (zoomMinFreq === 0 && !logSteps.includes(0)) logSteps.unshift(0);
+            document.getElementById('osd-ch-combined').style.display = channels.combined.active ? 'block' : 'none';
+            document.getElementById('osd-ch-combined').textContent = `CH L+R: ${trueVPerDiv.toFixed(2)} V/DIV`;
 
-                logSteps.forEach(freq => {
-                    if (freq >= zoomMinFreq && freq <= zoomMaxFreq) {
-                        const x = getXPosition(freq, cvs.width);
-                        ctx.strokeStyle = '#404040';
-                        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, gH); ctx.stroke();
-                        ctx.fillStyle = '#171717';
-                        ctx.fillRect(x - 15, gH + 2, 30, 14);
-                        ctx.fillStyle = '#a3a3a3'; ctx.fillText(formatFreqLabel(freq), x, gH + 13);
-                    }
-                });
+            document.getElementById('osd-ch-left').style.display = channels.left.active ? 'block' : 'none';
+            document.getElementById('osd-ch-left').textContent = `CH L: ${trueVPerDiv.toFixed(2)} V/DIV`;
+
+            document.getElementById('osd-ch-right').style.display = channels.right.active ? 'block' : 'none';
+            document.getElementById('osd-ch-right').textContent = `CH R: ${trueVPerDiv.toFixed(2)} V/DIV`;
+
+            if (isScope || isLiss) {
+                const timePerDiv = scopeTimeWindowMs / 10; // 10 horizontal divisions
+                document.getElementById('osd-timebase').textContent = `M: ${timePerDiv.toFixed(1)} ms/DIV`;
+                document.getElementById('osd-memory').textContent = `POS: ${scopeOffsetXMs.toFixed(1)} ms`;
+
+                document.getElementById('osd-freq-span').style.display = 'none';
+                document.getElementById('osd-db-span').style.display = 'none';
+                document.getElementById('osd-timebase').style.display = 'block';
+                document.getElementById('osd-memory').style.display = 'block';
             } else {
-                const startFreq = Math.max(0, Math.ceil(zoomMinFreq / freqStep) * freqStep);
-                for (let freq = startFreq; freq <= zoomMaxFreq; freq += freqStep) {
-                    const x = getXPosition(freq, cvs.width);
-                    ctx.strokeStyle = '#404040';
-                    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, gH); ctx.stroke();
-                    ctx.fillStyle = '#171717';
-                    ctx.fillRect(x - 15, gH + 2, 30, 14);
-                    ctx.fillStyle = '#a3a3a3'; ctx.fillText(formatFreqLabel(freq), x, gH + 13);
-                }
+                document.getElementById('osd-freq-span').textContent = `SPAN: ${formatFreqLabel(zoomMinFreq)} - ${formatFreqLabel(zoomMaxFreq)}`;
+                const dbPerDiv = (displayMaxDb - displayMinDb) / 8;
+                document.getElementById('osd-db-span').textContent = `REF: ${displayMaxDb}dB | SCALE: ${dbPerDiv.toFixed(1)}dB/DIV`;
+
+                document.getElementById('osd-freq-span').style.display = 'block';
+                document.getElementById('osd-db-span').style.display = 'block';
+                document.getElementById('osd-timebase').style.display = 'none';
+                document.getElementById('osd-memory').style.display = 'none';
+            }
+
+            if (scopeTriggerSource && isScope) {
+                document.getElementById('osd-trigger').textContent = `TRIG: ${channels[scopeTriggerSource].name} @ ${scopeTriggerLevel.toFixed(2)}V`;
+                document.getElementById('osd-trigger').style.color = channels[scopeTriggerSource].color;
+            } else {
+                document.getElementById('osd-trigger').textContent = `TRIG: AUTO`;
+                document.getElementById('osd-trigger').style.color = '#d4d4d4';
             }
         }
 
-        // REV 1.38.0: Strict 10x8 Division Matrix Graticule Implementation
-        function drawOscilloscopeGrid(ctx, cvs) { 
+        // ==========================================
+        // 4. UNIVERSAL GRATICULE RENDERING
+        // ==========================================
+        function drawHardwareGraticule(ctx, cvs) {
             const p = getPadding();
             const w = cvs.width;
             const h = cvs.height - p.bottom;
-            const visualCeiling = 1.0 / vertScaleMultiplier;
-            
-            // --- 10 Horizontal Divisions (Time) ---
-            const hDivs = 10;
-            ctx.textAlign = 'center';
-            ctx.font = '10px monospace';
-            
-            for (let i = 0; i <= hDivs; i++) {
-                const ms = (scopeTimeWindowMs / hDivs) * i;
-                const absoluteMs = ms + scopeOffsetXMs; 
-                const x = getScopeXPosition(ms, w);
-                
-                // Hardware Graticule Styling: Solid center/edges, dotted interior
-                if (i === 0 || i === hDivs || i === hDivs / 2) {
-                    ctx.strokeStyle = '#525252';
-                    ctx.setLineDash([]);
-                } else {
-                    ctx.strokeStyle = '#404040';
-                    ctx.setLineDash([2, 4]); // Dotted look
-                }
-                
-                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
-                
-                ctx.setLineDash([]); // Reset to solid line style for labels
-                ctx.fillStyle = '#171717';
-                ctx.fillRect(x - 15, h + 2, 30, 14);
-                ctx.fillStyle = '#a3a3a3'; 
-                ctx.fillText(absoluteMs.toFixed(1) + 'ms', x, h + 13);
-            }
-            
-            // --- 8 Vertical Divisions (Voltage) ---
-            const vDivs = 8;
-            const currentGain = gainNode ? gainNode.gain.value : 1.0;
-            ctx.textAlign = 'right';
-            ctx.textBaseline = 'middle'; // Center text vertically precisely over the gridline
-            
-            for (let i = 0; i <= vDivs; i++) {
-                // Map from +visualCeiling down to -visualCeiling
-                const amp = visualCeiling - (i * (2 * visualCeiling) / vDivs);
-                const y = getScopeYPosition(amp, cvs.height);
-                
-                if (i === 0 || i === vDivs || i === vDivs / 2) {
-                    ctx.strokeStyle = '#525252';
-                    ctx.setLineDash([]);
-                } else {
-                    ctx.strokeStyle = '#404040';
-                    ctx.setLineDash([2, 4]); 
-                }
-                
-                ctx.beginPath(); ctx.moveTo(p.left, y); ctx.lineTo(w, y); ctx.stroke();
-                
-                ctx.setLineDash([]); // Reset immediately
-                const trueVoltage = amp / currentGain;
-                ctx.fillStyle = '#171717';
-                ctx.fillRect(5, y - 6, p.left - 10, 12);
-                ctx.fillStyle = '#a3a3a3'; 
-                ctx.fillText(trueVoltage > 0 ? '+' + trueVoltage.toFixed(2) : trueVoltage.toFixed(2), p.left - 8, y);
-            }
-            
-            // Clean up global baseline state
-            ctx.textBaseline = 'alphabetic'; 
+            const hDivs = 10; // Strict standard time/freq divisions
+            const vDivs = 8;  // Strict standard voltage/amplitude divisions
 
-            // Trigger Cursor UI
-            if (scopeTriggerSource !== null && channels[scopeTriggerSource]) {
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle'; // Center text explicitly on the grid line
+            ctx.font = '10px monospace';
+
+            // --- Draw 10 Horizontal Divisions (Vertical Lines) ---
+            for (let i = 0; i <= hDivs; i++) {
+                const px = p.left + (i * (w - p.left) / hDivs);
+
+                // Hardware Graticule Styling: Solid center and edges, dotted interior lines
+                if (i === 0 || i === hDivs || i === hDivs / 2) {
+                    ctx.strokeStyle = '#525252'; ctx.setLineDash([]);
+                } else {
+                    ctx.strokeStyle = '#404040'; ctx.setLineDash([2, 4]);
+                }
+                ctx.beginPath(); ctx.moveTo(px, 0); ctx.lineTo(px, h); ctx.stroke();
+
+                ctx.setLineDash([]);
+                ctx.fillStyle = '#171717';
+                ctx.fillRect(px - 15, h + 2, 30, 14);
+                ctx.fillStyle = '#a3a3a3';
+
+                let label = "";
+                if (viewMode === 'oscilloscope') {
+                    const ms = (scopeTimeWindowMs / hDivs) * i + scopeOffsetXMs;
+                    label = ms.toFixed(1) + 'ms';
+                } else if (viewMode === 'spectrum' || viewMode === 'waterfall' || viewMode === 'both') {
+                    if (isLogScale) {
+                        const logMin = Math.log10(Math.max(1, zoomMinFreq));
+                        const logMax = Math.log10(Math.max(2, zoomMaxFreq));
+                        const freq = Math.pow(10, logMin + (i / hDivs) * (logMax - logMin));
+                        label = formatFreqLabel(freq);
+                    } else {
+                        const freq = zoomMinFreq + (i / hDivs) * (zoomMaxFreq - zoomMinFreq);
+                        label = formatFreqLabel(freq);
+                    }
+                }
+                if(label) ctx.fillText(label, px, h + 9);
+            }
+
+            // --- Draw 8 Vertical Divisions (Horizontal Lines) ---
+            ctx.textAlign = 'right';
+            for (let i = 0; i <= vDivs; i++) {
+                const py = i * (h / vDivs);
+
+                if (i === 0 || i === vDivs || i === vDivs / 2) {
+                    ctx.strokeStyle = '#525252'; ctx.setLineDash([]);
+                } else {
+                    ctx.strokeStyle = '#404040'; ctx.setLineDash([2, 4]);
+                }
+                ctx.beginPath(); ctx.moveTo(p.left, py); ctx.lineTo(w, py); ctx.stroke();
+
+                ctx.setLineDash([]);
+                ctx.fillStyle = '#171717';
+                ctx.fillRect(5, py - 6, p.left - 10, 12);
+                ctx.fillStyle = '#a3a3a3';
+
+                let label = "";
+                if (viewMode === 'oscilloscope' || viewMode === 'lissajous') {
+                    const visualCeiling = 1.0 / vertScaleMultiplier;
+                    const amp = visualCeiling - (i * (2 * visualCeiling) / vDivs);
+                    const currentGain = gainNode ? gainNode.gain.value : 1.0;
+                    const trueVoltage = amp / currentGain;
+                    label = trueVoltage > 0 ? '+' + trueVoltage.toFixed(2) : trueVoltage.toFixed(2);
+                } else if (viewMode === 'spectrum' || viewMode === 'waterfall' || viewMode === 'both') {
+                    const db = displayMaxDb - (i * (displayMaxDb - displayMinDb) / vDivs);
+                    label = Math.round(db) + ' dB';
+                }
+                if(label) ctx.fillText(label, p.left - 8, py);
+            }
+            ctx.textBaseline = 'alphabetic'; // Reset global canvas state
+
+            // --- Draw Trigger Cursor ---
+            if (viewMode === 'oscilloscope' && scopeTriggerSource !== null && channels[scopeTriggerSource]) {
                 const trigColor = channels[scopeTriggerSource].color;
                 const trigY = getScopeYPosition(scopeTriggerLevel, cvs.height);
                 ctx.save(); 
@@ -635,19 +640,13 @@
                 ctx.fillText('TRIG', p.left + 5, trigY - 6);
                 ctx.restore(); 
             }
-        }
-
-        function drawLissajousGrid(ctx, cvs, maxAmp) { 
-            const p = getPadding();
-            const w = cvs.width - p.left;
-            const h = cvs.height - p.bottom;
-            const centerX = p.left + w / 2;
-            const centerY = h / 2;
-
-            ctx.strokeStyle = '#404040';
-            ctx.beginPath(); ctx.moveTo(p.left, centerY); ctx.lineTo(cvs.width, centerY); ctx.moveTo(centerX, 0); ctx.lineTo(centerX, h); ctx.stroke();
-            ctx.fillStyle = '#a3a3a3'; ctx.textAlign = 'center'; ctx.font = '10px monospace'; ctx.fillText('- L +', centerX, h + 15);
-            ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText('+R', p.left - 5, 10); ctx.fillText('-R', p.left - 5, h - 10);
+            
+            // Render Lissajous central crosshairs specifically
+            if(viewMode === 'lissajous') {
+                const centerX = p.left + (w - p.left) / 2;
+                ctx.fillStyle = '#a3a3a3'; ctx.textAlign = 'center'; ctx.fillText('- L +', centerX, h + 20);
+                ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText('+R', p.left - 5, 10); ctx.fillText('-R', p.left - 5, h - 10);
+            }
         }
 
         // ==========================================
@@ -733,6 +732,8 @@
                 
                 statusEl.textContent = `LIVE (${sourceType.toUpperCase()})`; statusEl.className = "text-green-500 font-mono bg-neutral-900 px-1 border border-neutral-700";
                 stream.getTracks().forEach(t => t.onended = () => stopAudio());
+                
+                updateOSD(); // Push initial values to HUD
             } catch (err) {
                 showToast("ERROR: " + err.message, true); 
                 stopAudio();
@@ -812,8 +813,8 @@
             }
 
             if (viewMode === 'lissajous') {
+                drawHardwareGraticule(visCtx, mainDisplay.visCvs);
                 const visualCeiling = 1.0 / vertScaleMultiplier;
-                drawLissajousGrid(visCtx, mainDisplay.visCvs, visualCeiling);
                 if (channels.left.timeData && channels.right.timeData) {
                     drawLissajous(visCtx, mainDisplay.visCvs, channels.left.timeData, channels.right.timeData, visualCeiling, '#ef4444'); 
                 }
@@ -825,7 +826,7 @@
             }
 
             if (viewMode === 'oscilloscope') {
-                drawOscilloscopeGrid(visCtx, mainDisplay.visCvs);
+                drawHardwareGraticule(visCtx, mainDisplay.visCvs);
                 
                 let triggerFound = false;
                 const visualCeiling = 1.0 / vertScaleMultiplier;
@@ -873,8 +874,6 @@
                 return;
             }
 
-            drawGrid(visCtx, mainDisplay.visCvs);
-
             if (viewMode === 'waterfall' || viewMode === 'both') {
                 wfCtx.drawImage(mainDisplay.wfCvs, 0, 1);
                 let primaryData = null;
@@ -884,6 +883,9 @@
                 
                 if (primaryData) drawWaterfallRow(wfCtx, mainDisplay.wfCvs, primaryData);
             } 
+            
+            // Draw universal hardware graticule over waterfall but under spectrum lines
+            drawHardwareGraticule(visCtx, mainDisplay.visCvs);
 
             if (viewMode === 'spectrum' || viewMode === 'both') {
                 Object.keys(channels).forEach(key => {
@@ -1128,6 +1130,7 @@
             if ((isWaterfall || isScope || isLissajous) && showPeaks) document.getElementById('btn-peaks').click();
 
             updateCursorReadouts();
+            updateOSD();
         }
 
         function toggleDisplay(key) {
@@ -1150,6 +1153,7 @@
             if (channels.left.active) activeNames.push(`<span class="text-green-400">L</span>`);
             if (channels.right.active) activeNames.push(`<span class="text-pink-400">R</span>`);
             document.getElementById('ch-indicator').innerHTML = activeNames.length > 0 ? activeNames.join(' | ') : '--';
+            updateOSD();
         }
 
         document.getElementById('btn-show-combined').onclick = () => toggleDisplay('combined');
@@ -1175,9 +1179,10 @@
             btnOs.textContent = "1-SHOT"; btnOs.className = "flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[9px] font-bold text-neutral-400";
             updateUIControlVisibility(); applyFftSize(); clampCursors();
             if (isFrozen) document.getElementById('btn-freeze').click(); 
+            updateOSD();
         };
 
-        controls.gain.el.oninput = (e) => { const v = parseFloat(e.target.value); controls.gain.disp.textContent = v.toFixed(1) + 'x'; if (gainNode) gainNode.gain.setTargetAtTime(v, audioCtx.currentTime, 0.05); };
+        controls.gain.el.oninput = (e) => { const v = parseFloat(e.target.value); controls.gain.disp.textContent = v.toFixed(1) + 'x'; if (gainNode) gainNode.gain.setTargetAtTime(v, audioCtx.currentTime, 0.05); updateOSD(); };
         controls.avg.el.oninput = (e) => { averagingAlpha = parseFloat(e.target.value); controls.avg.disp.textContent = averagingAlpha === 0 ? 'OFF' : Math.round(averagingAlpha * 100) + '%'; };
         controls.bandwidth.el.oninput = (e) => { const sz = Math.pow(2, parseInt(e.target.value)); controls.bandwidth.disp.textContent = sz; applyFftSize();  };
 
@@ -1190,6 +1195,7 @@
                 const btnRes = document.getElementById('btn-mem-restore'); 
                 btnRes.textContent = "RESTORE"; btnRes.classList.remove('bg-green-800'); 
                 scopeOffsetXMs = 0; 
+                updateOSD();
             }
         };
         
@@ -1211,17 +1217,17 @@
             wfCursorY2Px = Math.max(0, Math.min(hBound, wfCursorY2Px));
         }
 
-        controls.minFreq.el.oninput = (e) => { let val = parseInt(e.target.value); if (val >= zoomMaxFreq - 10) val = zoomMaxFreq - 10; zoomMinFreq = val; e.target.value = val; controls.minFreq.disp.textContent = val; clampCursors(); updateCursorReadouts(); };
-        controls.maxFreq.el.oninput = (e) => { let val = parseInt(e.target.value); if (val <= zoomMinFreq + 10) val = zoomMinFreq + 10; zoomMaxFreq = val; e.target.value = val; controls.maxFreq.disp.textContent = val; clampCursors(); updateCursorReadouts(); };
-        controls.minDb.el.oninput = (e) => { let val = parseInt(e.target.value); if (val >= displayMaxDb - 10) val = displayMaxDb - 10; displayMinDb = val; e.target.value = val; controls.minDb.disp.textContent = val; clampCursors(); updateCursorReadouts(); };
-        controls.maxDb.el.oninput = (e) => { let val = parseInt(e.target.value); if (val <= displayMinDb + 10) val = displayMinDb + 10; displayMaxDb = val; e.target.value = val; controls.maxDb.disp.textContent = val; clampCursors(); updateCursorReadouts(); };
+        controls.minFreq.el.oninput = (e) => { let val = parseInt(e.target.value); if (val >= zoomMaxFreq - 10) val = zoomMaxFreq - 10; zoomMinFreq = val; e.target.value = val; clampCursors(); updateCursorReadouts(); updateOSD(); };
+        controls.maxFreq.el.oninput = (e) => { let val = parseInt(e.target.value); if (val <= zoomMinFreq + 10) val = zoomMinFreq + 10; zoomMaxFreq = val; e.target.value = val; clampCursors(); updateCursorReadouts(); updateOSD(); };
+        controls.minDb.el.oninput = (e) => { let val = parseInt(e.target.value); if (val >= displayMaxDb - 10) val = displayMaxDb - 10; displayMinDb = val; e.target.value = val; clampCursors(); updateCursorReadouts(); updateOSD(); };
+        controls.maxDb.el.oninput = (e) => { let val = parseInt(e.target.value); if (val <= displayMinDb + 10) val = displayMinDb + 10; displayMaxDb = val; e.target.value = val; clampCursors(); updateCursorReadouts(); updateOSD(); };
 
-        controls.scopeTime.el.oninput = (e) => { scopeTimeWindowMs = parseInt(e.target.value); controls.scopeTime.disp.textContent = scopeTimeWindowMs + "ms"; clampCursors(); updateCursorReadouts(); };
-        controls.vertScale.el.oninput = (e) => { vertScaleMultiplier = parseFloat(e.target.value); controls.vertScale.disp.textContent = vertScaleMultiplier.toFixed(2) + 'x'; clampCursors(); updateCursorReadouts(); };
+        controls.scopeTime.el.oninput = (e) => { scopeTimeWindowMs = parseInt(e.target.value); clampCursors(); updateCursorReadouts(); updateOSD(); };
+        controls.vertScale.el.oninput = (e) => { vertScaleMultiplier = parseFloat(e.target.value); clampCursors(); updateCursorReadouts(); updateOSD(); };
         
         controls.scopeTrigger.el.oninput = (e) => { 
             scopeTriggerLevel = parseFloat(e.target.value); 
-            controls.scopeTrigger.disp.textContent = scopeTriggerLevel.toFixed(2); 
+            updateOSD();
         };
 
         function setTriggerSource(src) {
@@ -1241,6 +1247,8 @@
             document.getElementById('btn-trig-comb').classList.toggle('text-white', scopeTriggerSource === 'combined'); document.getElementById('btn-trig-comb').classList.toggle('text-neutral-400', scopeTriggerSource !== 'combined');
             document.getElementById('btn-trig-left').classList.toggle('text-white', scopeTriggerSource === 'left'); document.getElementById('btn-trig-left').classList.toggle('text-neutral-400', scopeTriggerSource !== 'left');
             document.getElementById('btn-trig-right').classList.toggle('text-white', scopeTriggerSource === 'right'); document.getElementById('btn-trig-right').classList.toggle('text-neutral-400', scopeTriggerSource !== 'right');
+            
+            updateOSD();
         }
         
         document.getElementById('btn-trig-comb').onclick = () => setTriggerSource('combined'); document.getElementById('btn-trig-left').onclick = () => setTriggerSource('left'); document.getElementById('btn-trig-right').onclick = () => setTriggerSource('right');
@@ -1496,7 +1504,6 @@
                             newTimebase = Math.max(1, Math.min(5000, newTimebase));
                             scopeTimeWindowMs = newTimebase;
                             controls.scopeTime.el.value = scopeTimeWindowMs;
-                            controls.scopeTime.disp.textContent = Math.round(scopeTimeWindowMs) + "ms";
                         } else {
                             const span = initialPinchMaxFreq - initialPinchMinFreq;
                             const center = initialPinchMinFreq + span / 2;
@@ -1507,9 +1514,7 @@
                             zoomMaxFreq = Math.min(actualNyquist, Math.round(center + newSpan / 2));
                             
                             controls.minFreq.el.value = zoomMinFreq;
-                            controls.minFreq.disp.textContent = zoomMinFreq;
                             controls.maxFreq.el.value = zoomMaxFreq;
-                            controls.maxFreq.disp.textContent = zoomMaxFreq;
                         }
                     }
                 } else if (pinchAxis === 'y') {
@@ -1524,7 +1529,6 @@
                             
                             vertScaleMultiplier = newScale;
                             controls.vertScale.el.value = vertScaleMultiplier;
-                            controls.vertScale.disp.textContent = vertScaleMultiplier.toFixed(2) + "x";
                         } else {
                             const invertRatio = initialPinchDistY / currentDistY; 
                             const span = initialPinchMaxDb - initialPinchMinDb;
@@ -1536,15 +1540,14 @@
                             displayMaxDb = Math.min(0, Math.round(center + newSpan / 2));
                             
                             controls.minDb.el.value = displayMinDb;
-                            controls.minDb.disp.textContent = displayMinDb;
                             controls.maxDb.el.value = displayMaxDb;
-                            controls.maxDb.disp.textContent = displayMaxDb;
                         }
                     }
                 }
                 
                 clampCursors(); 
                 updateCursorReadouts();
+                updateOSD(); // Instantly update glass overlays
                 return;
             }
 
@@ -1579,9 +1582,7 @@
                         displayMaxDb = Math.round(newMax);
 
                         controls.minDb.el.value = displayMinDb;
-                        controls.minDb.disp.textContent = displayMinDb;
                         controls.maxDb.el.value = displayMaxDb;
-                        controls.maxDb.disp.textContent = displayMaxDb;
                     }
                 } else if (activeDrag.panAxis === 'x') {
                     if (viewMode === 'oscilloscope') {
@@ -1606,12 +1607,11 @@
                         zoomMaxFreq = Math.round(newMax);
 
                         controls.minFreq.el.value = zoomMinFreq;
-                        controls.minFreq.disp.textContent = zoomMinFreq;
                         controls.maxFreq.el.value = zoomMaxFreq;
-                        controls.maxFreq.disp.textContent = zoomMaxFreq;
                     }
                 }
                 updateCursorReadouts();
+                updateOSD(); // Push to HUD
                 return;
             }
 
@@ -1620,7 +1620,7 @@
                     scopeTriggerLevel = getAmpFromScopeY(y, activeDrag.cvs.height);
                     scopeTriggerLevel = Math.max(-1, Math.min(1, scopeTriggerLevel)); 
                     controls.scopeTrigger.el.value = scopeTriggerLevel;
-                    controls.scopeTrigger.disp.textContent = scopeTriggerLevel.toFixed(2);
+                    updateOSD();
                 }
                 if (activeDrag.id === 'x1s') scopeCursorX1Ms = getMsFromScopeX(x, activeDrag.cvs.width);
                 if (activeDrag.id === 'x2s') scopeCursorX2Ms = getMsFromScopeX(x, activeDrag.cvs.width);
@@ -1658,6 +1658,7 @@
             Object.values(channels).forEach(ch => ch.offsetY = 0);
             scopeOffsetXMs = 0; 
             showToast("TRACE OFFSETS ZEROED", false);
+            updateOSD();
         });
 
         window.addEventListener('mousemove', handlePointerMove); window.addEventListener('mouseup', handlePointerUp);
@@ -1706,11 +1707,11 @@
             controls.avg.el.value = 0; controls.avg.disp.textContent = "OFF";
             controls.bandwidth.el.value = 11; controls.bandwidth.disp.textContent = "2048"; applyFftSize(); 
 
-            controls.minFreq.el.value = 0; controls.minFreq.disp.textContent = "0"; controls.maxFreq.el.value = 22000; controls.maxFreq.disp.textContent = "22000";
-            controls.minDb.el.value = -140; controls.minDb.disp.textContent = "-140"; controls.maxDb.el.value = 0; controls.maxDb.disp.textContent = "0";
-            controls.scopeTime.el.value = 20; controls.scopeTime.disp.textContent = "20ms"; 
-            controls.vertScale.el.value = 1; controls.vertScale.disp.textContent = "1.00x";
-            controls.scopeTrigger.el.value = 0; controls.scopeTrigger.disp.textContent = "0.00";
+            controls.minFreq.el.value = 0; controls.maxFreq.el.value = 22000; 
+            controls.minDb.el.value = -140; controls.maxDb.el.value = 0; 
+            controls.scopeTime.el.value = 20; 
+            controls.vertScale.el.value = 1; 
+            controls.scopeTrigger.el.value = 0; 
 
             const btnFreeze = document.getElementById('btn-freeze'); btnFreeze.textContent = "FREEZE: OFF"; btnFreeze.classList.replace('bg-blue-800', 'bg-neutral-800');
             const btnPeaks = document.getElementById('btn-peaks'); btnPeaks.textContent = "PEAKS: OFF"; btnPeaks.classList.replace('bg-pink-900', 'bg-neutral-800');
@@ -1724,8 +1725,10 @@
             const btnRes = document.getElementById('btn-mem-restore'); btnRes.textContent = "RESTORE"; btnRes.classList.remove('bg-green-800');
 
             updateCursorReadouts();
+            updateOSD();
         };
 
+        // Initialize display configuration on launch
         updateUIControlVisibility();
         document.getElementById('btn-mic').onclick = () => initAudio('mic'); document.getElementById('btn-system').onclick = () => initAudio('system'); document.getElementById('btn-stop').onclick = stopAudio;
         
