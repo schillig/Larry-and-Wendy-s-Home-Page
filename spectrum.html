@@ -2,9 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <!-- W3C Mobile Viewport standard for application-like behavior -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="description" content="Professional Web-Based Audio Spectrum Analyzer and Oscilloscope">
-    <title>Audio Spectrum Visualizer - REV 1.36.0</title>
+    <title>Audio Spectrum Visualizer - REV 1.37.0</title>
     
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎛️</text></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -25,9 +26,11 @@
         .canvas-container {
             border: 1px solid #525252;
             cursor: crosshair;
+            /* Explicitly disable browser pan/zoom to route raw touch events to JS */
             touch-action: none; 
         }
         
+        /* Utilitarian Range Slider */
         input[type=range] {
             -webkit-appearance: none;
             background: transparent;
@@ -67,13 +70,13 @@
         </div>
     </div>
 
-    <!-- Header -->
+    <!-- Header: Optimized for single-row mobile fit -->
     <header class="w-full max-w-7xl flex-none flex flex-row justify-between items-center bg-neutral-800 py-1 px-2 border-b border-neutral-600 mb-2">
         <div class="flex items-center gap-1.5 md:gap-2">
             <h1 class="text-[10px] md:text-sm font-bold text-neutral-100 uppercase tracking-wider flex items-center whitespace-nowrap">
                 <span class="hidden sm:inline">Signal Analyzer</span>
                 <span class="sm:hidden">Analyzer</span>
-                <span class="text-neutral-500 text-[8px] md:text-[9px] font-mono ml-1">V1.36.0</span>
+                <span class="text-neutral-500 text-[8px] md:text-[9px] font-mono ml-1">V1.37.0</span>
             </h1>
             <div class="text-[9px] uppercase font-bold text-neutral-400">
                 <span id="engine-status" class="text-yellow-500 font-mono bg-neutral-900 px-1 border border-neutral-700">READY</span>
@@ -317,7 +320,6 @@
         let initialPinchMinFreq = 0, initialPinchMaxFreq = 22000;
         let initialPinchMinDb = -140, initialPinchMaxDb = 0;
 
-        // REV 1.36.0: Deep Memory Architecture for Extended Trace Viewing
         const DEEP_MEM_SECONDS = 6;
         let deepMemLength = 48000 * DEEP_MEM_SECONDS; 
         let deepMemL = new Float32Array(deepMemLength);
@@ -663,7 +665,6 @@
 
                 applyFftSize(); 
 
-                // REV 1.36.0: Deep Memory Allocation
                 deepMemLength = audioCtx.sampleRate * DEEP_MEM_SECONDS;
                 deepMemL = new Float32Array(deepMemLength);
                 deepMemR = new Float32Array(deepMemLength);
@@ -678,7 +679,6 @@
                     let inR = e.inputBuffer.getChannelData(1);
                     for(let i = 0; i < inL.length; i++) {
                         deepMemL[deepMemPtr] = inL[i];
-                        // Fallback to mono if right channel is empty
                         deepMemR[deepMemPtr] = inR[i] !== undefined ? inR[i] : inL[i];
                         deepMemC[deepMemPtr] = (deepMemL[deepMemPtr] + deepMemR[deepMemPtr]) / 2.0;
                         deepMemPtr = (deepMemPtr + 1) % deepMemLength;
@@ -742,7 +742,6 @@
             }
 
             if (!isFrozen) {
-                // REV 1.36.0: Fetch Time Domain Data from Deep Memory Buffer
                 if (viewMode === 'oscilloscope' || viewMode === 'lissajous') {
                     const flatten = (src) => {
                         let flat = new Float32Array(deepMemLength);
@@ -755,7 +754,6 @@
                     channels.combined.timeData = flatten(deepMemC);
                 }
                 
-                // Keep Spectrum running natively via AnalyserNode
                 if (viewMode !== 'oscilloscope' && viewMode !== 'lissajous') {
                     Object.values(channels).forEach(ch => {
                         if (ch.analyser) {
@@ -802,7 +800,6 @@
                 if (!isFrozen && scopeTriggerSource !== null && channels[scopeTriggerSource] && channels[scopeTriggerSource].timeData) {
                     let searchData = channels[scopeTriggerSource].timeData;
                     
-                    // REV 1.36.0: Robust Right-Aligned Scope Trigger Search
                     lastTriggerIndex = Math.max(0, searchData.length - samplesToDraw);
                     const hysteresis = visualCeiling * 0.05;
                     let armedForEdge = false;
@@ -1326,7 +1323,7 @@
             }
         }
 
-        // REV 1.36.0: Omni-Directional Pan Integration
+        // REV 1.37.0: Included W3C resilient exclusion logic for pan routing
         function handlePointerDown(e, cvs) {
             
             if (e.touches && e.touches.length === 2) {
@@ -1394,7 +1391,8 @@
                 }
             }
 
-            if (!activeDrag && (viewMode === 'spectrum' || viewMode === 'oscilloscope' || viewMode === 'both')) {
+            // Using inverted logic to capture ALL relevant modes robustly
+            if (!activeDrag && viewMode !== 'lissajous') {
                 let closestDist = 30; 
                 let selectedTrace = null;
                 
@@ -1429,7 +1427,6 @@
                     }
                 });
                 
-                // REV 1.36.0: Enhanced Pan Object
                 activeDrag = { 
                     id: 'pan', 
                     key: selectedTrace, 
@@ -1525,7 +1522,6 @@
             const x = clientX - rect.left; 
             const y = clientY - rect.top;
             
-            // REV 1.36.0: Omni-Directional 1-Finger Pan
             if (activeDrag.id === 'pan') {
                 const dx = x - activeDrag.startX;
                 const dy = y - activeDrag.startY;
