@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="description" content="Professional Web-Based Audio Spectrum Analyzer and Oscilloscope">
-    <title>Audio Spectrum Visualizer - REV 1.41.0</title>
+    <title>Audio Spectrum Visualizer - REV 1.42.0</title>
     
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎛️</text></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -25,11 +25,11 @@
         .canvas-container {
             border: 1px solid #525252;
             cursor: crosshair;
-            /* Explicitly disable browser pan/zoom to route raw touch events to JS */
+            /* Disable browser gesture intervention to route raw touch/mouse events */
             touch-action: none; 
         }
         
-        /* Utilitarian Range Slider */
+        /* Industrial Range Sliders */
         input[type=range] {
             -webkit-appearance: none;
             background: transparent;
@@ -61,14 +61,15 @@
             text-transform: uppercase;
         }
 
-        /* OSD Text Shadow for Hardware Parity against bright waveforms */
+        /* OSD HUD Text Shadow for Contrast against active traces */
         .osd-text {
-            text-shadow: 1px 1px 1px rgba(0,0,0,0.9), -1px -1px 1px rgba(0,0,0,0.9);
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.95), -1px -1px 2px rgba(0,0,0,0.95);
         }
     </style>
 </head>
 <body class="flex flex-col items-center px-1 md:px-2 pt-1 pb-2 font-sans h-screen overflow-hidden relative">
 
+    <!-- Toast Error/Notification Container -->
     <div id="toast-container" class="fixed top-5 left-1/2 transform -translate-x-1/2 z-50 flex flex-col items-center w-full px-4 pointer-events-none">
         <div id="message-box" class="transition-all duration-300 opacity-0 transform -translate-y-4 p-3 border shadow-none text-xs font-mono max-w-xl text-center w-full">
         </div>
@@ -80,7 +81,7 @@
             <h1 class="text-[10px] md:text-sm font-bold text-neutral-100 uppercase tracking-wider flex items-center whitespace-nowrap">
                 <span class="hidden sm:inline">Signal Analyzer</span>
                 <span class="sm:hidden">Analyzer</span>
-                <span class="text-neutral-500 text-[8px] md:text-[9px] font-mono ml-1">V1.41.0</span>
+                <span class="text-neutral-500 text-[8px] md:text-[9px] font-mono ml-1">V1.42.0</span>
             </h1>
             <div class="text-[9px] uppercase font-bold text-neutral-400">
                 <span id="engine-status" class="text-yellow-500 font-mono bg-neutral-900 px-1 border border-neutral-700">READY</span>
@@ -106,8 +107,10 @@
         <section id="displays-wrapper" class="order-1 md:order-2 w-full flex-1 flex flex-col gap-2 min-h-[250px]">
             <div id="display-main" class="canvas-container w-full flex-1 bg-neutral-950 relative" title="1-Finger Pan / 2-Finger Zoom / Wheel Axes / Dbl-Click Reset">
                 
+                <!-- OSD Overlay: pointer-events-none ensures drag/wheel events pass directly to Canvas -->
                 <div id="osd-layer" class="absolute inset-0 z-30 pointer-events-none flex flex-col justify-between p-1.5 font-mono text-[9px] md:text-[11px] font-bold text-neutral-300 pb-[30px] pl-[60px] pr-2">
                     
+                    <!-- Top Readouts -->
                     <div class="flex justify-between items-start w-full relative">
                         <div class="flex flex-col gap-0.5 osd-text">
                             <span id="osd-ch-combined" class="text-cyan-400">CH L+R: --</span>
@@ -115,13 +118,14 @@
                             <span id="osd-ch-right" class="text-pink-400">CH R: --</span>
                         </div>
                         
-                        <div id="osd-cursors" class="absolute top-0 left-1/2 transform -translate-x-1/2 flex flex-col items-center gap-0.5 osd-text w-full max-w-[250px]" style="display: none;">
-                            <div id="osd-curs-x-container" class="flex gap-2 text-green-400 bg-neutral-900/60 px-1.5 rounded" style="display: none;">
+                        <!-- Top-Center Measurement Cursors -->
+                        <div id="osd-cursors" class="absolute top-0 left-1/2 transform -translate-x-1/2 flex flex-col items-center gap-0.5 osd-text w-full max-w-[280px]" style="display: none;">
+                            <div id="osd-curs-x-container" class="flex gap-2 text-green-400 bg-neutral-900/80 px-2 py-0.5 border border-neutral-700 rounded" style="display: none;">
                                 <span><span id="osd-lbl-x1" class="text-neutral-400">X1:</span> <span id="osd-val-x1">--</span></span>
                                 <span><span id="osd-lbl-x2" class="text-neutral-400">X2:</span> <span id="osd-val-x2">--</span></span>
                                 <span><span id="osd-lbl-dx" class="text-neutral-400">ΔX:</span> <span id="osd-val-dx">--</span></span>
                             </div>
-                            <div id="osd-curs-y-container" class="flex gap-2 text-purple-400 bg-neutral-900/60 px-1.5 rounded" style="display: none;">
+                            <div id="osd-curs-y-container" class="flex gap-2 text-purple-400 bg-neutral-900/80 px-2 py-0.5 border border-neutral-700 rounded" style="display: none;">
                                 <span><span id="osd-lbl-y1" class="text-neutral-400">Y1:</span> <span id="osd-val-y1">--</span></span>
                                 <span><span id="osd-lbl-y2" class="text-neutral-400">Y2:</span> <span id="osd-val-y2">--</span></span>
                                 <span><span id="osd-lbl-dy" class="text-neutral-400">ΔY:</span> <span id="osd-val-dy">--</span></span>
@@ -134,6 +138,7 @@
                         </div>
                     </div>
                     
+                    <!-- Bottom Readouts -->
                     <div class="flex justify-between items-end w-full">
                         <div class="flex flex-col gap-0.5 osd-text">
                             <span id="osd-timebase" class="text-white">M: --</span>
@@ -216,48 +221,34 @@
                     
                     <div id="zoom-spectrum" class="grid grid-cols-2 gap-x-3 gap-y-2 mode-spec">
                         <div class="flex flex-col gap-0.5">
-                            <label for="min-freq" class="text-[9px] font-bold uppercase text-neutral-400 flex justify-between">
-                                <span>Min Hz</span>
-                            </label>
+                            <label for="min-freq" class="text-[9px] font-bold uppercase text-neutral-400">Min Hz</label>
                             <input type="range" id="min-freq" min="0" max="24000" step="1" value="0">
                         </div>
                         <div class="flex flex-col gap-0.5">
-                            <label for="max-freq" class="text-[9px] font-bold uppercase text-neutral-400 flex justify-between">
-                                <span>Max Hz</span>
-                            </label>
+                            <label for="max-freq" class="text-[9px] font-bold uppercase text-neutral-400">Max Hz</label>
                             <input type="range" id="max-freq" min="100" max="24000" step="100" value="22000">
                         </div>
                         <div class="flex flex-col gap-0.5">
-                            <label for="min-db" class="text-[9px] font-bold uppercase text-neutral-400 flex justify-between">
-                                <span>Min dB</span>
-                            </label>
+                            <label for="min-db" class="text-[9px] font-bold uppercase text-neutral-400">Min dB</label>
                             <input type="range" id="min-db" min="-140" max="-70" step="1" value="-140">
                         </div>
                         <div class="flex flex-col gap-0.5">
-                            <label for="max-db" class="text-[9px] font-bold uppercase text-neutral-400 flex justify-between">
-                                <span>Max dB</span>
-                            </label>
+                            <label for="max-db" class="text-[9px] font-bold uppercase text-neutral-400">Max dB</label>
                             <input type="range" id="max-db" min="-60" max="0" step="1" value="0">
                         </div>
                     </div>
 
                     <div id="zoom-scope" class="grid grid-cols-1 gap-y-2 mode-scope" style="display: none;">
                         <div id="scope-time-container" class="flex flex-col gap-0.5">
-                            <label for="scope-time" class="text-[9px] font-bold uppercase text-neutral-400 flex justify-between">
-                                <span>Time Base (Span)</span>
-                            </label>
+                            <label for="scope-time" class="text-[9px] font-bold uppercase text-neutral-400">Time Base (Span)</label>
                             <input type="range" id="scope-time" min="1" max="5000" step="1" value="20">
                         </div>
                         <div class="flex flex-col gap-0.5">
-                            <label for="vert-scale" class="text-[9px] font-bold uppercase text-neutral-400 flex justify-between">
-                                <span>Vertical Scale</span>
-                            </label>
+                            <label for="vert-scale" class="text-[9px] font-bold uppercase text-neutral-400">Vertical Scale</label>
                             <input type="range" id="vert-scale" min="0.01" max="100" step="0.01" value="1">
                         </div>
                         <div id="scope-trigger-container" class="flex flex-col gap-0.5 border-t border-neutral-700 pt-1">
-                            <label for="scope-trigger-lvl" class="text-[9px] font-bold uppercase text-neutral-400 flex justify-between">
-                                <span>Trig Level</span>
-                            </label>
+                            <label for="scope-trigger-lvl" class="text-[9px] font-bold uppercase text-neutral-400">Trig Level</label>
                             <input type="range" id="scope-trigger-lvl" min="-1" max="1" step="0.01" value="0">
                         </div>
                         <div id="scope-trigger-btns" class="flex gap-0.5">
@@ -387,7 +378,7 @@
         };
 
         // ==========================================
-        // 3. UTILITY FUNCTIONS
+        // 3. UTILITY & HUD OSD FUNCTIONS
         // ==========================================
         function showToast(msg, isError = false) {
             const box = document.getElementById('message-box');
@@ -495,9 +486,9 @@
             return Math.round(freq);
         }
         
+        // Updates HUD Glass Overlay Elements
         function updateOSD() {
             const isScope = viewMode === 'oscilloscope';
-            const isSpec = viewMode === 'spectrum' || viewMode === 'both' || viewMode === 'waterfall';
             const isLiss = viewMode === 'lissajous';
 
             document.getElementById('osd-mode').textContent = `MODE: ${viewMode.toUpperCase()}`;
@@ -558,20 +549,22 @@
             ctx.textBaseline = 'middle'; 
             ctx.font = '10px monospace';
 
+            // --- 10 Horizontal Divisions (Vertical Lines) ---
             for (let i = 0; i <= hDivs; i++) {
                 const px = p.left + (i * (w - p.left) / hDivs);
 
+                // High-contrast grid line colors
                 if (i === 0 || i === hDivs || i === hDivs / 2) {
-                    ctx.strokeStyle = '#525252'; ctx.setLineDash([]);
+                    ctx.strokeStyle = '#666666'; ctx.setLineDash([]);
                 } else {
-                    ctx.strokeStyle = '#404040'; ctx.setLineDash([2, 4]);
+                    ctx.strokeStyle = '#383838'; ctx.setLineDash([2, 4]);
                 }
                 ctx.beginPath(); ctx.moveTo(px, 0); ctx.lineTo(px, h); ctx.stroke();
 
                 ctx.setLineDash([]);
                 ctx.fillStyle = '#171717';
                 ctx.fillRect(px - 15, h + 2, 30, 14);
-                ctx.fillStyle = '#a3a3a3';
+                ctx.fillStyle = '#d4d4d4';
 
                 let label = "";
                 if (viewMode === 'oscilloscope') {
@@ -588,24 +581,29 @@
                         label = formatFreqLabel(freq);
                     }
                 }
-                if(label) ctx.fillText(label, px, h + 9);
+                
+                // String-Explicit Evaluation guarantees 0 values render
+                if (label !== "" && label !== undefined) {
+                    ctx.fillText(label.toString(), px, h + 9);
+                }
             }
 
+            // --- 8 Vertical Divisions (Horizontal Lines) ---
             ctx.textAlign = 'right';
             for (let i = 0; i <= vDivs; i++) {
                 const py = i * (h / vDivs);
 
                 if (i === 0 || i === vDivs || i === vDivs / 2) {
-                    ctx.strokeStyle = '#525252'; ctx.setLineDash([]);
+                    ctx.strokeStyle = '#666666'; ctx.setLineDash([]);
                 } else {
-                    ctx.strokeStyle = '#404040'; ctx.setLineDash([2, 4]);
+                    ctx.strokeStyle = '#383838'; ctx.setLineDash([2, 4]);
                 }
                 ctx.beginPath(); ctx.moveTo(p.left, py); ctx.lineTo(w, py); ctx.stroke();
 
                 ctx.setLineDash([]);
                 ctx.fillStyle = '#171717';
                 ctx.fillRect(5, py - 6, p.left - 10, 12);
-                ctx.fillStyle = '#a3a3a3';
+                ctx.fillStyle = '#d4d4d4';
 
                 let label = "";
                 if (viewMode === 'oscilloscope' || viewMode === 'lissajous') {
@@ -618,10 +616,14 @@
                     const db = displayMaxDb - (i * (displayMaxDb - displayMinDb) / vDivs);
                     label = Math.round(db) + ' dB';
                 }
-                if(label) ctx.fillText(label, p.left - 8, py);
+
+                if (label !== "" && label !== undefined) {
+                    ctx.fillText(label.toString(), p.left - 8, py);
+                }
             }
             ctx.textBaseline = 'alphabetic'; 
 
+            // Trigger Level Line
             if (viewMode === 'oscilloscope' && scopeTriggerSource !== null && channels[scopeTriggerSource]) {
                 const trigColor = channels[scopeTriggerSource].color;
                 const trigY = getScopeYPosition(scopeTriggerLevel, cvs.height);
@@ -640,7 +642,7 @@
                 ctx.restore(); 
             }
             
-            if(viewMode === 'lissajous') {
+            if (viewMode === 'lissajous') {
                 const centerX = p.left + (w - p.left) / 2;
                 ctx.fillStyle = '#a3a3a3'; ctx.textAlign = 'center'; ctx.fillText('- L +', centerX, h + 20);
                 ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText('+R', p.left - 5, 10); ctx.fillText('-R', p.left - 5, h - 10);
@@ -1145,11 +1147,6 @@
                 if (channels[key].active) btn.style.boxShadow = '0 2px 0 #f472b6'; else btn.style.boxShadow = 'none';
             }
 
-            let activeNames = [];
-            if (channels.combined.active) activeNames.push(`<span class="text-cyan-400">L+R</span>`);
-            if (channels.left.active) activeNames.push(`<span class="text-green-400">L</span>`);
-            if (channels.right.active) activeNames.push(`<span class="text-pink-400">R</span>`);
-            document.getElementById('ch-indicator').innerHTML = activeNames.length > 0 ? activeNames.join(' | ') : '--';
             updateOSD();
         }
 
@@ -1312,8 +1309,72 @@
             updateCursorReadouts(); 
         };
 
-        function handlePointerDown(e, cvs) {
+        function updateCursorReadouts() {
+            const isWaterfall = viewMode === 'waterfall'; 
+            const isScope = viewMode === 'oscilloscope'; 
+            const isLissajous = viewMode === 'lissajous';
+
+            const osdCursors = document.getElementById('osd-cursors');
+            const contX = document.getElementById('osd-curs-x-container');
+            const contY = document.getElementById('osd-curs-y-container');
             
+            if (!cursorsXEnabled && !cursorsYEnabled) {
+                osdCursors.style.display = 'none';
+            } else {
+                osdCursors.style.display = 'flex';
+                contX.style.display = cursorsXEnabled ? 'flex' : 'none';
+                contY.style.display = cursorsYEnabled ? 'flex' : 'none';
+            }
+
+            if (isScope || isLissajous) {
+                document.getElementById('osd-lbl-x1').textContent = 'T1:'; document.getElementById('osd-lbl-x2').textContent = 'T2:'; document.getElementById('osd-lbl-dx').textContent = 'ΔT:';
+                document.getElementById('osd-lbl-y1').textContent = 'V1:'; document.getElementById('osd-lbl-y2').textContent = 'V2:'; document.getElementById('osd-lbl-dy').textContent = 'ΔV:';
+                
+                const currentGain = gainNode ? gainNode.gain.value : 1.0;
+                let dtStr = '--';
+                if (cursorsXEnabled && !isLissajous) {
+                    const dt = Math.abs(scopeCursorX2Ms - scopeCursorX1Ms);
+                    if (dt > 0) { const freq = 1000 / dt; dtStr = `${dt.toFixed(2)}ms (${freq.toFixed(1)}Hz)`; } else { dtStr = '0.00ms'; }
+                }
+
+                let absoluteX1 = scopeCursorX1Ms + scopeOffsetXMs;
+                let absoluteX2 = scopeCursorX2Ms + scopeOffsetXMs;
+
+                document.getElementById('osd-val-x1').textContent = (cursorsXEnabled && !isLissajous) ? absoluteX1.toFixed(2) + 'ms' : '--';
+                document.getElementById('osd-val-x2').textContent = (cursorsXEnabled && !isLissajous) ? absoluteX2.toFixed(2) + 'ms' : '--';
+                document.getElementById('osd-val-dx').textContent = dtStr;
+                document.getElementById('osd-val-y1').textContent = (cursorsYEnabled && !isLissajous) ? (scopeCursorY1Amp > 0 ? '+' : '') + (scopeCursorY1Amp / currentGain).toFixed(3) : '--';
+                document.getElementById('osd-val-y2').textContent = (cursorsYEnabled && !isLissajous) ? (scopeCursorY2Amp > 0 ? '+' : '') + (scopeCursorY2Amp / currentGain).toFixed(3) : '--';
+                document.getElementById('osd-val-dy').textContent = (cursorsYEnabled && !isLissajous) ? Math.abs((scopeCursorY2Amp - scopeCursorY1Amp) / currentGain).toFixed(3) : '--';
+            } else if (isWaterfall) {
+                document.getElementById('osd-lbl-x1').textContent = 'F1:'; document.getElementById('osd-lbl-x2').textContent = 'F2:'; document.getElementById('osd-lbl-dx').textContent = 'ΔF:';
+                document.getElementById('osd-lbl-y1').textContent = 'T1:'; document.getElementById('osd-lbl-y2').textContent = 'T2:'; document.getElementById('osd-lbl-dy').textContent = 'ΔT:';
+
+                document.getElementById('osd-val-x1').textContent = cursorsXEnabled ? formatFreqLabel(cursorX1Freq) : '--';
+                document.getElementById('osd-val-x2').textContent = cursorsXEnabled ? formatFreqLabel(cursorX2Freq) : '--';
+                document.getElementById('osd-val-dx').textContent = cursorsXEnabled ? formatFreqLabel(Math.abs(cursorX2Freq - cursorX1Freq)) : '--';
+                
+                const t1Str = (wfCursorY1Px * msPerRowAverage).toFixed(0);
+                const t2Str = (wfCursorY2Px * msPerRowAverage).toFixed(0);
+                const deltaTStr = (Math.abs(wfCursorY2Px - wfCursorY1Px) * msPerRowAverage).toFixed(0);
+
+                document.getElementById('osd-val-y1').textContent = cursorsYEnabled ? `-${t1Str}ms` : '--';
+                document.getElementById('osd-val-y2').textContent = cursorsYEnabled ? `-${t2Str}ms` : '--';
+                document.getElementById('osd-val-dy').textContent = cursorsYEnabled ? `${deltaTStr}ms` : '--';
+            } else {
+                document.getElementById('osd-lbl-x1').textContent = 'F1:'; document.getElementById('osd-lbl-x2').textContent = 'F2:'; document.getElementById('osd-lbl-dx').textContent = 'ΔF:';
+                document.getElementById('osd-lbl-y1').textContent = 'A1:'; document.getElementById('osd-lbl-y2').textContent = 'A2:'; document.getElementById('osd-lbl-dy').textContent = 'ΔA:';
+
+                document.getElementById('osd-val-x1').textContent = cursorsXEnabled ? formatFreqLabel(cursorX1Freq) : '--';
+                document.getElementById('osd-val-x2').textContent = cursorsXEnabled ? formatFreqLabel(cursorX2Freq) : '--';
+                document.getElementById('osd-val-dx').textContent = cursorsXEnabled ? formatFreqLabel(Math.abs(cursorX2Freq - cursorX1Freq)) : '--';
+                document.getElementById('osd-val-y1').textContent = cursorsYEnabled ? cursorY1Db.toFixed(1) : '--';
+                document.getElementById('osd-val-y2').textContent = cursorsYEnabled ? cursorY2Db.toFixed(1) : '--';
+                document.getElementById('osd-val-dy').textContent = cursorsYEnabled ? Math.abs(cursorY2Db - cursorY1Db).toFixed(1) : '--';
+            }
+        }
+
+        function handlePointerDown(e, cvs) {
             if (e.touches && e.touches.length === 2) {
                 const touch1 = e.touches[0];
                 const touch2 = e.touches[1];
@@ -1593,8 +1654,6 @@
             initialPinchDistY = 0;
             initialTimebase = null;
             initialVertScale = null;
-            
-            // Cursor reset is handled dynamically by mousemove
         }
 
         mainDisplay.visCvs.addEventListener('mousedown', (e) => handlePointerDown(e, mainDisplay.visCvs)); 
@@ -1607,9 +1666,9 @@
             updateOSD();
         });
 
-        // REV 1.41.0: Axis Hover Cursor Indication
+        // REV 1.42.0: High-DPI Resilient Hover Axis Cursors
         mainDisplay.visCvs.addEventListener('mousemove', (e) => {
-            handlePointerMove(e); // Continue routing standard drags
+            handlePointerMove(e);
             
             if (activeDrag || (e.touches && e.touches.length > 0)) return; 
             const rect = mainDisplay.visCvs.getBoundingClientRect();
@@ -1618,20 +1677,20 @@
             const p = getPadding();
             
             if (x < p.left) {
-                mainDisplay.visCvs.style.cursor = 'ns-resize'; // Y-Axis
-            } else if (y > mainDisplay.visCvs.height - p.bottom) {
-                mainDisplay.visCvs.style.cursor = 'ew-resize'; // X-Axis
+                mainDisplay.visCvs.style.cursor = 'ns-resize'; 
+            } else if (y > rect.height - p.bottom) {
+                mainDisplay.visCvs.style.cursor = 'ew-resize'; 
             } else {
-                mainDisplay.visCvs.style.cursor = 'crosshair'; // Main Area
+                mainDisplay.visCvs.style.cursor = 'crosshair'; 
             }
         });
 
         window.addEventListener('mouseup', handlePointerUp);
         window.addEventListener('touchmove', handlePointerMove, { passive: false }); window.addEventListener('touchend', handlePointerUp);
 
-        // REV 1.41.0: Axis Mouse Wheel Range Control
+        // REV 1.42.0: High-DPI Resilient Mouse Wheel Zooming
         mainDisplay.visCvs.addEventListener('wheel', (e) => {
-            e.preventDefault(); // W3C Compliance: Prevent page scrolling
+            e.preventDefault(); 
             const rect = mainDisplay.visCvs.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
@@ -1639,9 +1698,9 @@
             const dir = Math.sign(e.deltaY);
             
             if (x < p.left) {
-                // Y-Axis Zoom
+                // Y-Axis Range Control
                 if (viewMode === 'oscilloscope' || viewMode === 'lissajous') {
-                    let newScale = vertScaleMultiplier * (dir > 0 ? 0.9 : 1.1); // Scroll up zooms in (higher mult)
+                    let newScale = vertScaleMultiplier * (dir > 0 ? 0.9 : 1.1); 
                     newScale = Math.max(0.01, Math.min(100.0, newScale));
                     vertScaleMultiplier = Math.round(newScale * 100) / 100;
                     controls.vertScale.el.value = vertScaleMultiplier;
@@ -1656,10 +1715,10 @@
                     controls.maxDb.el.value = displayMaxDb;
                 }
                 clampCursors(); updateCursorReadouts(); updateOSD();
-            } else if (y > mainDisplay.visCvs.height - p.bottom) {
-                // X-Axis Zoom
+            } else if (y > rect.height - p.bottom) {
+                // X-Axis Range Control
                 if (viewMode === 'oscilloscope') {
-                    let newTime = scopeTimeWindowMs * (dir > 0 ? 1.1 : 0.9); // Scroll up zooms in (less time)
+                    let newTime = scopeTimeWindowMs * (dir > 0 ? 1.1 : 0.9); 
                     newTime = Math.max(1, Math.min(5000, newTime));
                     scopeTimeWindowMs = newTime;
                     controls.scopeTime.el.value = scopeTimeWindowMs;
