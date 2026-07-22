@@ -61,16 +61,18 @@
         </div>
     </div>
 
-    <!-- Cleaned Up Header Block -->
+    <!-- Header -->
     <header class="w-full max-w-7xl flex-none flex flex-row justify-between items-center bg-neutral-800 py-1.5 px-3 border-b border-neutral-600 mb-2 shadow-sm">
         <div class="flex items-center gap-2">
             <h1 class="text-xs md:text-sm font-bold text-neutral-100 uppercase tracking-wider flex items-center whitespace-nowrap">
                 <span class="hidden sm:inline">Signal Analyzer</span>
                 <span class="sm:hidden">Analyzer</span>
-                <span class="text-neutral-500 text-[9px] font-mono ml-2">V1.52.0</span>
+                <span class="text-neutral-500 text-[9px] font-mono ml-2">V1.53.0</span>
             </h1>
-            <div class="text-[10px] uppercase font-bold text-neutral-400 ml-2">
-                <span id="engine-status" class="text-yellow-500 font-mono bg-neutral-900 px-1.5 py-0.5 border border-neutral-700">READY</span>
+            <div class="flex gap-1 ml-2">
+                <span id="engine-status" class="text-yellow-500 font-mono bg-neutral-900 px-1.5 py-0.5 border border-neutral-700 text-[9px] uppercase font-bold">READY</span>
+                <!-- NEW: Dynamic Hardware Profiler / Overload Indicator -->
+                <span id="fps-status" class="text-neutral-500 font-mono bg-neutral-900 px-1.5 py-0.5 border border-neutral-700 text-[9px] uppercase font-bold" style="display: none;" title="Frames Per Second">-- FPS</span>
             </div>
         </div>
 
@@ -300,6 +302,12 @@
                 
                 let lastDrawTime = 0;
                 let msPerRowAverage = 16.67; 
+                
+                // PERFORMANCE PROFILER VARIABLES (Rev 1.53.0)
+                let frameCount = 0;
+                let lastFpsTime = 0;
+                let currentFps = 60;
+                const fpsEl = document.getElementById('fps-status');
 
                 let scopeTimeWindowMs = 20; 
                 let vertScaleMultiplier = 1.0; 
@@ -702,7 +710,7 @@
 
                     showToast("INITIALIZING AUDIO ENGINE", false);
                     statusEl.textContent = "INITIALIZING";
-                    statusEl.className = "text-yellow-500 font-mono bg-neutral-900 px-1.5 py-0.5 border border-neutral-700";
+                    statusEl.className = "text-yellow-500 font-mono bg-neutral-900 px-1.5 py-0.5 border border-neutral-700 text-[9px] uppercase font-bold";
 
                     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                     if (audioCtx.state === 'suspended') await audioCtx.resume();
@@ -773,9 +781,13 @@
                         document.getElementById('btn-system').classList.add('hidden');
                         document.getElementById('btn-stop').classList.remove('hidden');
                         
-                        statusEl.textContent = `LIVE (${sourceType.toUpperCase()})`; statusEl.className = "text-green-500 font-mono bg-neutral-900 px-1.5 py-0.5 border border-neutral-700";
+                        statusEl.textContent = `LIVE (${sourceType.toUpperCase()})`; statusEl.className = "text-green-500 font-mono bg-neutral-900 px-1.5 py-0.5 border border-neutral-700 text-[9px] uppercase font-bold";
                         stream.getTracks().forEach(t => t.onended = () => stopAudio());
                         
+                        // Reset FPS tracker on new stream
+                        frameCount = 0;
+                        lastFpsTime = 0;
+
                         updateOSD();
                     } catch (err) {
                         showToast("ERROR: " + err.message, true); 
@@ -791,7 +803,11 @@
                     document.getElementById('btn-mic').classList.remove('hidden');
                     document.getElementById('btn-system').classList.remove('hidden');
                     document.getElementById('btn-stop').classList.add('hidden');
-                    statusEl.textContent = "READY"; statusEl.className = "text-yellow-500 font-mono bg-neutral-900 px-1.5 py-0.5 border border-neutral-700";
+                    statusEl.textContent = "READY"; statusEl.className = "text-yellow-500 font-mono bg-neutral-900 px-1.5 py-0.5 border border-neutral-700 text-[9px] uppercase font-bold";
+                    
+                    if (fpsEl) {
+                        fpsEl.style.display = 'none';
+                    }
                 }
 
                 // ==========================================
@@ -799,6 +815,30 @@
                 // ==========================================
                 function drawVisualizer(timestamp) {
                     animationId = requestAnimationFrame(drawVisualizer);
+
+                    // Dynamic FPS & Overload Profiler Implementation
+                    if (!lastFpsTime) lastFpsTime = timestamp;
+                    frameCount++;
+                    if (timestamp - lastFpsTime >= 1000) {
+                        currentFps = frameCount;
+                        frameCount = 0;
+                        lastFpsTime = timestamp;
+
+                        if (fpsEl && stream && stream.active) {
+                            fpsEl.style.display = 'inline-block';
+                            if (currentFps < 24 && !isFrozen) {
+                                // Overload detected!
+                                fpsEl.textContent = `⚠ ${currentFps} FPS OVERLOAD`;
+                                fpsEl.className = "text-red-100 font-mono bg-red-900 px-1.5 py-0.5 border border-red-500 text-[9px] uppercase font-bold animate-pulse";
+                            } else if (currentFps < 45 && !isFrozen) {
+                                fpsEl.textContent = `${currentFps} FPS`;
+                                fpsEl.className = "text-yellow-500 font-mono bg-neutral-900 px-1.5 py-0.5 border border-neutral-700 text-[9px] uppercase font-bold";
+                            } else {
+                                fpsEl.textContent = `${currentFps} FPS`;
+                                fpsEl.className = "text-emerald-500 font-mono bg-neutral-900 px-1.5 py-0.5 border border-neutral-700 text-[9px] uppercase font-bold";
+                            }
+                        }
+                    }
 
                     if (lastDrawTime && !isFrozen) {
                         const dt = timestamp - lastDrawTime;
