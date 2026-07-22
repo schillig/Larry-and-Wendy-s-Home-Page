@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="description" content="Professional Web-Based Audio Spectrum Analyzer and Oscilloscope">
-    <title>Audio Spectrum Visualizer - HUD Edition</title>
+    <title>Audio Spectrum Visualizer - REV 1.45.0</title>
     
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎛️</text></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -17,7 +17,7 @@
             color: #d4d4d4; 
         }
         
-        /* Custom Scrollbar */
+        /* Custom Industrial Scrollbar */
         .industrial-scroll::-webkit-scrollbar { width: 10px; }
         .industrial-scroll::-webkit-scrollbar-track { background: #262626; border-left: 1px solid #404040; }
         .industrial-scroll::-webkit-scrollbar-thumb { background: #525252; border-radius: 0px; border: 1px solid #262626; }
@@ -26,11 +26,11 @@
         .canvas-container {
             border: 1px solid #525252;
             cursor: crosshair;
-            /* Disable browser gesture intervention to route raw touch/mouse events cleanly to JS */
+            /* Disable native browser touch behaviors to route raw gestures to JS */
             touch-action: none; 
         }
         
-        /* Industrial Range Sliders for remaining Spectrum controls */
+        /* Utilitarian Range Sliders for remaining controls */
         input[type=range] {
             -webkit-appearance: none;
             background: transparent;
@@ -62,7 +62,7 @@
             text-transform: uppercase;
         }
 
-        /* OSD HUD Text Shadow for Contrast against active traces */
+        /* OSD HUD Text Shadow for legibility over bright signals */
         .osd-text {
             text-shadow: 1px 1px 2px rgba(0,0,0,0.95), -1px -1px 2px rgba(0,0,0,0.95);
         }
@@ -82,7 +82,7 @@
             <h1 class="text-[10px] md:text-sm font-bold text-neutral-100 uppercase tracking-wider flex items-center whitespace-nowrap">
                 <span class="hidden sm:inline">Signal Analyzer</span>
                 <span class="sm:hidden">Analyzer</span>
-                <span class="text-neutral-500 text-[8px] md:text-[9px] font-mono ml-1">HUD EDITION</span>
+                <span class="text-neutral-500 text-[8px] md:text-[9px] font-mono ml-1">V1.45.0</span>
             </h1>
             <div class="text-[9px] uppercase font-bold text-neutral-400">
                 <span id="engine-status" class="text-yellow-500 font-mono bg-neutral-900 px-1 border border-neutral-700">READY</span>
@@ -108,7 +108,7 @@
         <section id="displays-wrapper" class="order-1 md:order-2 w-full flex-1 flex flex-col gap-2 min-h-[250px]">
             <div id="display-main" class="canvas-container w-full flex-1 bg-neutral-950 relative" title="1-Finger Pan / 2-Finger Zoom / Wheel Axes / Dbl-Click Reset">
                 
-                <!-- OSD Overlay: pointer-events-none ensures drag/wheel events pass directly to Canvas -->
+                <!-- OSD Overlay: pointer-events-none lets input gestures pass down to Canvas -->
                 <div id="osd-layer" class="absolute inset-0 z-30 pointer-events-none flex flex-col justify-between p-1.5 font-mono text-[9px] md:text-[11px] font-bold text-neutral-300 pb-[30px] pl-[60px] pr-2">
                     
                     <!-- Top Readouts -->
@@ -161,7 +161,7 @@
             </div>
         </section>
 
-        <!-- Controls -->
+        <!-- Bench Controls -->
         <section class="order-2 md:order-1 w-full flex-none overflow-y-auto industrial-scroll pr-1 pb-2 flex flex-col gap-1 max-h-[45vh] md:max-h-none">
             
             <div class="w-full flex justify-between items-end px-1 flex-none">
@@ -239,7 +239,7 @@
                         </div>
                     </div>
 
-                    <!-- Scope specific section now purely contains trigger buttons -->
+                    <!-- Scope Mode Trigger Source Controls -->
                     <div id="zoom-scope" class="grid grid-cols-1 gap-y-2 mode-scope" style="display: none;">
                         <div id="scope-trigger-btns" class="flex gap-0.5 pt-1">
                             <button id="btn-trig-comb" class="flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[9px] font-bold text-neutral-400">T:L+R</button>
@@ -302,7 +302,7 @@
         let lastDrawTime = 0;
         let msPerRowAverage = 16.67; 
 
-        // Headless Scope Mathematics (Fully Decoupled from HTML Range Inputs)
+        // Headless Scope Mathematics (Decoupled completely from DOM input elements)
         let scopeTimeWindowMs = 20; 
         let vertScaleMultiplier = 1.0; 
         let scopeCursorX1Ms = 5, scopeCursorX2Ms = 15;
@@ -355,7 +355,6 @@
             right: { active: false, analyser: null, data: null, timeData: null, rawData: null, rawTimeData: null, color: '#f472b6', fill: 'rgba(244, 114, 182, 0.1)', name: 'R', offsetY: 0 }
         };
 
-        // Fully scrubbed controls object (Removed missing Scope/Trig sliders)
         const controls = {
             gain: { el: document.getElementById('gain'), disp: document.getElementById('gain-value') },
             avg: { el: document.getElementById('avg'), disp: document.getElementById('avg-value') },
@@ -371,6 +370,7 @@
         // ==========================================
         function showToast(msg, isError = false) {
             const box = document.getElementById('message-box');
+            if (!box) return;
             box.innerHTML = msg;
             box.className = `transition-all duration-300 opacity-100 transform translate-y-0 p-3 border shadow-none text-xs font-mono max-w-xl text-center w-full pointer-events-auto ${
                 isError ? 'bg-red-900 border-red-500 text-red-100' : 'bg-neutral-800 border-neutral-500 text-neutral-200'
@@ -477,7 +477,6 @@
         
         function updateOSD() {
             const isScope = viewMode === 'oscilloscope';
-            const isSpec = viewMode === 'spectrum' || viewMode === 'both' || viewMode === 'waterfall';
             const isLiss = viewMode === 'lissajous';
 
             document.getElementById('osd-mode').textContent = `MODE: ${viewMode.toUpperCase()}`;
@@ -528,6 +527,9 @@
         // 4. UNIVERSAL GRATICULE RENDERING
         // ==========================================
         function drawHardwareGraticule(ctx, cvs) {
+            // Defensive bounds guard to prevent calculations on uninitialized viewport
+            if (!cvs || cvs.width <= 0 || cvs.height <= 0) return;
+
             const p = getPadding();
             const w = cvs.width;
             const h = cvs.height - p.bottom;
@@ -1284,6 +1286,71 @@
             updateCursorReadouts(); 
         };
 
+        function updateCursorReadouts() {
+            const isWaterfall = viewMode === 'waterfall'; 
+            const isScope = viewMode === 'oscilloscope'; 
+            const isLissajous = viewMode === 'lissajous';
+
+            const osdCursors = document.getElementById('osd-cursors');
+            const contX = document.getElementById('osd-curs-x-container');
+            const contY = document.getElementById('osd-curs-y-container');
+            
+            if (!cursorsXEnabled && !cursorsYEnabled) {
+                osdCursors.style.display = 'none';
+            } else {
+                osdCursors.style.display = 'flex';
+                contX.style.display = cursorsXEnabled ? 'flex' : 'none';
+                contY.style.display = cursorsYEnabled ? 'flex' : 'none';
+            }
+
+            if (isScope || isLissajous) {
+                document.getElementById('osd-lbl-x1').textContent = 'T1:'; document.getElementById('osd-lbl-x2').textContent = 'T2:'; document.getElementById('osd-lbl-dx').textContent = 'ΔT:';
+                document.getElementById('osd-lbl-y1').textContent = 'V1:'; document.getElementById('osd-lbl-y2').textContent = 'V2:'; document.getElementById('osd-lbl-dy').textContent = 'ΔV:';
+                
+                const currentGain = gainNode ? gainNode.gain.value : 1.0;
+                let dtStr = '--';
+                if (cursorsXEnabled && !isLissajous) {
+                    const dt = Math.abs(scopeCursorX2Ms - scopeCursorX1Ms);
+                    if (dt > 0) { const freq = 1000 / dt; dtStr = `${dt.toFixed(2)}ms (${freq.toFixed(1)}Hz)`; } else { dtStr = '0.00ms'; }
+                }
+
+                let absoluteX1 = scopeCursorX1Ms + scopeOffsetXMs;
+                let absoluteX2 = scopeCursorX2Ms + scopeOffsetXMs;
+
+                document.getElementById('osd-val-x1').textContent = (cursorsXEnabled && !isLissajous) ? absoluteX1.toFixed(2) + 'ms' : '--';
+                document.getElementById('osd-val-x2').textContent = (cursorsXEnabled && !isLissajous) ? absoluteX2.toFixed(2) + 'ms' : '--';
+                document.getElementById('osd-val-dx').textContent = dtStr;
+                document.getElementById('osd-val-y1').textContent = (cursorsYEnabled && !isLissajous) ? (scopeCursorY1Amp > 0 ? '+' : '') + (scopeCursorY1Amp / currentGain).toFixed(3) : '--';
+                document.getElementById('osd-val-y2').textContent = (cursorsYEnabled && !isLissajous) ? (scopeCursorY2Amp > 0 ? '+' : '') + (scopeCursorY2Amp / currentGain).toFixed(3) : '--';
+                document.getElementById('osd-val-dy').textContent = (cursorsYEnabled && !isLissajous) ? Math.abs((scopeCursorY2Amp - scopeCursorY1Amp) / currentGain).toFixed(3) : '--';
+            } else if (isWaterfall) {
+                document.getElementById('osd-lbl-x1').textContent = 'F1:'; document.getElementById('osd-lbl-x2').textContent = 'F2:'; document.getElementById('osd-lbl-dx').textContent = 'ΔF:';
+                document.getElementById('osd-lbl-y1').textContent = 'T1:'; document.getElementById('osd-lbl-y2').textContent = 'T2:'; document.getElementById('osd-lbl-dy').textContent = 'ΔT:';
+
+                document.getElementById('osd-val-x1').textContent = cursorsXEnabled ? formatFreqLabel(cursorX1Freq) : '--';
+                document.getElementById('osd-val-x2').textContent = cursorsXEnabled ? formatFreqLabel(cursorX2Freq) : '--';
+                document.getElementById('osd-val-dx').textContent = cursorsXEnabled ? formatFreqLabel(Math.abs(cursorX2Freq - cursorX1Freq)) : '--';
+                
+                const t1Str = (wfCursorY1Px * msPerRowAverage).toFixed(0);
+                const t2Str = (wfCursorY2Px * msPerRowAverage).toFixed(0);
+                const deltaTStr = (Math.abs(wfCursorY2Px - wfCursorY1Px) * msPerRowAverage).toFixed(0);
+
+                document.getElementById('osd-val-y1').textContent = cursorsYEnabled ? `-${t1Str}ms` : '--';
+                document.getElementById('osd-val-y2').textContent = cursorsYEnabled ? `-${t2Str}ms` : '--';
+                document.getElementById('osd-val-dy').textContent = cursorsYEnabled ? `${deltaTStr}ms` : '--';
+            } else {
+                document.getElementById('osd-lbl-x1').textContent = 'F1:'; document.getElementById('osd-lbl-x2').textContent = 'F2:'; document.getElementById('osd-lbl-dx').textContent = 'ΔF:';
+                document.getElementById('osd-lbl-y1').textContent = 'A1:'; document.getElementById('osd-lbl-y2').textContent = 'A2:'; document.getElementById('osd-lbl-dy').textContent = 'ΔA:';
+
+                document.getElementById('osd-val-x1').textContent = cursorsXEnabled ? formatFreqLabel(cursorX1Freq) : '--';
+                document.getElementById('osd-val-x2').textContent = cursorsXEnabled ? formatFreqLabel(cursorX2Freq) : '--';
+                document.getElementById('osd-val-dx').textContent = cursorsXEnabled ? formatFreqLabel(Math.abs(cursorX2Freq - cursorX1Freq)) : '--';
+                document.getElementById('osd-val-y1').textContent = cursorsYEnabled ? cursorY1Db.toFixed(1) : '--';
+                document.getElementById('osd-val-y2').textContent = cursorsYEnabled ? cursorY2Db.toFixed(1) : '--';
+                document.getElementById('osd-val-dy').textContent = cursorsYEnabled ? Math.abs(cursorY2Db - cursorY1Db).toFixed(1) : '--';
+            }
+        }
+
         function handlePointerDown(e, cvs) {
             if (e.touches && e.touches.length === 2) {
                 const touch1 = e.touches[0];
@@ -1560,6 +1627,7 @@
             initialVertScale = null;
         }
 
+        // Single Event Source Pipeline (Fixes duplicate mousemove calculations)
         mainDisplay.visCvs.addEventListener('mousedown', (e) => handlePointerDown(e, mainDisplay.visCvs)); 
         mainDisplay.visCvs.addEventListener('touchstart', (e) => handlePointerDown(e, mainDisplay.visCvs), { passive: false });
         
@@ -1570,8 +1638,8 @@
             updateOSD();
         });
 
+        // Hover axis cursor detection
         mainDisplay.visCvs.addEventListener('mousemove', (e) => {
-            handlePointerMove(e);
             if (activeDrag || (e.touches && e.touches.length > 0)) return; 
             const rect = mainDisplay.visCvs.getBoundingClientRect();
             const x = e.clientX - rect.left;
@@ -1587,9 +1655,13 @@
             }
         });
 
+        // Window level listeners for seamless dragging outside canvas boundaries
+        window.addEventListener('mousemove', handlePointerMove);
         window.addEventListener('mouseup', handlePointerUp);
-        window.addEventListener('touchmove', handlePointerMove, { passive: false }); window.addEventListener('touchend', handlePointerUp);
+        window.addEventListener('touchmove', handlePointerMove, { passive: false }); 
+        window.addEventListener('touchend', handlePointerUp);
 
+        // Mouse Wheel Range Scaling
         mainDisplay.visCvs.addEventListener('wheel', (e) => {
             e.preventDefault(); 
             const rect = mainDisplay.visCvs.getBoundingClientRect();
@@ -1636,6 +1708,8 @@
         const resizeObserver = new ResizeObserver(entries => {
             for (let entry of entries) {
                 const w = entry.contentRect.width; const h = entry.contentRect.height;
+                if (w <= 0 || h <= 0) continue;
+
                 mainDisplay.visCvs.width = w; mainDisplay.visCvs.height = h;
                 
                 let oldData; const wfCtx = mainDisplay.wfCvs.getContext('2d', { willReadFrequently: true });
