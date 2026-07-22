@@ -82,7 +82,7 @@
             <h1 class="text-[10px] md:text-sm font-bold text-neutral-100 uppercase tracking-wider flex items-center whitespace-nowrap">
                 <span class="hidden sm:inline">Signal Analyzer</span>
                 <span class="sm:hidden">Analyzer</span>
-                <span class="text-neutral-500 text-[8px] md:text-[9px] font-mono ml-1">V1.50.0</span>
+                <span class="text-neutral-500 text-[8px] md:text-[9px] font-mono ml-1">V1.51.0</span>
             </h1>
             <div class="text-[9px] uppercase font-bold text-neutral-400">
                 <span id="engine-status" class="text-yellow-500 font-mono bg-neutral-900 px-1 border border-neutral-700">READY</span>
@@ -463,6 +463,74 @@
                     return Math.round(freq);
                 }
                 
+                // REV 1.51.0 RESTORED: Centralized Cursor Updates
+                function updateCursorReadouts() {
+                    const isWaterfall = viewMode === 'waterfall'; 
+                    const isScope = viewMode === 'oscilloscope'; 
+                    const isLissajous = viewMode === 'lissajous';
+
+                    const osdCursors = document.getElementById('osd-cursors');
+                    const contX = document.getElementById('osd-curs-x-container');
+                    const contY = document.getElementById('osd-curs-y-container');
+                    
+                    if (!osdCursors || !contX || !contY) return;
+
+                    if (!cursorsXEnabled && !cursorsYEnabled) {
+                        osdCursors.style.display = 'none';
+                    } else {
+                        osdCursors.style.display = 'flex';
+                        contX.style.display = cursorsXEnabled ? 'flex' : 'none';
+                        contY.style.display = cursorsYEnabled ? 'flex' : 'none';
+                    }
+
+                    if (isScope || isLissajous) {
+                        document.getElementById('osd-lbl-x1').textContent = 'T1:'; document.getElementById('osd-lbl-x2').textContent = 'T2:'; document.getElementById('osd-lbl-dx').textContent = 'ΔT:';
+                        document.getElementById('osd-lbl-y1').textContent = 'V1:'; document.getElementById('osd-lbl-y2').textContent = 'V2:'; document.getElementById('osd-lbl-dy').textContent = 'ΔV:';
+                        
+                        const currentGain = gainNode ? gainNode.gain.value : 1.0;
+                        let dtStr = '--';
+                        if (cursorsXEnabled && !isLissajous) {
+                            const dt = Math.abs(scopeCursorX2Ms - scopeCursorX1Ms);
+                            if (dt > 0) { const freq = 1000 / dt; dtStr = `${dt.toFixed(2)}ms (${freq.toFixed(1)}Hz)`; } else { dtStr = '0.00ms'; }
+                        }
+
+                        let absoluteX1 = scopeCursorX1Ms + scopeOffsetXMs;
+                        let absoluteX2 = scopeCursorX2Ms + scopeOffsetXMs;
+
+                        document.getElementById('osd-val-x1').textContent = (cursorsXEnabled && !isLissajous) ? absoluteX1.toFixed(2) + 'ms' : '--';
+                        document.getElementById('osd-val-x2').textContent = (cursorsXEnabled && !isLissajous) ? absoluteX2.toFixed(2) + 'ms' : '--';
+                        document.getElementById('osd-val-dx').textContent = dtStr;
+                        document.getElementById('osd-val-y1').textContent = (cursorsYEnabled && !isLissajous) ? (scopeCursorY1Amp > 0 ? '+' : '') + (scopeCursorY1Amp / currentGain).toFixed(3) : '--';
+                        document.getElementById('osd-val-y2').textContent = (cursorsYEnabled && !isLissajous) ? (scopeCursorY2Amp > 0 ? '+' : '') + (scopeCursorY2Amp / currentGain).toFixed(3) : '--';
+                        document.getElementById('osd-val-dy').textContent = (cursorsYEnabled && !isLissajous) ? Math.abs((scopeCursorY2Amp - scopeCursorY1Amp) / currentGain).toFixed(3) : '--';
+                    } else if (isWaterfall) {
+                        document.getElementById('osd-lbl-x1').textContent = 'F1:'; document.getElementById('osd-lbl-x2').textContent = 'F2:'; document.getElementById('osd-lbl-dx').textContent = 'ΔF:';
+                        document.getElementById('osd-lbl-y1').textContent = 'T1:'; document.getElementById('osd-lbl-y2').textContent = 'T2:'; document.getElementById('osd-lbl-dy').textContent = 'ΔT:';
+
+                        document.getElementById('osd-val-x1').textContent = cursorsXEnabled ? formatFreqLabel(cursorX1Freq) : '--';
+                        document.getElementById('osd-val-x2').textContent = cursorsXEnabled ? formatFreqLabel(cursorX2Freq) : '--';
+                        document.getElementById('osd-val-dx').textContent = cursorsXEnabled ? formatFreqLabel(Math.abs(cursorX2Freq - cursorX1Freq)) : '--';
+                        
+                        const t1Str = (wfCursorY1Px * msPerRowAverage).toFixed(0);
+                        const t2Str = (wfCursorY2Px * msPerRowAverage).toFixed(0);
+                        const deltaTStr = (Math.abs(wfCursorY2Px - wfCursorY1Px) * msPerRowAverage).toFixed(0);
+
+                        document.getElementById('osd-val-y1').textContent = cursorsYEnabled ? `-${t1Str}ms` : '--';
+                        document.getElementById('osd-val-y2').textContent = cursorsYEnabled ? `-${t2Str}ms` : '--';
+                        document.getElementById('osd-val-dy').textContent = cursorsYEnabled ? `${deltaTStr}ms` : '--';
+                    } else {
+                        document.getElementById('osd-lbl-x1').textContent = 'F1:'; document.getElementById('osd-lbl-x2').textContent = 'F2:'; document.getElementById('osd-lbl-dx').textContent = 'ΔF:';
+                        document.getElementById('osd-lbl-y1').textContent = 'A1:'; document.getElementById('osd-lbl-y2').textContent = 'A2:'; document.getElementById('osd-lbl-dy').textContent = 'ΔA:';
+
+                        document.getElementById('osd-val-x1').textContent = cursorsXEnabled ? formatFreqLabel(cursorX1Freq) : '--';
+                        document.getElementById('osd-val-x2').textContent = cursorsXEnabled ? formatFreqLabel(cursorX2Freq) : '--';
+                        document.getElementById('osd-val-dx').textContent = cursorsXEnabled ? formatFreqLabel(Math.abs(cursorX2Freq - cursorX1Freq)) : '--';
+                        document.getElementById('osd-val-y1').textContent = cursorsYEnabled ? cursorY1Db.toFixed(1) : '--';
+                        document.getElementById('osd-val-y2').textContent = cursorsYEnabled ? cursorY2Db.toFixed(1) : '--';
+                        document.getElementById('osd-val-dy').textContent = cursorsYEnabled ? Math.abs(cursorY2Db - cursorY1Db).toFixed(1) : '--';
+                    }
+                }
+
                 function updateOSD() {
                     const isScope = viewMode === 'oscilloscope';
                     const isSpec = viewMode === 'spectrum' || viewMode === 'both' || viewMode === 'waterfall';
@@ -1545,6 +1613,7 @@
                     updateOSD();
                 });
 
+                // Hover axis cursor detection
                 mainDisplay.visCvs.addEventListener('mousemove', (e) => {
                     handlePointerMove(e);
                     if (activeDrag || (e.touches && e.touches.length > 0)) return; 
@@ -1566,6 +1635,7 @@
                 window.addEventListener('touchmove', handlePointerMove, { passive: false }); 
                 window.addEventListener('touchend', handlePointerUp);
 
+                // Mouse Wheel Range Scaling
                 mainDisplay.visCvs.addEventListener('wheel', (e) => {
                     e.preventDefault(); 
                     const rect = mainDisplay.visCvs.getBoundingClientRect();
