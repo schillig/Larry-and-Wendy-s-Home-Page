@@ -15,6 +15,8 @@
             margin: 0;
             background-color: #171717; 
             color: #d4d4d4; 
+            /* Prevent pull-to-refresh on mobile */
+            overscroll-behavior-y: none; 
         }
         
         /* Custom Industrial Scrollbar */
@@ -30,41 +32,24 @@
             touch-action: none; 
         }
         
-        /* Utilitarian Range Sliders for remaining controls */
-        input[type=range] {
-            -webkit-appearance: none;
-            background: transparent;
-            padding: 6px 0; 
-            cursor: pointer;
-            width: 100%;
-        }
-        input[type=range]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            height: 16px;
-            width: 8px;
-            background: #a3a3a3;
-            border: 1px solid #262626;
-            border-radius: 0;
-            margin-top: -6px;
-        }
-        input[type=range]::-webkit-slider-runnable-track {
-            height: 4px;
-            background: #404040;
-            border: 1px solid #262626;
-            border-radius: 0;
-        }
-        
-        input[type=range]:focus { outline: none; }
-        input[type=range]:focus::-webkit-slider-thumb { background: #d4d4d4; }
-        
         button {
             border-radius: 0 !important;
             text-transform: uppercase;
+            /* Ensure fast click response on touch devices */
+            touch-action: manipulation; 
         }
 
         /* OSD HUD Text Shadow for legibility over bright signals */
         .osd-text {
             text-shadow: 1px 1px 2px rgba(0,0,0,0.95), -1px -1px 2px rgba(0,0,0,0.95);
+        }
+
+        /* Prevent text selection when rapidly clicking spinner buttons */
+        .no-select {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
         }
     </style>
 </head>
@@ -76,28 +61,28 @@
         </div>
     </div>
 
-    <!-- Header -->
-    <header class="w-full max-w-7xl flex-none flex flex-row justify-between items-center bg-neutral-800 py-1 px-2 border-b border-neutral-600 mb-2">
-        <div class="flex items-center gap-1.5 md:gap-2">
-            <h1 class="text-[10px] md:text-sm font-bold text-neutral-100 uppercase tracking-wider flex items-center whitespace-nowrap">
+    <!-- Cleaned Up Header Block -->
+    <header class="w-full max-w-7xl flex-none flex flex-row justify-between items-center bg-neutral-800 py-1.5 px-3 border-b border-neutral-600 mb-2 shadow-sm">
+        <div class="flex items-center gap-2">
+            <h1 class="text-xs md:text-sm font-bold text-neutral-100 uppercase tracking-wider flex items-center whitespace-nowrap">
                 <span class="hidden sm:inline">Signal Analyzer</span>
                 <span class="sm:hidden">Analyzer</span>
-                <span class="text-neutral-500 text-[8px] md:text-[9px] font-mono ml-1">V1.51.0</span>
+                <span class="text-neutral-500 text-[9px] font-mono ml-2">V1.52.0</span>
             </h1>
-            <div class="text-[9px] uppercase font-bold text-neutral-400">
-                <span id="engine-status" class="text-yellow-500 font-mono bg-neutral-900 px-1 border border-neutral-700">READY</span>
+            <div class="text-[10px] uppercase font-bold text-neutral-400 ml-2">
+                <span id="engine-status" class="text-yellow-500 font-mono bg-neutral-900 px-1.5 py-0.5 border border-neutral-700">READY</span>
             </div>
         </div>
 
-        <div class="flex gap-1">
-            <button id="btn-mic" class="px-2 py-0.5 bg-neutral-700 hover:bg-neutral-600 border border-neutral-500 text-neutral-200 transition-none text-[9px] font-bold">
-                Mic
+        <div class="flex gap-2">
+            <button id="btn-mic" class="px-3 py-1 bg-neutral-700 hover:bg-neutral-600 border border-neutral-500 text-neutral-200 transition-colors text-[10px] font-bold">
+                Mic Input
             </button>
-            <button id="btn-system" class="px-2 py-0.5 bg-neutral-700 hover:bg-neutral-600 border border-neutral-500 text-neutral-200 transition-none text-[9px] font-bold" title="Requires Localhost or HTTPS">
-                Sys Audio
+            <button id="btn-system" class="px-3 py-1 bg-neutral-700 hover:bg-neutral-600 border border-neutral-500 text-neutral-200 transition-colors text-[10px] font-bold" title="Requires Localhost or HTTPS">
+                System Audio
             </button>
-            <button id="btn-stop" class="hidden px-2 py-0.5 bg-red-900 hover:bg-red-800 border border-red-700 text-red-200 transition-none text-[9px] font-bold">
-                Stop
+            <button id="btn-stop" class="hidden px-3 py-1 bg-red-900 hover:bg-red-800 border border-red-700 text-red-200 transition-colors text-[10px] font-bold">
+                Stop Engine
             </button>
         </div>
     </header>
@@ -108,9 +93,7 @@
         <section id="displays-wrapper" class="order-1 md:order-2 w-full flex-1 flex flex-col gap-2 min-h-[250px]">
             <div id="display-main" class="canvas-container w-full flex-1 bg-neutral-950 relative" title="1-Finger Pan / 2-Finger Zoom / Wheel Axes / Dbl-Click Reset">
                 
-                <!-- OSD Overlay: pointer-events-none lets input gestures pass down to Canvas -->
                 <div id="osd-layer" class="absolute inset-0 z-30 pointer-events-none flex flex-col justify-between p-1.5 font-mono text-[9px] md:text-[11px] font-bold text-neutral-300 pb-[30px] pl-[60px] pr-2">
-                    
                     <!-- Top Readouts -->
                     <div class="flex justify-between items-start w-full relative">
                         <div class="flex flex-col gap-0.5 osd-text">
@@ -161,92 +144,111 @@
             </div>
         </section>
 
-        <!-- Bench Controls -->
-        <section class="order-2 md:order-1 w-full flex-none overflow-y-auto industrial-scroll pr-1 pb-2 flex flex-col gap-1 max-h-[45vh] md:max-h-none">
+        <!-- Refactored Bench Controls - Color Coded Groups & Button Only -->
+        <section class="order-2 md:order-1 w-full flex-none overflow-y-auto industrial-scroll pr-1 pb-2 flex flex-col gap-1 max-h-[45vh] md:max-h-none no-select">
             
-            <div class="w-full flex justify-between items-end px-1 flex-none">
+            <div class="w-full flex justify-between items-end px-1 flex-none mb-1">
                 <h2 class="text-neutral-500 font-bold text-[10px] tracking-widest uppercase">Bench Controls</h2>
-                <button id="btn-reset" class="text-[10px] uppercase font-bold text-neutral-400 hover:text-neutral-200 transition-none">
-                    [ Restore Defaults ]
+                <button id="btn-reset" class="text-[10px] uppercase font-bold text-neutral-400 hover:text-white transition-colors bg-neutral-800 border border-neutral-600 px-3 py-0.5">
+                    Restore Defaults
                 </button>
             </div>
 
-            <div class="bg-neutral-800 p-3 md:p-4 border border-neutral-600 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-x-6 gap-y-4 w-full flex-none">
+            <!-- CSS Grid handles responsiveness across mobile, tablet, and desktop -->
+            <div class="bg-neutral-800 p-2 md:p-3 border border-neutral-600 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 w-full flex-none">
                 
-                <div class="flex flex-col gap-2">
-                    <h3 class="text-[10px] uppercase tracking-wider text-neutral-500 font-bold border-b border-neutral-600 pb-1">Routing</h3>
+                <!-- ROUTING GROUP (Blue Palette) -->
+                <div class="flex flex-col gap-1.5 p-2 bg-neutral-900/50 border border-blue-900/50 rounded-sm">
+                    <h3 class="text-[10px] uppercase tracking-wider text-blue-400 font-bold border-b border-blue-900 pb-1">Routing</h3>
                     <div class="flex gap-1 mt-1">
-                        <button id="btn-show-combined" class="flex-1 py-1 bg-neutral-600 border border-neutral-500 text-[10px] font-bold text-white shadow-[0_2px_0_#22d3ee]">L+R</button>
-                        <button id="btn-show-left" class="flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[10px] font-bold text-neutral-400">L</button>
-                        <button id="btn-show-right" class="flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[10px] font-bold text-neutral-400">R</button>
+                        <button id="btn-show-combined" class="flex-1 py-1 bg-blue-700 hover:bg-blue-600 border border-blue-500 text-[10px] font-bold text-white shadow-[0_2px_0_#60a5fa]">L+R</button>
+                        <button id="btn-show-left" class="flex-1 py-1 bg-blue-950 hover:bg-blue-900 border border-blue-800 text-[10px] font-bold text-blue-300">L</button>
+                        <button id="btn-show-right" class="flex-1 py-1 bg-blue-950 hover:bg-blue-900 border border-blue-800 text-[10px] font-bold text-blue-300">R</button>
                     </div>
-                    <button id="btn-mode" class="py-1 mt-1 bg-blue-800 hover:bg-blue-700 border border-blue-600 text-[10px] font-bold text-white">MODE: SPECTRUM</button>
+                    <button id="btn-mode" class="py-1 mt-0.5 bg-blue-950 hover:bg-blue-800 border border-blue-800 text-[10px] font-bold text-blue-200">MODE: SPECTRUM</button>
                 </div>
 
-                <div class="flex flex-col gap-3">
-                    <h3 class="text-[10px] uppercase tracking-wider text-neutral-500 font-bold border-b border-neutral-600 pb-1">Processing</h3>
+                <!-- PROCESSING GROUP (Emerald/Green Palette) -->
+                <div class="flex flex-col gap-1.5 p-2 bg-neutral-900/50 border border-emerald-900/50 rounded-sm">
+                    <h3 class="text-[10px] uppercase tracking-wider text-emerald-400 font-bold border-b border-emerald-900 pb-1">Processing</h3>
+                    
+                    <!-- Gain Spinner Buttons -->
                     <div class="flex flex-col gap-0.5">
-                        <label for="gain" class="text-[9px] font-bold uppercase text-neutral-400 flex justify-between">
-                            <span>Gain</span>
-                            <span id="gain-value" class="text-cyan-400 font-mono">2.0x</span>
-                        </label>
-                        <input type="range" id="gain" min="0.1" max="10" step="0.1" value="2">
-                    </div>
-                    <div id="avg-container" class="flex flex-col gap-0.5 mode-spec">
-                        <label for="avg" class="text-[9px] font-bold uppercase text-neutral-400 flex justify-between">
-                            <span>Average</span>
-                            <span id="avg-value" class="text-cyan-400 font-mono">OFF</span>
-                        </label>
-                        <input type="range" id="avg" min="0" max="0.98" step="0.02" value="0">
-                    </div>
-                    <div class="flex gap-1 mt-0.5">
-                        <button id="btn-freeze" class="flex-1 py-1 bg-neutral-800 hover:bg-neutral-700 border border-neutral-600 text-[9px] font-bold text-neutral-300">FREEZE: OFF</button>
-                        <button id="btn-peaks" class="flex-1 py-1 bg-neutral-800 hover:bg-neutral-700 border border-neutral-600 text-[9px] font-bold text-neutral-300 mode-spec">PEAKS: OFF</button>
-                    </div>
-                </div>
-
-                <div class="flex flex-col gap-3">
-                    <h3 class="text-[10px] uppercase tracking-wider text-neutral-500 font-bold border-b border-neutral-600 pb-1">Timebase / FFT</h3>
-                    <div class="flex flex-col gap-0.5">
-                        <label for="bandwidth" class="text-[9px] font-bold uppercase text-neutral-400 flex justify-between">
-                            <span>FFT Size</span>
-                            <span id="bandwidth-value" class="text-cyan-400 font-mono">2048</span>
-                        </label>
-                        <input type="range" id="bandwidth" min="5" max="15" step="1" value="11">
-                    </div>
-                    <button id="btn-scale" class="py-1.5 mt-1 bg-neutral-800 hover:bg-neutral-700 border border-neutral-600 text-[9px] font-bold text-neutral-300 mode-spec w-full">X-SCALE: LINEAR</button>
-                </div>
-
-                <div class="flex flex-col gap-2">
-                    <h3 class="text-[10px] uppercase tracking-wider text-neutral-500 font-bold border-b border-neutral-600 pb-1">Trigger</h3>
-                    <div id="zoom-scope" class="grid grid-cols-1 gap-y-2 mode-scope" style="display: none;">
-                        <div id="scope-trigger-btns" class="flex gap-0.5 pt-1">
-                            <button id="btn-trig-comb" class="flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[9px] font-bold text-neutral-400">T:L+R</button>
-                            <button id="btn-trig-left" class="flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[9px] font-bold text-neutral-400">T:L</button>
-                            <button id="btn-trig-right" class="flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[9px] font-bold text-neutral-400">T:R</button>
-                            <button id="btn-trig-oneshot" class="flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[9px] font-bold text-neutral-400">1-SHOT</button>
+                        <span class="text-[9px] font-bold uppercase text-emerald-500">Gain</span>
+                        <div class="flex items-center justify-between gap-1 w-full" id="scroll-wrap-gain">
+                            <button id="btn-gain-down" aria-label="Decrease Gain" class="flex-1 py-1 bg-emerald-950 hover:bg-emerald-800 border border-emerald-800 text-emerald-200 font-bold text-xs leading-none">&#9660;</button>
+                            <span id="val-disp-gain" class="flex-1 text-center text-emerald-100 font-mono text-[10px] bg-neutral-950 py-1 border border-emerald-900">2.0x</span>
+                            <button id="btn-gain-up" aria-label="Increase Gain" class="flex-1 py-1 bg-emerald-950 hover:bg-emerald-800 border border-emerald-800 text-emerald-200 font-bold text-xs leading-none">&#9650;</button>
                         </div>
                     </div>
-                </div>
+                    
+                    <!-- Average Spinner Buttons -->
+                    <div class="flex flex-col gap-0.5 mode-spec">
+                        <span class="text-[9px] font-bold uppercase text-emerald-500">Average</span>
+                        <div class="flex items-center justify-between gap-1 w-full" id="scroll-wrap-avg">
+                            <button id="btn-avg-down" aria-label="Decrease Averaging" class="flex-1 py-1 bg-emerald-950 hover:bg-emerald-800 border border-emerald-800 text-emerald-200 font-bold text-xs leading-none">&#9660;</button>
+                            <span id="val-disp-avg" class="flex-1 text-center text-emerald-100 font-mono text-[10px] bg-neutral-950 py-1 border border-emerald-900">OFF</span>
+                            <button id="btn-avg-up" aria-label="Increase Averaging" class="flex-1 py-1 bg-emerald-950 hover:bg-emerald-800 border border-emerald-800 text-emerald-200 font-bold text-xs leading-none">&#9650;</button>
+                        </div>
+                    </div>
 
-                <div class="flex flex-col gap-2">
-                    <h3 class="text-[10px] uppercase tracking-wider text-neutral-500 font-bold border-b border-neutral-600 pb-1">Measurement</h3>
-                    <div class="flex gap-1">
-                        <button id="btn-cursor-x" class="flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[9px] font-bold text-neutral-400">X-CURS</button>
-                        <button id="btn-cursor-y" class="flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[9px] font-bold text-neutral-400">Y-CURS</button>
+                    <div class="flex gap-1 mt-0.5">
+                        <button id="btn-freeze" class="flex-1 py-1 bg-emerald-950 hover:bg-emerald-800 border border-emerald-800 text-[9px] font-bold text-emerald-200">FREEZE: OFF</button>
+                        <button id="btn-peaks" class="flex-1 py-1 bg-emerald-950 hover:bg-emerald-800 border border-emerald-800 text-[9px] font-bold text-emerald-200 mode-spec">PEAKS: OFF</button>
                     </div>
                 </div>
 
-                <div class="flex flex-col gap-2">
-                    <h3 class="text-[10px] uppercase tracking-wider text-neutral-500 font-bold border-b border-neutral-600 pb-1">I/O</h3>
-                    <button id="btn-mem-capture" class="w-full py-1 bg-neutral-700 hover:bg-neutral-600 border border-neutral-500 text-[10px] font-bold text-white">CAP TO MEM</button>
-                    <div class="flex gap-1">
-                        <button id="btn-mem-overlay" class="flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[9px] font-bold text-neutral-400">OVERLAY</button>
-                        <button id="btn-mem-restore" class="flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[9px] font-bold text-neutral-400">RESTORE</button>
+                <!-- TIMEBASE / FFT GROUP (Amber/Yellow Palette) -->
+                <div class="flex flex-col gap-1.5 p-2 bg-neutral-900/50 border border-amber-900/50 rounded-sm">
+                    <h3 class="text-[10px] uppercase tracking-wider text-amber-400 font-bold border-b border-amber-900 pb-1">Timebase / FFT</h3>
+                    
+                    <!-- FFT Spinner Buttons -->
+                    <div class="flex flex-col gap-0.5">
+                        <span class="text-[9px] font-bold uppercase text-amber-500">FFT Size</span>
+                        <div class="flex items-center justify-between gap-1 w-full" id="scroll-wrap-fft">
+                            <button id="btn-fft-down" aria-label="Decrease FFT Size" class="flex-1 py-1 bg-amber-950 hover:bg-amber-800 border border-amber-800 text-amber-200 font-bold text-xs leading-none">&#9660;</button>
+                            <span id="val-disp-fft" class="flex-1 text-center text-amber-100 font-mono text-[10px] bg-neutral-950 py-1 border border-amber-900">2048</span>
+                            <button id="btn-fft-up" aria-label="Increase FFT Size" class="flex-1 py-1 bg-amber-950 hover:bg-amber-800 border border-amber-800 text-amber-200 font-bold text-xs leading-none">&#9650;</button>
+                        </div>
                     </div>
-                    <div class="flex gap-1">
-                        <button id="btn-mem-save" class="flex-1 py-1 bg-neutral-900 hover:bg-neutral-700 border border-neutral-600 text-[9px] font-bold text-cyan-500">SAVE</button>
-                        <button id="btn-mem-load" class="flex-1 py-1 bg-neutral-900 hover:bg-neutral-700 border border-neutral-600 text-[9px] font-bold text-cyan-500">LOAD</button>
+
+                    <button id="btn-scale" class="py-1.5 mt-auto bg-amber-950 hover:bg-amber-800 border border-amber-800 text-[9px] font-bold text-amber-200 mode-spec w-full">X-SCALE: LINEAR</button>
+                </div>
+
+                <!-- TRIGGER GROUP (Purple Palette) -->
+                <div class="flex flex-col gap-1.5 p-2 bg-neutral-900/50 border border-purple-900/50 rounded-sm">
+                    <h3 class="text-[10px] uppercase tracking-wider text-purple-400 font-bold border-b border-purple-900 pb-1">Trigger</h3>
+                    <div id="zoom-scope" class="flex flex-col gap-1 mode-scope" style="display: none;">
+                        <div class="flex gap-1 mt-1">
+                            <button id="btn-trig-comb" class="flex-1 py-1.5 bg-purple-950 hover:bg-purple-800 border border-purple-800 text-[9px] font-bold text-purple-300">T:L+R</button>
+                            <button id="btn-trig-left" class="flex-1 py-1.5 bg-purple-950 hover:bg-purple-800 border border-purple-800 text-[9px] font-bold text-purple-300">T:L</button>
+                            <button id="btn-trig-right" class="flex-1 py-1.5 bg-purple-950 hover:bg-purple-800 border border-purple-800 text-[9px] font-bold text-purple-300">T:R</button>
+                        </div>
+                        <button id="btn-trig-oneshot" class="w-full py-1.5 bg-purple-950 hover:bg-purple-800 border border-purple-800 text-[9px] font-bold text-purple-300">1-SHOT ARM</button>
+                    </div>
+                    <div class="text-[9px] text-neutral-500 italic mt-auto mode-spec text-center pt-2">Disabled in Spec Mode</div>
+                </div>
+
+                <!-- MEASUREMENT GROUP (Pink Palette) -->
+                <div class="flex flex-col gap-1.5 p-2 bg-neutral-900/50 border border-pink-900/50 rounded-sm">
+                    <h3 class="text-[10px] uppercase tracking-wider text-pink-400 font-bold border-b border-pink-900 pb-1">Measurement</h3>
+                    <div class="flex gap-1 mt-1">
+                        <button id="btn-cursor-x" class="flex-1 py-2 bg-pink-950 hover:bg-pink-800 border border-pink-800 text-[9px] font-bold text-pink-300">X-CURS</button>
+                        <button id="btn-cursor-y" class="flex-1 py-2 bg-pink-950 hover:bg-pink-800 border border-pink-800 text-[9px] font-bold text-pink-300">Y-CURS</button>
+                    </div>
+                </div>
+
+                <!-- I/O GROUP (Orange Palette) -->
+                <div class="flex flex-col gap-1.5 p-2 bg-neutral-900/50 border border-orange-900/50 rounded-sm">
+                    <h3 class="text-[10px] uppercase tracking-wider text-orange-400 font-bold border-b border-orange-900 pb-1">I/O Data</h3>
+                    <button id="btn-mem-capture" class="w-full py-1 bg-orange-700 hover:bg-orange-600 border border-orange-500 text-[10px] font-bold text-white shadow-[0_2px_0_#fb923c]">CAP TO MEM</button>
+                    <div class="flex gap-1 mt-0.5">
+                        <button id="btn-mem-overlay" class="flex-1 py-1 bg-orange-950 hover:bg-orange-800 border border-orange-800 text-[9px] font-bold text-orange-300">OVERLAY</button>
+                        <button id="btn-mem-restore" class="flex-1 py-1 bg-orange-950 hover:bg-orange-800 border border-orange-800 text-[9px] font-bold text-orange-300">RESTORE</button>
+                    </div>
+                    <div class="flex gap-1 mt-0.5">
+                        <button id="btn-mem-save" class="flex-1 py-1 bg-orange-950 hover:bg-orange-800 border border-orange-800 text-[9px] font-bold text-orange-300">SAVE</button>
+                        <button id="btn-mem-load" class="flex-1 py-1 bg-orange-950 hover:bg-orange-800 border border-orange-800 text-[9px] font-bold text-orange-300">LOAD</button>
                         <input type="file" id="mem-file-input" accept=".json" class="hidden">
                     </div>
                 </div>
@@ -266,6 +268,7 @@
             }
         });
 
+        // Strict Initialization: Ensures DOM is 100% parsed before binding Engine
         document.addEventListener('DOMContentLoaded', () => {
             try {
 
@@ -278,11 +281,15 @@
                 let isLogScale = false;
                 let isFrozen = false;
                 let showPeaks = false;
+                
+                // Headless Spinner Variables (replacing DOM sliders)
+                let currentGain = 2.0;
                 let averagingAlpha = 0.0; 
+                let currentFftExp = 11; // 2^11 = 2048
 
                 let dummyAudioEl = null;
 
-                // Headless State Variables
+                // Headless Bounds Variables
                 let displayMaxDb = 0, displayMinDb = -140;
                 let zoomMinFreq = 0, zoomMaxFreq = 22000;
                 let actualNyquist = 22050; 
@@ -345,12 +352,6 @@
                     right: { active: false, analyser: null, data: null, timeData: null, rawData: null, rawTimeData: null, color: '#f472b6', fill: 'rgba(244, 114, 182, 0.1)', name: 'R', offsetY: 0 }
                 };
 
-                const controls = {
-                    gain: { el: document.getElementById('gain'), disp: document.getElementById('gain-value') },
-                    avg: { el: document.getElementById('avg'), disp: document.getElementById('avg-value') },
-                    bandwidth: { el: document.getElementById('bandwidth'), disp: document.getElementById('bandwidth-value') }
-                };
-
                 // ==========================================
                 // 3. UTILITY & HUD OSD FUNCTIONS
                 // ==========================================
@@ -383,7 +384,7 @@
                     if (viewMode === 'oscilloscope' || viewMode === 'lissajous') {
                         targetSize = 32768; 
                     } else {
-                        targetSize = Math.pow(2, parseInt(controls.bandwidth.el.value));
+                        targetSize = Math.pow(2, currentFftExp);
                     }
                     Object.values(channels).forEach(ch => {
                         if (ch.analyser && ch.analyser.fftSize !== targetSize) {
@@ -463,7 +464,6 @@
                     return Math.round(freq);
                 }
                 
-                // REV 1.51.0 RESTORED: Centralized Cursor Updates
                 function updateCursorReadouts() {
                     const isWaterfall = viewMode === 'waterfall'; 
                     const isScope = viewMode === 'oscilloscope'; 
@@ -487,7 +487,7 @@
                         document.getElementById('osd-lbl-x1').textContent = 'T1:'; document.getElementById('osd-lbl-x2').textContent = 'T2:'; document.getElementById('osd-lbl-dx').textContent = 'ΔT:';
                         document.getElementById('osd-lbl-y1').textContent = 'V1:'; document.getElementById('osd-lbl-y2').textContent = 'V2:'; document.getElementById('osd-lbl-dy').textContent = 'ΔV:';
                         
-                        const currentGain = gainNode ? gainNode.gain.value : 1.0;
+                        const trueGain = gainNode ? gainNode.gain.value : currentGain;
                         let dtStr = '--';
                         if (cursorsXEnabled && !isLissajous) {
                             const dt = Math.abs(scopeCursorX2Ms - scopeCursorX1Ms);
@@ -500,9 +500,9 @@
                         document.getElementById('osd-val-x1').textContent = (cursorsXEnabled && !isLissajous) ? absoluteX1.toFixed(2) + 'ms' : '--';
                         document.getElementById('osd-val-x2').textContent = (cursorsXEnabled && !isLissajous) ? absoluteX2.toFixed(2) + 'ms' : '--';
                         document.getElementById('osd-val-dx').textContent = dtStr;
-                        document.getElementById('osd-val-y1').textContent = (cursorsYEnabled && !isLissajous) ? (scopeCursorY1Amp > 0 ? '+' : '') + (scopeCursorY1Amp / currentGain).toFixed(3) : '--';
-                        document.getElementById('osd-val-y2').textContent = (cursorsYEnabled && !isLissajous) ? (scopeCursorY2Amp > 0 ? '+' : '') + (scopeCursorY2Amp / currentGain).toFixed(3) : '--';
-                        document.getElementById('osd-val-dy').textContent = (cursorsYEnabled && !isLissajous) ? Math.abs((scopeCursorY2Amp - scopeCursorY1Amp) / currentGain).toFixed(3) : '--';
+                        document.getElementById('osd-val-y1').textContent = (cursorsYEnabled && !isLissajous) ? (scopeCursorY1Amp > 0 ? '+' : '') + (scopeCursorY1Amp / trueGain).toFixed(3) : '--';
+                        document.getElementById('osd-val-y2').textContent = (cursorsYEnabled && !isLissajous) ? (scopeCursorY2Amp > 0 ? '+' : '') + (scopeCursorY2Amp / trueGain).toFixed(3) : '--';
+                        document.getElementById('osd-val-dy').textContent = (cursorsYEnabled && !isLissajous) ? Math.abs((scopeCursorY2Amp - scopeCursorY1Amp) / trueGain).toFixed(3) : '--';
                     } else if (isWaterfall) {
                         document.getElementById('osd-lbl-x1').textContent = 'F1:'; document.getElementById('osd-lbl-x2').textContent = 'F2:'; document.getElementById('osd-lbl-dx').textContent = 'ΔF:';
                         document.getElementById('osd-lbl-y1').textContent = 'T1:'; document.getElementById('osd-lbl-y2').textContent = 'T2:'; document.getElementById('osd-lbl-dy').textContent = 'ΔT:';
@@ -539,8 +539,8 @@
                     document.getElementById('osd-mode').textContent = `MODE: ${viewMode.toUpperCase()}`;
 
                     const visualCeiling = 1.0 / vertScaleMultiplier;
-                    const currentGain = gainNode ? gainNode.gain.value : 1.0;
-                    const trueVPerDiv = (visualCeiling * 2 / 8) / currentGain; 
+                    const trueGain = gainNode ? gainNode.gain.value : currentGain;
+                    const trueVPerDiv = (visualCeiling * 2 / 8) / trueGain; 
 
                     document.getElementById('osd-ch-combined').style.display = channels.combined.active ? 'block' : 'none';
                     document.getElementById('osd-ch-combined').textContent = `CH L+R: ${trueVPerDiv.toFixed(2)} V/DIV`;
@@ -652,8 +652,8 @@
                         if (viewMode === 'oscilloscope' || viewMode === 'lissajous') {
                             const visualCeiling = 1.0 / vertScaleMultiplier;
                             const amp = visualCeiling - (i * (2 * visualCeiling) / vDivs);
-                            const currentGain = gainNode ? gainNode.gain.value : 1.0;
-                            const trueVoltage = amp / currentGain;
+                            const trueGain = gainNode ? gainNode.gain.value : currentGain;
+                            const trueVoltage = amp / trueGain;
                             label = trueVoltage > 0 ? '+' + trueVoltage.toFixed(2) : trueVoltage.toFixed(2);
                         } else if (viewMode === 'spectrum' || viewMode === 'waterfall' || viewMode === 'both') {
                             const db = displayMaxDb - (i * (displayMaxDb - displayMinDb) / vDivs);
@@ -702,7 +702,7 @@
 
                     showToast("INITIALIZING AUDIO ENGINE", false);
                     statusEl.textContent = "INITIALIZING";
-                    statusEl.className = "text-yellow-500 font-mono bg-neutral-900 px-1 border border-neutral-700";
+                    statusEl.className = "text-yellow-500 font-mono bg-neutral-900 px-1.5 py-0.5 border border-neutral-700";
 
                     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                     if (audioCtx.state === 'suspended') await audioCtx.resume();
@@ -734,7 +734,7 @@
                         channels.right.analyser = audioCtx.createAnalyser();
                         
                         let splitter = audioCtx.createChannelSplitter(2);
-                        gainNode = audioCtx.createGain(); gainNode.gain.value = parseFloat(controls.gain.el.value);
+                        gainNode = audioCtx.createGain(); gainNode.gain.value = currentGain;
 
                         source = audioCtx.createMediaStreamSource(stream); source.connect(gainNode);
                         gainNode.connect(channels.combined.analyser); gainNode.connect(splitter);
@@ -773,7 +773,7 @@
                         document.getElementById('btn-system').classList.add('hidden');
                         document.getElementById('btn-stop').classList.remove('hidden');
                         
-                        statusEl.textContent = `LIVE (${sourceType.toUpperCase()})`; statusEl.className = "text-green-500 font-mono bg-neutral-900 px-1 border border-neutral-700";
+                        statusEl.textContent = `LIVE (${sourceType.toUpperCase()})`; statusEl.className = "text-green-500 font-mono bg-neutral-900 px-1.5 py-0.5 border border-neutral-700";
                         stream.getTracks().forEach(t => t.onended = () => stopAudio());
                         
                         updateOSD();
@@ -791,7 +791,7 @@
                     document.getElementById('btn-mic').classList.remove('hidden');
                     document.getElementById('btn-system').classList.remove('hidden');
                     document.getElementById('btn-stop').classList.add('hidden');
-                    statusEl.textContent = "READY"; statusEl.className = "text-yellow-500 font-mono bg-neutral-900 px-1 border border-neutral-700";
+                    statusEl.textContent = "READY"; statusEl.className = "text-yellow-500 font-mono bg-neutral-900 px-1.5 py-0.5 border border-neutral-700";
                 }
 
                 // ==========================================
@@ -898,9 +898,9 @@
                         if (isOneShotArmed && !isFrozen && triggerFound) {
                             isOneShotArmed = false; isFrozen = true;
                             document.getElementById('btn-freeze').textContent = "FREEZE: ON"; 
-                            document.getElementById('btn-freeze').classList.replace('bg-neutral-800', 'bg-blue-800');
+                            document.getElementById('btn-freeze').classList.replace('bg-emerald-950', 'bg-emerald-600');
                             const btnOs = document.getElementById('btn-trig-oneshot');
-                            btnOs.textContent = "1-SHOT: CAUGHT"; btnOs.className = "flex-1 py-1 bg-green-800 border border-green-600 text-[9px] font-bold text-white";
+                            btnOs.textContent = "1-SHOT: CAUGHT"; btnOs.className = "w-full py-1.5 bg-green-700 border border-green-600 text-[9px] font-bold text-white";
                         } 
 
                         Object.keys(channels).forEach(key => {
@@ -1099,7 +1099,7 @@
                             timeData: ch.timeData ? Array.from(ch.timeData) : null
                         };
                     });
-                    isMemOverlay = true; document.getElementById('btn-mem-overlay').textContent = "OVERLAY: ON"; document.getElementById('btn-mem-overlay').classList.replace('bg-neutral-800', 'bg-red-900');
+                    isMemOverlay = true; document.getElementById('btn-mem-overlay').textContent = "OVERLAY: ON"; document.getElementById('btn-mem-overlay').classList.replace('bg-orange-950', 'bg-orange-600');
                     showToast("MEMORY SNAPSHOT CAPTURED", false);
                 }
 
@@ -1108,7 +1108,7 @@
                 document.getElementById('btn-mem-overlay').onclick = function() {
                     if (!memorySnapshot) { showToast("ERROR: NO MEMORY CAPTURED", true); return; }
                     isMemOverlay = !isMemOverlay; this.textContent = `OVERLAY: ${isMemOverlay ? 'ON' : 'OFF'}`;
-                    this.classList.toggle('bg-red-900', isMemOverlay); this.classList.toggle('bg-neutral-800', !isMemOverlay);
+                    this.classList.toggle('bg-orange-600', isMemOverlay); this.classList.toggle('bg-orange-950', !isMemOverlay);
                 };
 
                 document.getElementById('btn-mem-restore').onclick = function() {
@@ -1130,9 +1130,9 @@
                     
                     lastTriggerIndex = 0; 
                     scopeOffsetXMs = 0; 
-                    isFrozen = true; document.getElementById('btn-freeze').textContent = "FREEZE: ON"; document.getElementById('btn-freeze').classList.replace('bg-neutral-800', 'bg-blue-800');
-                    isMemOverlay = false; document.getElementById('btn-mem-overlay').textContent = "OVERLAY: OFF"; document.getElementById('btn-mem-overlay').classList.replace('bg-red-900', 'bg-neutral-800');
-                    this.textContent = "RESUME"; this.classList.add('bg-green-800');
+                    isFrozen = true; document.getElementById('btn-freeze').textContent = "FREEZE: ON"; document.getElementById('btn-freeze').classList.replace('bg-emerald-950', 'bg-emerald-600');
+                    isMemOverlay = false; document.getElementById('btn-mem-overlay').textContent = "OVERLAY: OFF"; document.getElementById('btn-mem-overlay').classList.replace('bg-orange-600', 'bg-orange-950');
+                    this.textContent = "RESUME"; this.classList.replace('bg-orange-950', 'bg-red-800');
                     showToast("MEMORY RESTORED. SYSTEM FROZEN.", false);
                 };
 
@@ -1152,7 +1152,7 @@
                 };
 
                 // ==========================================
-                // 8. INTERACTION & CONTROLS
+                // 8. INTERACTION & CONTROLS (BUTTONS ONLY)
                 // ==========================================
                 function updateUIControlVisibility() {
                     const isScope = viewMode === 'oscilloscope'; const isWaterfall = viewMode === 'waterfall'; const isLissajous = viewMode === 'lissajous';
@@ -1160,7 +1160,7 @@
                     document.querySelectorAll('.mode-spec').forEach(el => el.style.display = (isScope || isLissajous) ? 'none' : '');
                     document.querySelectorAll('.mode-scope').forEach(el => el.style.display = (isScope || isLissajous) ? '' : 'none');
                     
-                    document.getElementById('zoom-scope').style.display = (isScope || isLissajous) ? 'grid' : 'none';
+                    document.getElementById('zoom-scope').style.display = (isScope || isLissajous) ? 'flex' : 'none';
 
                     document.getElementById('btn-cursor-y').style.display = (isLissajous) ? 'none' : 'block';
                     document.getElementById('btn-cursor-x').style.display = isLissajous ? 'none' : 'block';
@@ -1178,17 +1178,17 @@
                     channels[key].active = !channels[key].active;
                     const btn = document.getElementById('btn-show-' + key);
                     
-                    btn.classList.toggle('bg-neutral-600', channels[key].active); btn.classList.toggle('bg-neutral-800', !channels[key].active);
-                    btn.classList.toggle('text-white', channels[key].active); btn.classList.toggle('text-neutral-400', !channels[key].active);
+                    // Routing group uses Blue Palette
+                    btn.classList.toggle('bg-blue-700', channels[key].active); btn.classList.toggle('bg-blue-950', !channels[key].active);
+                    btn.classList.toggle('text-white', channels[key].active); btn.classList.toggle('text-blue-300', !channels[key].active);
                     
                     if (key === 'combined') {
-                        if (channels[key].active) btn.style.boxShadow = '0 2px 0 #22d3ee'; else btn.style.boxShadow = 'none';
+                        if (channels[key].active) btn.style.boxShadow = '0 2px 0 #60a5fa'; else btn.style.boxShadow = 'none';
                     } else if (key === 'left') {
-                        if (channels[key].active) btn.style.boxShadow = '0 2px 0 #4ade80'; else btn.style.boxShadow = 'none';
+                        if (channels[key].active) btn.style.boxShadow = '0 2px 0 #60a5fa'; else btn.style.boxShadow = 'none';
                     } else if (key === 'right') {
-                        if (channels[key].active) btn.style.boxShadow = '0 2px 0 #f472b6'; else btn.style.boxShadow = 'none';
+                        if (channels[key].active) btn.style.boxShadow = '0 2px 0 #60a5fa'; else btn.style.boxShadow = 'none';
                     }
-
                     updateOSD();
                 }
 
@@ -1204,39 +1204,76 @@
                     else viewMode = 'spectrum';
                     
                     this.textContent = `MODE: ${viewMode.toUpperCase()}`;
-                    this.classList.toggle('bg-blue-800', viewMode === 'spectrum'); this.classList.toggle('bg-purple-800', viewMode === 'waterfall');
-                    this.classList.toggle('bg-teal-800', viewMode === 'both'); this.classList.toggle('bg-yellow-800', viewMode === 'oscilloscope');
-                    this.classList.toggle('bg-red-800', viewMode === 'lissajous');
                     
                     if (viewMode === 'waterfall' || viewMode === 'spectrum' || viewMode === 'oscilloscope' || viewMode === 'lissajous') {
                         const wfCtx = mainDisplay.wfCvs.getContext('2d'); wfCtx.fillStyle = '#171717'; wfCtx.fillRect(0, 0, mainDisplay.wfCvs.width, mainDisplay.wfCvs.height);
                     }
                     isOneShotArmed = false; const btnOs = document.getElementById('btn-trig-oneshot');
-                    btnOs.textContent = "1-SHOT"; btnOs.className = "flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[9px] font-bold text-neutral-400";
+                    btnOs.textContent = "1-SHOT ARM"; btnOs.className = "w-full py-1.5 bg-purple-950 hover:bg-purple-800 border border-purple-800 text-[9px] font-bold text-purple-300";
                     updateUIControlVisibility(); applyFftSize(); clampCursors();
                     if (isFrozen) document.getElementById('btn-freeze').click(); 
                     updateOSD();
                 };
 
-                controls.gain.el.oninput = (e) => { const v = parseFloat(e.target.value); controls.gain.disp.textContent = v.toFixed(1) + 'x'; if (gainNode) gainNode.gain.setTargetAtTime(v, audioCtx.currentTime, 0.05); updateOSD(); };
-                controls.avg.el.oninput = (e) => { averagingAlpha = parseFloat(e.target.value); controls.avg.disp.textContent = averagingAlpha === 0 ? 'OFF' : Math.round(averagingAlpha * 100) + '%'; };
-                controls.bandwidth.el.oninput = (e) => { const sz = Math.pow(2, parseInt(e.target.value)); controls.bandwidth.disp.textContent = sz; applyFftSize();  };
+                // ---- SPINNER CONTROLS LOGIC ----
+
+                const updateGain = (newVal) => {
+                    currentGain = Math.max(0.1, Math.min(10.0, newVal));
+                    document.getElementById('val-disp-gain').textContent = currentGain.toFixed(1) + 'x';
+                    if (gainNode) gainNode.gain.setTargetAtTime(currentGain, audioCtx.currentTime, 0.05);
+                    updateOSD(); updateCursorReadouts();
+                };
+                document.getElementById('btn-gain-down').onclick = () => updateGain(currentGain - 0.1);
+                document.getElementById('btn-gain-up').onclick = () => updateGain(currentGain + 0.1);
+                document.getElementById('scroll-wrap-gain').addEventListener('wheel', (e) => { e.preventDefault(); updateGain(currentGain + (e.deltaY < 0 ? 0.1 : -0.1)); }, {passive:false});
+
+                const updateAvg = (newVal) => {
+                    averagingAlpha = Math.max(0.0, Math.min(0.98, newVal));
+                    document.getElementById('val-disp-avg').textContent = averagingAlpha === 0 ? 'OFF' : Math.round(averagingAlpha * 100) + '%';
+                };
+                document.getElementById('btn-avg-down').onclick = () => updateAvg(averagingAlpha - 0.02);
+                document.getElementById('btn-avg-up').onclick = () => updateAvg(averagingAlpha + 0.02);
+                document.getElementById('scroll-wrap-avg').addEventListener('wheel', (e) => { e.preventDefault(); updateAvg(averagingAlpha + (e.deltaY < 0 ? 0.02 : -0.02)); }, {passive:false});
+
+                const updateFft = (newExp) => {
+                    currentFftExp = Math.max(5, Math.min(15, newExp));
+                    document.getElementById('val-disp-fft').textContent = Math.pow(2, currentFftExp);
+                    applyFftSize();
+                };
+                document.getElementById('btn-fft-down').onclick = () => updateFft(currentFftExp - 1);
+                document.getElementById('btn-fft-up').onclick = () => updateFft(currentFftExp + 1);
+                document.getElementById('scroll-wrap-fft').addEventListener('wheel', (e) => { e.preventDefault(); updateFft(currentFftExp + (e.deltaY < 0 ? 1 : -1)); }, {passive:false});
+
+                // ---- END SPINNER CONTROLS ----
 
                 document.getElementById('btn-freeze').onclick = function() {
                     isFrozen = !isFrozen; 
                     this.textContent = `FREEZE: ${isFrozen ? 'ON' : 'OFF'}`; 
-                    this.classList.toggle('bg-blue-800', isFrozen); 
-                    this.classList.toggle('bg-neutral-800', !isFrozen);
+                    this.classList.toggle('bg-emerald-600', isFrozen); 
+                    this.classList.toggle('bg-emerald-950', !isFrozen);
+                    this.classList.toggle('text-white', isFrozen);
+                    this.classList.toggle('text-emerald-200', !isFrozen);
                     if (!isFrozen) { 
                         const btnRes = document.getElementById('btn-mem-restore'); 
-                        btnRes.textContent = "RESTORE"; btnRes.classList.remove('bg-green-800'); 
+                        btnRes.textContent = "RESTORE"; btnRes.classList.replace('bg-red-800', 'bg-orange-950'); 
                         scopeOffsetXMs = 0; 
                         updateOSD();
                     }
                 };
                 
-                document.getElementById('btn-peaks').onclick = function() { showPeaks = !showPeaks; this.textContent = `PEAKS: ${showPeaks ? 'ON' : 'OFF'}`; this.classList.toggle('bg-pink-900', showPeaks); this.classList.toggle('bg-neutral-800', !showPeaks); };
-                document.getElementById('btn-scale').onclick = function() { isLogScale = !isLogScale; this.textContent = `X-SCALE: ${isLogScale ? 'LOG' : 'LINEAR'}`; };
+                document.getElementById('btn-peaks').onclick = function() { 
+                    showPeaks = !showPeaks; 
+                    this.textContent = `PEAKS: ${showPeaks ? 'ON' : 'OFF'}`; 
+                    this.classList.toggle('bg-emerald-600', showPeaks); 
+                    this.classList.toggle('bg-emerald-950', !showPeaks); 
+                    this.classList.toggle('text-white', showPeaks);
+                    this.classList.toggle('text-emerald-200', !showPeaks);
+                };
+                
+                document.getElementById('btn-scale').onclick = function() { 
+                    isLogScale = !isLogScale; 
+                    this.textContent = `X-SCALE: ${isLogScale ? 'LOG' : 'LINEAR'}`; 
+                };
 
                 function clampCursors() {
                     if (viewMode === 'oscilloscope' || viewMode === 'lissajous') {
@@ -1259,17 +1296,17 @@
                     if (scopeTriggerSource === null && isOneShotArmed) {
                         isOneShotArmed = false;
                         const btnOs = document.getElementById('btn-trig-oneshot');
-                        btnOs.textContent = "1-SHOT"; 
-                        btnOs.className = "flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[9px] font-bold text-neutral-400";
+                        btnOs.textContent = "1-SHOT ARM"; 
+                        btnOs.className = "w-full py-1.5 bg-purple-950 hover:bg-purple-800 border border-purple-800 text-[9px] font-bold text-purple-300";
                     }
 
-                    document.getElementById('btn-trig-comb').classList.toggle('bg-pink-900', scopeTriggerSource === 'combined'); document.getElementById('btn-trig-comb').classList.toggle('bg-neutral-800', scopeTriggerSource !== 'combined');
-                    document.getElementById('btn-trig-left').classList.toggle('bg-pink-900', scopeTriggerSource === 'left'); document.getElementById('btn-trig-left').classList.toggle('bg-neutral-800', scopeTriggerSource !== 'left');
-                    document.getElementById('btn-trig-right').classList.toggle('bg-pink-900', scopeTriggerSource === 'right'); document.getElementById('btn-trig-right').classList.toggle('bg-neutral-800', scopeTriggerSource !== 'right');
+                    document.getElementById('btn-trig-comb').classList.toggle('bg-purple-600', scopeTriggerSource === 'combined'); document.getElementById('btn-trig-comb').classList.toggle('bg-purple-950', scopeTriggerSource !== 'combined');
+                    document.getElementById('btn-trig-left').classList.toggle('bg-purple-600', scopeTriggerSource === 'left'); document.getElementById('btn-trig-left').classList.toggle('bg-purple-950', scopeTriggerSource !== 'left');
+                    document.getElementById('btn-trig-right').classList.toggle('bg-purple-600', scopeTriggerSource === 'right'); document.getElementById('btn-trig-right').classList.toggle('bg-purple-950', scopeTriggerSource !== 'right');
                     
-                    document.getElementById('btn-trig-comb').classList.toggle('text-white', scopeTriggerSource === 'combined'); document.getElementById('btn-trig-comb').classList.toggle('text-neutral-400', scopeTriggerSource !== 'combined');
-                    document.getElementById('btn-trig-left').classList.toggle('text-white', scopeTriggerSource === 'left'); document.getElementById('btn-trig-left').classList.toggle('text-neutral-400', scopeTriggerSource !== 'left');
-                    document.getElementById('btn-trig-right').classList.toggle('text-white', scopeTriggerSource === 'right'); document.getElementById('btn-trig-right').classList.toggle('text-neutral-400', scopeTriggerSource !== 'right');
+                    document.getElementById('btn-trig-comb').classList.toggle('text-white', scopeTriggerSource === 'combined'); document.getElementById('btn-trig-comb').classList.toggle('text-purple-300', scopeTriggerSource !== 'combined');
+                    document.getElementById('btn-trig-left').classList.toggle('text-white', scopeTriggerSource === 'left'); document.getElementById('btn-trig-left').classList.toggle('text-purple-300', scopeTriggerSource !== 'left');
+                    document.getElementById('btn-trig-right').classList.toggle('text-white', scopeTriggerSource === 'right'); document.getElementById('btn-trig-right').classList.toggle('text-purple-300', scopeTriggerSource !== 'right');
                     
                     updateOSD();
                 }
@@ -1285,24 +1322,25 @@
 
                     if (isOneShotArmed) {
                         isOneShotArmed = false; 
-                        btnOneShot.textContent = "1-SHOT"; 
-                        btnOneShot.className = "flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[9px] font-bold text-neutral-400";
+                        btnOneShot.textContent = "1-SHOT ARM"; 
+                        btnOneShot.className = "w-full py-1.5 bg-purple-950 hover:bg-purple-800 border border-purple-800 text-[9px] font-bold text-purple-300";
                     } else {
                         isOneShotArmed = true; 
                         isFrozen = false; 
                         document.getElementById('btn-freeze').textContent = "FREEZE: OFF"; 
-                        document.getElementById('btn-freeze').classList.replace('bg-blue-800', 'bg-neutral-800');
+                        document.getElementById('btn-freeze').classList.replace('bg-emerald-600', 'bg-emerald-950');
+                        document.getElementById('btn-freeze').classList.replace('text-white', 'text-emerald-200');
 
                         btnOneShot.textContent = "ARMED"; 
-                        btnOneShot.className = "flex-1 py-1 bg-red-900 border border-red-700 text-[9px] font-bold text-white animate-pulse";
+                        btnOneShot.className = "w-full py-1.5 bg-red-900 border border-red-700 text-[9px] font-bold text-white animate-pulse";
                     }
                 };
 
                 const btnCursorX = document.getElementById('btn-cursor-x');
                 btnCursorX.onclick = () => { 
                     if (viewMode === 'lissajous') return; cursorsXEnabled = !cursorsXEnabled; 
-                    btnCursorX.classList.toggle('bg-neutral-800', !cursorsXEnabled); btnCursorX.classList.toggle('bg-green-900', cursorsXEnabled);
-                    btnCursorX.classList.toggle('text-neutral-400', !cursorsXEnabled); btnCursorX.classList.toggle('text-white', cursorsXEnabled);
+                    btnCursorX.classList.toggle('bg-pink-950', !cursorsXEnabled); btnCursorX.classList.toggle('bg-pink-600', cursorsXEnabled);
+                    btnCursorX.classList.toggle('text-pink-300', !cursorsXEnabled); btnCursorX.classList.toggle('text-white', cursorsXEnabled);
                     if (cursorsXEnabled) {
                         if (viewMode === 'oscilloscope') {
                             scopeCursorX1Ms = scopeTimeWindowMs * 0.33; scopeCursorX2Ms = scopeTimeWindowMs * 0.66;
@@ -1322,8 +1360,8 @@
                 btnCursorY.onclick = () => { 
                     if (viewMode === 'lissajous') return; 
                     cursorsYEnabled = !cursorsYEnabled; 
-                    btnCursorY.classList.toggle('bg-neutral-800', !cursorsYEnabled); btnCursorY.classList.toggle('bg-purple-900', cursorsYEnabled);
-                    btnCursorY.classList.toggle('text-neutral-400', !cursorsYEnabled); btnCursorY.classList.toggle('text-white', cursorsYEnabled);
+                    btnCursorY.classList.toggle('bg-pink-950', !cursorsYEnabled); btnCursorY.classList.toggle('bg-pink-600', cursorsYEnabled);
+                    btnCursorY.classList.toggle('text-pink-300', !cursorsYEnabled); btnCursorY.classList.toggle('text-white', cursorsYEnabled);
                     if (cursorsYEnabled) {
                         if (viewMode === 'oscilloscope') {
                             const visualCeiling = 1.0 / vertScaleMultiplier;
@@ -1697,20 +1735,9 @@
                 });
                 resizeObserver.observe(mainDisplay.container);
 
-                document.querySelectorAll('input[type="range"]').forEach(input => {
-                    const hitArea = input.closest('div[title="Scroll to adjust"]') || input.parentElement;
-                    hitArea.addEventListener('wheel', (e) => {
-                        e.preventDefault();
-                        const step = parseFloat(input.step) || 1; const min = parseFloat(input.min) || 0; const max = parseFloat(input.max) || 100;
-                        let val = parseFloat(input.value);
-                        if (e.deltaY < 0) { val = Math.min(max, val + step); } else if (e.deltaY > 0) { val = Math.max(min, val - step); }
-                        if (input.value !== val.toString()) { input.value = val; input.dispatchEvent(new Event('input')); }
-                    }, { passive: false }); 
-                });
-
                 // Pure Headless Memory Reset (No DOM assignments for deleted sliders)
                 document.getElementById('btn-reset').onclick = () => {
-                    isLogScale = false; isFrozen = false; showPeaks = false; averagingAlpha = 0.0; 
+                    isLogScale = false; isFrozen = false; showPeaks = false; 
                     displayMaxDb = 0; displayMinDb = -140; zoomMinFreq = 0; zoomMaxFreq = 22000;
                     scopeTimeWindowMs = 20; vertScaleMultiplier = 1.0; scopeTriggerLevel = 0.0; scopeTriggerSource = null; setTriggerSource(null);
                     cursorsXEnabled = false; cursorsYEnabled = false; isOneShotArmed = false; isMemOverlay = false; memorySnapshot = null;
@@ -1718,20 +1745,20 @@
                     Object.values(channels).forEach(ch => ch.offsetY = 0);
                     scopeOffsetXMs = 0;
 
-                    if (controls.gain && controls.gain.el) { controls.gain.el.value = 2; controls.gain.disp.textContent = "2.0x"; if (gainNode) gainNode.gain.setTargetAtTime(2, audioCtx.currentTime, 0.05); }
-                    if (controls.avg && controls.avg.el) { controls.avg.el.value = 0; controls.avg.disp.textContent = "OFF"; }
-                    if (controls.bandwidth && controls.bandwidth.el) { controls.bandwidth.el.value = 11; controls.bandwidth.disp.textContent = "2048"; applyFftSize(); }
+                    updateGain(2.0);
+                    updateAvg(0.0);
+                    updateFft(11);
 
-                    const btnFreeze = document.getElementById('btn-freeze'); btnFreeze.textContent = "FREEZE: OFF"; btnFreeze.classList.replace('bg-blue-800', 'bg-neutral-800');
-                    const btnPeaks = document.getElementById('btn-peaks'); btnPeaks.textContent = "PEAKS: OFF"; btnPeaks.classList.replace('bg-pink-900', 'bg-neutral-800');
+                    const btnFreeze = document.getElementById('btn-freeze'); btnFreeze.textContent = "FREEZE: OFF"; btnFreeze.classList.replace('bg-emerald-600', 'bg-emerald-950'); btnFreeze.classList.replace('text-white', 'text-emerald-200');
+                    const btnPeaks = document.getElementById('btn-peaks'); btnPeaks.textContent = "PEAKS: OFF"; btnPeaks.classList.replace('bg-emerald-600', 'bg-emerald-950'); btnPeaks.classList.replace('text-white', 'text-emerald-200');
                     document.getElementById('btn-scale').textContent = "X-SCALE: LINEAR";
-                    const btnOs = document.getElementById('btn-trig-oneshot'); btnOs.textContent = "1-SHOT"; btnOs.className = "flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[9px] font-bold text-neutral-400";
+                    const btnOs = document.getElementById('btn-trig-oneshot'); btnOs.textContent = "1-SHOT ARM"; btnOs.className = "w-full py-1.5 bg-purple-950 hover:bg-purple-800 border border-purple-800 text-[9px] font-bold text-purple-300";
 
-                    const btnCX = document.getElementById('btn-cursor-x'); btnCX.classList.replace('bg-green-900', 'bg-neutral-800'); btnCX.classList.replace('text-white', 'text-neutral-400');
-                    const btnCY = document.getElementById('btn-cursor-y'); btnCY.classList.replace('bg-purple-900', 'bg-neutral-800'); btnCY.classList.replace('text-white', 'text-neutral-400');
+                    const btnCX = document.getElementById('btn-cursor-x'); btnCX.classList.replace('bg-pink-600', 'bg-pink-950'); btnCX.classList.replace('text-white', 'text-pink-300');
+                    const btnCY = document.getElementById('btn-cursor-y'); btnCY.classList.replace('bg-pink-600', 'bg-pink-950'); btnCY.classList.replace('text-white', 'text-pink-300');
                     
-                    document.getElementById('btn-mem-overlay').textContent = "OVERLAY: OFF"; document.getElementById('btn-mem-overlay').classList.replace('bg-red-900', 'bg-neutral-800');
-                    const btnRes = document.getElementById('btn-mem-restore'); btnRes.textContent = "RESTORE"; btnRes.classList.remove('bg-green-800');
+                    document.getElementById('btn-mem-overlay').textContent = "OVERLAY: OFF"; document.getElementById('btn-mem-overlay').classList.replace('bg-orange-600', 'bg-orange-950');
+                    const btnRes = document.getElementById('btn-mem-restore'); btnRes.textContent = "RESTORE"; btnRes.classList.replace('bg-red-800', 'bg-orange-950');
 
                     updateCursorReadouts();
                     updateOSD();
