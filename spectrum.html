@@ -82,7 +82,7 @@
             <h1 class="text-[10px] md:text-sm font-bold text-neutral-100 uppercase tracking-wider flex items-center whitespace-nowrap">
                 <span class="hidden sm:inline">Signal Analyzer</span>
                 <span class="sm:hidden">Analyzer</span>
-                <span class="text-neutral-500 text-[8px] md:text-[9px] font-mono ml-1">V1.46.0</span>
+                <span class="text-neutral-500 text-[8px] md:text-[9px] font-mono ml-1">V1.47.0</span>
             </h1>
             <div class="text-[9px] uppercase font-bold text-neutral-400">
                 <span id="engine-status" class="text-yellow-500 font-mono bg-neutral-900 px-1 border border-neutral-700">READY</span>
@@ -180,7 +180,6 @@
                         <button id="btn-show-left" class="flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[10px] font-bold text-neutral-400">L</button>
                         <button id="btn-show-right" class="flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[10px] font-bold text-neutral-400">R</button>
                     </div>
-                    <!-- Fixed visual bug: Button correctly reflects default boot state -->
                     <button id="btn-mode" class="py-1 mt-1 bg-blue-800 hover:bg-blue-700 border border-blue-600 text-[10px] font-bold text-white">MODE: SPECTRUM</button>
                 </div>
 
@@ -220,7 +219,6 @@
 
                 <div class="flex flex-col gap-2">
                     <h3 class="text-[10px] uppercase tracking-wider text-neutral-500 font-bold border-b border-neutral-600 pb-1">Trigger</h3>
-                    <!-- Spectrum Mode sliders removed. Scope Mode trigger buttons remain. -->
                     <div id="zoom-scope" class="grid grid-cols-1 gap-y-2 mode-scope" style="display: none;">
                         <div id="scope-trigger-btns" class="flex gap-0.5 pt-1">
                             <button id="btn-trig-comb" class="flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[9px] font-bold text-neutral-400">T:L+R</button>
@@ -283,7 +281,7 @@
         let lastDrawTime = 0;
         let msPerRowAverage = 16.67; 
 
-        // Headless Scope Mathematics (Decoupled completely from DOM input elements)
+        // Headless Scope Mathematics 
         let scopeTimeWindowMs = 20; 
         let vertScaleMultiplier = 1.0; 
         let scopeCursorX1Ms = 5, scopeCursorX2Ms = 15;
@@ -336,7 +334,6 @@
             right: { active: false, analyser: null, data: null, timeData: null, rawData: null, rawTimeData: null, color: '#f472b6', fill: 'rgba(244, 114, 182, 0.1)', name: 'R', offsetY: 0 }
         };
 
-        // Fully scrubbed controls object (Removed missing Scope/Trig and Spectrum Zoom sliders)
         const controls = {
             gain: { el: document.getElementById('gain'), disp: document.getElementById('gain-value') },
             avg: { el: document.getElementById('avg'), disp: document.getElementById('avg-value') },
@@ -506,7 +503,6 @@
         // 4. UNIVERSAL GRATICULE RENDERING
         // ==========================================
         function drawHardwareGraticule(ctx, cvs) {
-            // Defensive bounds guard to prevent calculations on uninitialized viewport
             if (!cvs || cvs.width <= 0 || cvs.height <= 0) return;
 
             const p = getPadding();
@@ -1631,7 +1627,8 @@
         });
 
         document.getElementById('btn-reset').onclick = () => {
-            isLogScale = false; isFrozen = false; showPeaks = false; averagingAlpha = 0.0; displayMaxDb = 0; displayMinDb = -140; zoomMinFreq = 0; zoomMaxFreq = 22000;
+            isLogScale = false; isFrozen = false; showPeaks = false; averagingAlpha = 0.0; 
+            displayMaxDb = 0; displayMinDb = -140; zoomMinFreq = 0; zoomMaxFreq = 22000;
             scopeTimeWindowMs = 20; vertScaleMultiplier = 1.0; scopeTriggerLevel = 0.0; scopeTriggerSource = null; setTriggerSource(null);
             cursorsXEnabled = false; cursorsYEnabled = false; isOneShotArmed = false; isMemOverlay = false; memorySnapshot = null;
             
