@@ -4,12 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="description" content="Professional Web-Based Audio Spectrum Analyzer and Oscilloscope">
-    <title>Audio Spectrum Visualizer - REV 1.44.0</title>
+    <title>Audio Spectrum Visualizer - HUD Edition</title>
     
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎛️</text></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Strict, Industrial CSS Resets */
+        /* Strict, Industrial CSS Resets per W3C Standards */
         body, html {
             height: 100%;
             margin: 0;
@@ -17,6 +17,7 @@
             color: #d4d4d4; 
         }
         
+        /* Custom Scrollbar */
         .industrial-scroll::-webkit-scrollbar { width: 10px; }
         .industrial-scroll::-webkit-scrollbar-track { background: #262626; border-left: 1px solid #404040; }
         .industrial-scroll::-webkit-scrollbar-thumb { background: #525252; border-radius: 0px; border: 1px solid #262626; }
@@ -25,11 +26,11 @@
         .canvas-container {
             border: 1px solid #525252;
             cursor: crosshair;
-            /* Disable browser gesture intervention to route raw touch/mouse events */
+            /* Disable browser gesture intervention to route raw touch/mouse events cleanly to JS */
             touch-action: none; 
         }
         
-        /* Industrial Range Sliders */
+        /* Industrial Range Sliders for remaining Spectrum controls */
         input[type=range] {
             -webkit-appearance: none;
             background: transparent;
@@ -69,6 +70,7 @@
 </head>
 <body class="flex flex-col items-center px-1 md:px-2 pt-1 pb-2 font-sans h-screen overflow-hidden relative">
 
+    <!-- Toast Error/Notification Container -->
     <div id="toast-container" class="fixed top-5 left-1/2 transform -translate-x-1/2 z-50 flex flex-col items-center w-full px-4 pointer-events-none">
         <div id="message-box" class="transition-all duration-300 opacity-0 transform -translate-y-4 p-3 border shadow-none text-xs font-mono max-w-xl text-center w-full">
         </div>
@@ -80,7 +82,7 @@
             <h1 class="text-[10px] md:text-sm font-bold text-neutral-100 uppercase tracking-wider flex items-center whitespace-nowrap">
                 <span class="hidden sm:inline">Signal Analyzer</span>
                 <span class="sm:hidden">Analyzer</span>
-                <span class="text-neutral-500 text-[8px] md:text-[9px] font-mono ml-1">V1.44.0</span>
+                <span class="text-neutral-500 text-[8px] md:text-[9px] font-mono ml-1">HUD EDITION</span>
             </h1>
             <div class="text-[9px] uppercase font-bold text-neutral-400">
                 <span id="engine-status" class="text-yellow-500 font-mono bg-neutral-900 px-1 border border-neutral-700">READY</span>
@@ -106,6 +108,7 @@
         <section id="displays-wrapper" class="order-1 md:order-2 w-full flex-1 flex flex-col gap-2 min-h-[250px]">
             <div id="display-main" class="canvas-container w-full flex-1 bg-neutral-950 relative" title="1-Finger Pan / 2-Finger Zoom / Wheel Axes / Dbl-Click Reset">
                 
+                <!-- OSD Overlay: pointer-events-none ensures drag/wheel events pass directly to Canvas -->
                 <div id="osd-layer" class="absolute inset-0 z-30 pointer-events-none flex flex-col justify-between p-1.5 font-mono text-[9px] md:text-[11px] font-bold text-neutral-300 pb-[30px] pl-[60px] pr-2">
                     
                     <!-- Top Readouts -->
@@ -116,6 +119,7 @@
                             <span id="osd-ch-right" class="text-pink-400">CH R: --</span>
                         </div>
                         
+                        <!-- Top-Center Measurement Cursors -->
                         <div id="osd-cursors" class="absolute top-0 left-1/2 transform -translate-x-1/2 flex flex-col items-center gap-0.5 osd-text w-full max-w-[280px]" style="display: none;">
                             <div id="osd-curs-x-container" class="flex gap-2 text-green-400 bg-neutral-900/80 px-2 py-0.5 border border-neutral-700 rounded" style="display: none;">
                                 <span><span id="osd-lbl-x1" class="text-neutral-400">X1:</span> <span id="osd-val-x1">--</span></span>
@@ -235,6 +239,7 @@
                         </div>
                     </div>
 
+                    <!-- Scope specific section now purely contains trigger buttons -->
                     <div id="zoom-scope" class="grid grid-cols-1 gap-y-2 mode-scope" style="display: none;">
                         <div id="scope-trigger-btns" class="flex gap-0.5 pt-1">
                             <button id="btn-trig-comb" class="flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[9px] font-bold text-neutral-400">T:L+R</button>
@@ -297,7 +302,7 @@
         let lastDrawTime = 0;
         let msPerRowAverage = 16.67; 
 
-        // Headless Scope Mathematics (Decoupled from DOM)
+        // Headless Scope Mathematics (Fully Decoupled from HTML Range Inputs)
         let scopeTimeWindowMs = 20; 
         let vertScaleMultiplier = 1.0; 
         let scopeCursorX1Ms = 5, scopeCursorX2Ms = 15;
@@ -350,7 +355,7 @@
             right: { active: false, analyser: null, data: null, timeData: null, rawData: null, rawTimeData: null, color: '#f472b6', fill: 'rgba(244, 114, 182, 0.1)', name: 'R', offsetY: 0 }
         };
 
-        // Fully scrubbed controls object (removed missing elements)
+        // Fully scrubbed controls object (Removed missing Scope/Trig sliders)
         const controls = {
             gain: { el: document.getElementById('gain'), disp: document.getElementById('gain-value') },
             avg: { el: document.getElementById('avg'), disp: document.getElementById('avg-value') },
