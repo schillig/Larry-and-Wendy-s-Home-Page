@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="description" content="Professional Web-Based Audio Spectrum Analyzer and Oscilloscope">
-    <title>Audio Spectrum Visualizer - REV 1.45.0</title>
+    <title>Audio Spectrum Visualizer - HUD Edition</title>
     
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎛️</text></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -82,7 +82,7 @@
             <h1 class="text-[10px] md:text-sm font-bold text-neutral-100 uppercase tracking-wider flex items-center whitespace-nowrap">
                 <span class="hidden sm:inline">Signal Analyzer</span>
                 <span class="sm:hidden">Analyzer</span>
-                <span class="text-neutral-500 text-[8px] md:text-[9px] font-mono ml-1">V1.45.0</span>
+                <span class="text-neutral-500 text-[8px] md:text-[9px] font-mono ml-1">V1.46.0</span>
             </h1>
             <div class="text-[9px] uppercase font-bold text-neutral-400">
                 <span id="engine-status" class="text-yellow-500 font-mono bg-neutral-900 px-1 border border-neutral-700">READY</span>
@@ -180,7 +180,8 @@
                         <button id="btn-show-left" class="flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[10px] font-bold text-neutral-400">L</button>
                         <button id="btn-show-right" class="flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[10px] font-bold text-neutral-400">R</button>
                     </div>
-                    <button id="btn-mode" class="py-1 mt-1 bg-blue-800 hover:bg-blue-700 border border-blue-600 text-[10px] font-bold text-white">CYCLE MODE</button>
+                    <!-- Fixed visual bug: Button correctly reflects default boot state -->
+                    <button id="btn-mode" class="py-1 mt-1 bg-blue-800 hover:bg-blue-700 border border-blue-600 text-[10px] font-bold text-white">MODE: SPECTRUM</button>
                 </div>
 
                 <div class="flex flex-col gap-3">
@@ -218,28 +219,8 @@
                 </div>
 
                 <div class="flex flex-col gap-2">
-                    <h3 class="text-[10px] uppercase tracking-wider text-neutral-500 font-bold border-b border-neutral-600 pb-1">Zoom & Trig</h3>
-                    
-                    <div id="zoom-spectrum" class="grid grid-cols-2 gap-x-3 gap-y-2 mode-spec">
-                        <div class="flex flex-col gap-0.5">
-                            <label for="min-freq" class="text-[9px] font-bold uppercase text-neutral-400">Min Hz</label>
-                            <input type="range" id="min-freq" min="0" max="24000" step="1" value="0">
-                        </div>
-                        <div class="flex flex-col gap-0.5">
-                            <label for="max-freq" class="text-[9px] font-bold uppercase text-neutral-400">Max Hz</label>
-                            <input type="range" id="max-freq" min="100" max="24000" step="100" value="22000">
-                        </div>
-                        <div class="flex flex-col gap-0.5">
-                            <label for="min-db" class="text-[9px] font-bold uppercase text-neutral-400">Min dB</label>
-                            <input type="range" id="min-db" min="-140" max="-70" step="1" value="-140">
-                        </div>
-                        <div class="flex flex-col gap-0.5">
-                            <label for="max-db" class="text-[9px] font-bold uppercase text-neutral-400">Max dB</label>
-                            <input type="range" id="max-db" min="-60" max="0" step="1" value="0">
-                        </div>
-                    </div>
-
-                    <!-- Scope Mode Trigger Source Controls -->
+                    <h3 class="text-[10px] uppercase tracking-wider text-neutral-500 font-bold border-b border-neutral-600 pb-1">Trigger</h3>
+                    <!-- Spectrum Mode sliders removed. Scope Mode trigger buttons remain. -->
                     <div id="zoom-scope" class="grid grid-cols-1 gap-y-2 mode-scope" style="display: none;">
                         <div id="scope-trigger-btns" class="flex gap-0.5 pt-1">
                             <button id="btn-trig-comb" class="flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[9px] font-bold text-neutral-400">T:L+R</button>
@@ -355,14 +336,11 @@
             right: { active: false, analyser: null, data: null, timeData: null, rawData: null, rawTimeData: null, color: '#f472b6', fill: 'rgba(244, 114, 182, 0.1)', name: 'R', offsetY: 0 }
         };
 
+        // Fully scrubbed controls object (Removed missing Scope/Trig and Spectrum Zoom sliders)
         const controls = {
             gain: { el: document.getElementById('gain'), disp: document.getElementById('gain-value') },
             avg: { el: document.getElementById('avg'), disp: document.getElementById('avg-value') },
-            bandwidth: { el: document.getElementById('bandwidth'), disp: document.getElementById('bandwidth-value') },
-            minFreq: { el: document.getElementById('min-freq') },
-            maxFreq: { el: document.getElementById('max-freq') },
-            minDb: { el: document.getElementById('min-db') },
-            maxDb: { el: document.getElementById('max-db') }
+            bandwidth: { el: document.getElementById('bandwidth'), disp: document.getElementById('bandwidth-value') }
         };
 
         // ==========================================
@@ -477,6 +455,7 @@
         
         function updateOSD() {
             const isScope = viewMode === 'oscilloscope';
+            const isSpec = viewMode === 'spectrum' || viewMode === 'both' || viewMode === 'waterfall';
             const isLiss = viewMode === 'lissajous';
 
             document.getElementById('osd-mode').textContent = `MODE: ${viewMode.toUpperCase()}`;
@@ -668,7 +647,6 @@
 
                 if (audioCtx.state === 'suspended') await audioCtx.resume();
                 actualNyquist = audioCtx.sampleRate / 2;
-                controls.maxFreq.el.max = actualNyquist;
 
                 dummyAudioEl = new Audio(); dummyAudioEl.srcObject = stream; dummyAudioEl.muted = true; dummyAudioEl.play().catch(e => console.warn(e));
                 
@@ -1196,11 +1174,6 @@
             wfCursorY2Px = Math.max(0, Math.min(hBound, wfCursorY2Px));
         }
 
-        controls.minFreq.el.oninput = (e) => { let val = parseInt(e.target.value); if (val >= zoomMaxFreq - 10) val = zoomMaxFreq - 10; zoomMinFreq = val; e.target.value = val; clampCursors(); updateCursorReadouts(); updateOSD(); };
-        controls.maxFreq.el.oninput = (e) => { let val = parseInt(e.target.value); if (val <= zoomMinFreq + 10) val = zoomMinFreq + 10; zoomMaxFreq = val; e.target.value = val; clampCursors(); updateCursorReadouts(); updateOSD(); };
-        controls.minDb.el.oninput = (e) => { let val = parseInt(e.target.value); if (val >= displayMaxDb - 10) val = displayMaxDb - 10; displayMinDb = val; e.target.value = val; clampCursors(); updateCursorReadouts(); updateOSD(); };
-        controls.maxDb.el.oninput = (e) => { let val = parseInt(e.target.value); if (val <= displayMinDb + 10) val = displayMinDb + 10; displayMaxDb = val; e.target.value = val; clampCursors(); updateCursorReadouts(); updateOSD(); };
-
         function setTriggerSource(src) {
             if (scopeTriggerSource === src) { scopeTriggerSource = null; } else { scopeTriggerSource = src; }
             
@@ -1285,71 +1258,6 @@
             }
             updateCursorReadouts(); 
         };
-
-        function updateCursorReadouts() {
-            const isWaterfall = viewMode === 'waterfall'; 
-            const isScope = viewMode === 'oscilloscope'; 
-            const isLissajous = viewMode === 'lissajous';
-
-            const osdCursors = document.getElementById('osd-cursors');
-            const contX = document.getElementById('osd-curs-x-container');
-            const contY = document.getElementById('osd-curs-y-container');
-            
-            if (!cursorsXEnabled && !cursorsYEnabled) {
-                osdCursors.style.display = 'none';
-            } else {
-                osdCursors.style.display = 'flex';
-                contX.style.display = cursorsXEnabled ? 'flex' : 'none';
-                contY.style.display = cursorsYEnabled ? 'flex' : 'none';
-            }
-
-            if (isScope || isLissajous) {
-                document.getElementById('osd-lbl-x1').textContent = 'T1:'; document.getElementById('osd-lbl-x2').textContent = 'T2:'; document.getElementById('osd-lbl-dx').textContent = 'ΔT:';
-                document.getElementById('osd-lbl-y1').textContent = 'V1:'; document.getElementById('osd-lbl-y2').textContent = 'V2:'; document.getElementById('osd-lbl-dy').textContent = 'ΔV:';
-                
-                const currentGain = gainNode ? gainNode.gain.value : 1.0;
-                let dtStr = '--';
-                if (cursorsXEnabled && !isLissajous) {
-                    const dt = Math.abs(scopeCursorX2Ms - scopeCursorX1Ms);
-                    if (dt > 0) { const freq = 1000 / dt; dtStr = `${dt.toFixed(2)}ms (${freq.toFixed(1)}Hz)`; } else { dtStr = '0.00ms'; }
-                }
-
-                let absoluteX1 = scopeCursorX1Ms + scopeOffsetXMs;
-                let absoluteX2 = scopeCursorX2Ms + scopeOffsetXMs;
-
-                document.getElementById('osd-val-x1').textContent = (cursorsXEnabled && !isLissajous) ? absoluteX1.toFixed(2) + 'ms' : '--';
-                document.getElementById('osd-val-x2').textContent = (cursorsXEnabled && !isLissajous) ? absoluteX2.toFixed(2) + 'ms' : '--';
-                document.getElementById('osd-val-dx').textContent = dtStr;
-                document.getElementById('osd-val-y1').textContent = (cursorsYEnabled && !isLissajous) ? (scopeCursorY1Amp > 0 ? '+' : '') + (scopeCursorY1Amp / currentGain).toFixed(3) : '--';
-                document.getElementById('osd-val-y2').textContent = (cursorsYEnabled && !isLissajous) ? (scopeCursorY2Amp > 0 ? '+' : '') + (scopeCursorY2Amp / currentGain).toFixed(3) : '--';
-                document.getElementById('osd-val-dy').textContent = (cursorsYEnabled && !isLissajous) ? Math.abs((scopeCursorY2Amp - scopeCursorY1Amp) / currentGain).toFixed(3) : '--';
-            } else if (isWaterfall) {
-                document.getElementById('osd-lbl-x1').textContent = 'F1:'; document.getElementById('osd-lbl-x2').textContent = 'F2:'; document.getElementById('osd-lbl-dx').textContent = 'ΔF:';
-                document.getElementById('osd-lbl-y1').textContent = 'T1:'; document.getElementById('osd-lbl-y2').textContent = 'T2:'; document.getElementById('osd-lbl-dy').textContent = 'ΔT:';
-
-                document.getElementById('osd-val-x1').textContent = cursorsXEnabled ? formatFreqLabel(cursorX1Freq) : '--';
-                document.getElementById('osd-val-x2').textContent = cursorsXEnabled ? formatFreqLabel(cursorX2Freq) : '--';
-                document.getElementById('osd-val-dx').textContent = cursorsXEnabled ? formatFreqLabel(Math.abs(cursorX2Freq - cursorX1Freq)) : '--';
-                
-                const t1Str = (wfCursorY1Px * msPerRowAverage).toFixed(0);
-                const t2Str = (wfCursorY2Px * msPerRowAverage).toFixed(0);
-                const deltaTStr = (Math.abs(wfCursorY2Px - wfCursorY1Px) * msPerRowAverage).toFixed(0);
-
-                document.getElementById('osd-val-y1').textContent = cursorsYEnabled ? `-${t1Str}ms` : '--';
-                document.getElementById('osd-val-y2').textContent = cursorsYEnabled ? `-${t2Str}ms` : '--';
-                document.getElementById('osd-val-dy').textContent = cursorsYEnabled ? `${deltaTStr}ms` : '--';
-            } else {
-                document.getElementById('osd-lbl-x1').textContent = 'F1:'; document.getElementById('osd-lbl-x2').textContent = 'F2:'; document.getElementById('osd-lbl-dx').textContent = 'ΔF:';
-                document.getElementById('osd-lbl-y1').textContent = 'A1:'; document.getElementById('osd-lbl-y2').textContent = 'A2:'; document.getElementById('osd-lbl-dy').textContent = 'ΔA:';
-
-                document.getElementById('osd-val-x1').textContent = cursorsXEnabled ? formatFreqLabel(cursorX1Freq) : '--';
-                document.getElementById('osd-val-x2').textContent = cursorsXEnabled ? formatFreqLabel(cursorX2Freq) : '--';
-                document.getElementById('osd-val-dx').textContent = cursorsXEnabled ? formatFreqLabel(Math.abs(cursorX2Freq - cursorX1Freq)) : '--';
-                document.getElementById('osd-val-y1').textContent = cursorsYEnabled ? cursorY1Db.toFixed(1) : '--';
-                document.getElementById('osd-val-y2').textContent = cursorsYEnabled ? cursorY2Db.toFixed(1) : '--';
-                document.getElementById('osd-val-dy').textContent = cursorsYEnabled ? Math.abs(cursorY2Db - cursorY1Db).toFixed(1) : '--';
-            }
-        }
 
         function handlePointerDown(e, cvs) {
             if (e.touches && e.touches.length === 2) {
@@ -1495,9 +1403,6 @@
                             
                             zoomMinFreq = Math.max(0, Math.round(center - newSpan / 2));
                             zoomMaxFreq = Math.min(actualNyquist, Math.round(center + newSpan / 2));
-                            
-                            controls.minFreq.el.value = zoomMinFreq;
-                            controls.maxFreq.el.value = zoomMaxFreq;
                         }
                     }
                 } else if (pinchAxis === 'y') {
@@ -1520,9 +1425,6 @@
                             
                             displayMinDb = Math.max(-140, Math.round(center - newSpan / 2));
                             displayMaxDb = Math.min(0, Math.round(center + newSpan / 2));
-                            
-                            controls.minDb.el.value = displayMinDb;
-                            controls.maxDb.el.value = displayMaxDb;
                         }
                     }
                 }
@@ -1560,9 +1462,6 @@
                         
                         displayMinDb = Math.round(newMin);
                         displayMaxDb = Math.round(newMax);
-
-                        controls.minDb.el.value = displayMinDb;
-                        controls.maxDb.el.value = displayMaxDb;
                     }
                 } else if (activeDrag.panAxis === 'x') {
                     if (viewMode === 'oscilloscope') {
@@ -1585,9 +1484,6 @@
 
                         zoomMinFreq = Math.round(newMin);
                         zoomMaxFreq = Math.round(newMax);
-
-                        controls.minFreq.el.value = zoomMinFreq;
-                        controls.maxFreq.el.value = zoomMaxFreq;
                     }
                 }
                 updateCursorReadouts(); updateOSD();
@@ -1682,8 +1578,6 @@
                     newSpan = Math.max(10, Math.min(140, newSpan));
                     displayMinDb = Math.max(-140, Math.round(center - newSpan / 2));
                     displayMaxDb = Math.min(0, Math.round(center + newSpan / 2));
-                    controls.minDb.el.value = displayMinDb;
-                    controls.maxDb.el.value = displayMaxDb;
                 }
                 clampCursors(); updateCursorReadouts(); updateOSD();
             } else if (y > rect.height - p.bottom) {
@@ -1698,8 +1592,6 @@
                     newSpan = Math.max(100, Math.min(24000, newSpan));
                     zoomMinFreq = Math.max(0, Math.round(center - newSpan / 2));
                     zoomMaxFreq = Math.min(actualNyquist, Math.round(center + newSpan / 2));
-                    controls.minFreq.el.value = zoomMinFreq;
-                    controls.maxFreq.el.value = zoomMaxFreq;
                 }
                 clampCursors(); updateCursorReadouts(); updateOSD();
             }
@@ -1749,9 +1641,6 @@
             controls.gain.el.value = 2; controls.gain.disp.textContent = "2.0x"; if (gainNode) gainNode.gain.setTargetAtTime(2, audioCtx.currentTime, 0.05);
             controls.avg.el.value = 0; controls.avg.disp.textContent = "OFF";
             controls.bandwidth.el.value = 11; controls.bandwidth.disp.textContent = "2048"; applyFftSize(); 
-
-            controls.minFreq.el.value = 0; controls.maxFreq.el.value = 22000; 
-            controls.minDb.el.value = -140; controls.maxDb.el.value = 0; 
 
             const btnFreeze = document.getElementById('btn-freeze'); btnFreeze.textContent = "FREEZE: OFF"; btnFreeze.classList.replace('bg-blue-800', 'bg-neutral-800');
             const btnPeaks = document.getElementById('btn-peaks'); btnPeaks.textContent = "PEAKS: OFF"; btnPeaks.classList.replace('bg-pink-900', 'bg-neutral-800');
