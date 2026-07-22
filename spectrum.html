@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="description" content="Professional Web-Based Audio Spectrum Analyzer and Oscilloscope">
-    <title>Audio Spectrum Visualizer - REV 1.42.0</title>
+    <title>Audio Spectrum Visualizer - REV 1.43.0</title>
     
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎛️</text></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -81,7 +81,7 @@
             <h1 class="text-[10px] md:text-sm font-bold text-neutral-100 uppercase tracking-wider flex items-center whitespace-nowrap">
                 <span class="hidden sm:inline">Signal Analyzer</span>
                 <span class="sm:hidden">Analyzer</span>
-                <span class="text-neutral-500 text-[8px] md:text-[9px] font-mono ml-1">V1.42.0</span>
+                <span class="text-neutral-500 text-[8px] md:text-[9px] font-mono ml-1">V1.43.0</span>
             </h1>
             <div class="text-[9px] uppercase font-bold text-neutral-400">
                 <span id="engine-status" class="text-yellow-500 font-mono bg-neutral-900 px-1 border border-neutral-700">READY</span>
@@ -238,20 +238,9 @@
                         </div>
                     </div>
 
+                    <!-- REV 1.43.0: Removed explicit sliders, relying entirely on HUD and Gestures -->
                     <div id="zoom-scope" class="grid grid-cols-1 gap-y-2 mode-scope" style="display: none;">
-                        <div id="scope-time-container" class="flex flex-col gap-0.5">
-                            <label for="scope-time" class="text-[9px] font-bold uppercase text-neutral-400">Time Base (Span)</label>
-                            <input type="range" id="scope-time" min="1" max="5000" step="1" value="20">
-                        </div>
-                        <div class="flex flex-col gap-0.5">
-                            <label for="vert-scale" class="text-[9px] font-bold uppercase text-neutral-400">Vertical Scale</label>
-                            <input type="range" id="vert-scale" min="0.01" max="100" step="0.01" value="1">
-                        </div>
-                        <div id="scope-trigger-container" class="flex flex-col gap-0.5 border-t border-neutral-700 pt-1">
-                            <label for="scope-trigger-lvl" class="text-[9px] font-bold uppercase text-neutral-400">Trig Level</label>
-                            <input type="range" id="scope-trigger-lvl" min="-1" max="1" step="0.01" value="0">
-                        </div>
-                        <div id="scope-trigger-btns" class="flex gap-0.5">
+                        <div id="scope-trigger-btns" class="flex gap-0.5 pt-1">
                             <button id="btn-trig-comb" class="flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[9px] font-bold text-neutral-400">T:L+R</button>
                             <button id="btn-trig-left" class="flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[9px] font-bold text-neutral-400">T:L</button>
                             <button id="btn-trig-right" class="flex-1 py-1 bg-neutral-800 border border-neutral-600 text-[9px] font-bold text-neutral-400">T:R</button>
@@ -312,6 +301,7 @@
         let lastDrawTime = 0;
         let msPerRowAverage = 16.67; 
 
+        // Core mathematics for gesture inputs (previously bound to sliders)
         let scopeTimeWindowMs = 20; 
         let vertScaleMultiplier = 1.0; 
         let scopeCursorX1Ms = 5, scopeCursorX2Ms = 15;
@@ -371,10 +361,7 @@
             minFreq: { el: document.getElementById('min-freq') },
             maxFreq: { el: document.getElementById('max-freq') },
             minDb: { el: document.getElementById('min-db') },
-            maxDb: { el: document.getElementById('max-db') },
-            scopeTime: { el: document.getElementById('scope-time') },
-            vertScale: { el: document.getElementById('vert-scale') },
-            scopeTrigger: { el: document.getElementById('scope-trigger-lvl') }
+            maxDb: { el: document.getElementById('max-db') }
         };
 
         // ==========================================
@@ -486,9 +473,9 @@
             return Math.round(freq);
         }
         
-        // Updates HUD Glass Overlay Elements
         function updateOSD() {
             const isScope = viewMode === 'oscilloscope';
+            const isSpec = viewMode === 'spectrum' || viewMode === 'both' || viewMode === 'waterfall';
             const isLiss = viewMode === 'lissajous';
 
             document.getElementById('osd-mode').textContent = `MODE: ${viewMode.toUpperCase()}`;
@@ -549,11 +536,9 @@
             ctx.textBaseline = 'middle'; 
             ctx.font = '10px monospace';
 
-            // --- 10 Horizontal Divisions (Vertical Lines) ---
             for (let i = 0; i <= hDivs; i++) {
                 const px = p.left + (i * (w - p.left) / hDivs);
 
-                // High-contrast grid line colors
                 if (i === 0 || i === hDivs || i === hDivs / 2) {
                     ctx.strokeStyle = '#666666'; ctx.setLineDash([]);
                 } else {
@@ -582,13 +567,11 @@
                     }
                 }
                 
-                // String-Explicit Evaluation guarantees 0 values render
                 if (label !== "" && label !== undefined) {
                     ctx.fillText(label.toString(), px, h + 9);
                 }
             }
 
-            // --- 8 Vertical Divisions (Horizontal Lines) ---
             ctx.textAlign = 'right';
             for (let i = 0; i <= vDivs; i++) {
                 const py = i * (h / vDivs);
@@ -623,7 +606,6 @@
             }
             ctx.textBaseline = 'alphabetic'; 
 
-            // Trigger Level Line
             if (viewMode === 'oscilloscope' && scopeTriggerSource !== null && channels[scopeTriggerSource]) {
                 const trigColor = channels[scopeTriggerSource].color;
                 const trigY = getScopeYPosition(scopeTriggerLevel, cvs.height);
@@ -1116,9 +1098,9 @@
             
             document.querySelectorAll('.mode-spec').forEach(el => el.style.display = (isScope || isLissajous) ? 'none' : '');
             document.querySelectorAll('.mode-scope').forEach(el => el.style.display = (isScope || isLissajous) ? '' : 'none');
-            document.getElementById('scope-time-container').style.display = isLissajous ? 'none' : 'flex';
-            document.getElementById('scope-trigger-container').style.display = isLissajous ? 'none' : 'flex';
-            document.getElementById('scope-trigger-btns').style.display = isLissajous ? 'none' : 'flex';
+            
+            // Scope controls container toggle (hiding sliders previously removed)
+            document.getElementById('zoom-scope').style.display = (isScope || isLissajous) ? 'grid' : 'none';
 
             document.getElementById('btn-cursor-y').style.display = (isLissajous) ? 'none' : 'block';
             document.getElementById('btn-cursor-x').style.display = isLissajous ? 'none' : 'block';
@@ -1216,14 +1198,6 @@
         controls.minDb.el.oninput = (e) => { let val = parseInt(e.target.value); if (val >= displayMaxDb - 10) val = displayMaxDb - 10; displayMinDb = val; e.target.value = val; clampCursors(); updateCursorReadouts(); updateOSD(); };
         controls.maxDb.el.oninput = (e) => { let val = parseInt(e.target.value); if (val <= displayMinDb + 10) val = displayMinDb + 10; displayMaxDb = val; e.target.value = val; clampCursors(); updateCursorReadouts(); updateOSD(); };
 
-        controls.scopeTime.el.oninput = (e) => { scopeTimeWindowMs = parseInt(e.target.value); clampCursors(); updateCursorReadouts(); updateOSD(); };
-        controls.vertScale.el.oninput = (e) => { vertScaleMultiplier = parseFloat(e.target.value); clampCursors(); updateCursorReadouts(); updateOSD(); };
-        
-        controls.scopeTrigger.el.oninput = (e) => { 
-            scopeTriggerLevel = parseFloat(e.target.value); 
-            updateOSD();
-        };
-
         function setTriggerSource(src) {
             if (scopeTriggerSource === src) { scopeTriggerSource = null; } else { scopeTriggerSource = src; }
             
@@ -1308,71 +1282,6 @@
             }
             updateCursorReadouts(); 
         };
-
-        function updateCursorReadouts() {
-            const isWaterfall = viewMode === 'waterfall'; 
-            const isScope = viewMode === 'oscilloscope'; 
-            const isLissajous = viewMode === 'lissajous';
-
-            const osdCursors = document.getElementById('osd-cursors');
-            const contX = document.getElementById('osd-curs-x-container');
-            const contY = document.getElementById('osd-curs-y-container');
-            
-            if (!cursorsXEnabled && !cursorsYEnabled) {
-                osdCursors.style.display = 'none';
-            } else {
-                osdCursors.style.display = 'flex';
-                contX.style.display = cursorsXEnabled ? 'flex' : 'none';
-                contY.style.display = cursorsYEnabled ? 'flex' : 'none';
-            }
-
-            if (isScope || isLissajous) {
-                document.getElementById('osd-lbl-x1').textContent = 'T1:'; document.getElementById('osd-lbl-x2').textContent = 'T2:'; document.getElementById('osd-lbl-dx').textContent = 'ΔT:';
-                document.getElementById('osd-lbl-y1').textContent = 'V1:'; document.getElementById('osd-lbl-y2').textContent = 'V2:'; document.getElementById('osd-lbl-dy').textContent = 'ΔV:';
-                
-                const currentGain = gainNode ? gainNode.gain.value : 1.0;
-                let dtStr = '--';
-                if (cursorsXEnabled && !isLissajous) {
-                    const dt = Math.abs(scopeCursorX2Ms - scopeCursorX1Ms);
-                    if (dt > 0) { const freq = 1000 / dt; dtStr = `${dt.toFixed(2)}ms (${freq.toFixed(1)}Hz)`; } else { dtStr = '0.00ms'; }
-                }
-
-                let absoluteX1 = scopeCursorX1Ms + scopeOffsetXMs;
-                let absoluteX2 = scopeCursorX2Ms + scopeOffsetXMs;
-
-                document.getElementById('osd-val-x1').textContent = (cursorsXEnabled && !isLissajous) ? absoluteX1.toFixed(2) + 'ms' : '--';
-                document.getElementById('osd-val-x2').textContent = (cursorsXEnabled && !isLissajous) ? absoluteX2.toFixed(2) + 'ms' : '--';
-                document.getElementById('osd-val-dx').textContent = dtStr;
-                document.getElementById('osd-val-y1').textContent = (cursorsYEnabled && !isLissajous) ? (scopeCursorY1Amp > 0 ? '+' : '') + (scopeCursorY1Amp / currentGain).toFixed(3) : '--';
-                document.getElementById('osd-val-y2').textContent = (cursorsYEnabled && !isLissajous) ? (scopeCursorY2Amp > 0 ? '+' : '') + (scopeCursorY2Amp / currentGain).toFixed(3) : '--';
-                document.getElementById('osd-val-dy').textContent = (cursorsYEnabled && !isLissajous) ? Math.abs((scopeCursorY2Amp - scopeCursorY1Amp) / currentGain).toFixed(3) : '--';
-            } else if (isWaterfall) {
-                document.getElementById('osd-lbl-x1').textContent = 'F1:'; document.getElementById('osd-lbl-x2').textContent = 'F2:'; document.getElementById('osd-lbl-dx').textContent = 'ΔF:';
-                document.getElementById('osd-lbl-y1').textContent = 'T1:'; document.getElementById('osd-lbl-y2').textContent = 'T2:'; document.getElementById('osd-lbl-dy').textContent = 'ΔT:';
-
-                document.getElementById('osd-val-x1').textContent = cursorsXEnabled ? formatFreqLabel(cursorX1Freq) : '--';
-                document.getElementById('osd-val-x2').textContent = cursorsXEnabled ? formatFreqLabel(cursorX2Freq) : '--';
-                document.getElementById('osd-val-dx').textContent = cursorsXEnabled ? formatFreqLabel(Math.abs(cursorX2Freq - cursorX1Freq)) : '--';
-                
-                const t1Str = (wfCursorY1Px * msPerRowAverage).toFixed(0);
-                const t2Str = (wfCursorY2Px * msPerRowAverage).toFixed(0);
-                const deltaTStr = (Math.abs(wfCursorY2Px - wfCursorY1Px) * msPerRowAverage).toFixed(0);
-
-                document.getElementById('osd-val-y1').textContent = cursorsYEnabled ? `-${t1Str}ms` : '--';
-                document.getElementById('osd-val-y2').textContent = cursorsYEnabled ? `-${t2Str}ms` : '--';
-                document.getElementById('osd-val-dy').textContent = cursorsYEnabled ? `${deltaTStr}ms` : '--';
-            } else {
-                document.getElementById('osd-lbl-x1').textContent = 'F1:'; document.getElementById('osd-lbl-x2').textContent = 'F2:'; document.getElementById('osd-lbl-dx').textContent = 'ΔF:';
-                document.getElementById('osd-lbl-y1').textContent = 'A1:'; document.getElementById('osd-lbl-y2').textContent = 'A2:'; document.getElementById('osd-lbl-dy').textContent = 'ΔA:';
-
-                document.getElementById('osd-val-x1').textContent = cursorsXEnabled ? formatFreqLabel(cursorX1Freq) : '--';
-                document.getElementById('osd-val-x2').textContent = cursorsXEnabled ? formatFreqLabel(cursorX2Freq) : '--';
-                document.getElementById('osd-val-dx').textContent = cursorsXEnabled ? formatFreqLabel(Math.abs(cursorX2Freq - cursorX1Freq)) : '--';
-                document.getElementById('osd-val-y1').textContent = cursorsYEnabled ? cursorY1Db.toFixed(1) : '--';
-                document.getElementById('osd-val-y2').textContent = cursorsYEnabled ? cursorY2Db.toFixed(1) : '--';
-                document.getElementById('osd-val-dy').textContent = cursorsYEnabled ? Math.abs(cursorY2Db - cursorY1Db).toFixed(1) : '--';
-            }
-        }
 
         function handlePointerDown(e, cvs) {
             if (e.touches && e.touches.length === 2) {
@@ -1510,7 +1419,6 @@
                             let newTimebase = initialTimebase * ratio;
                             newTimebase = Math.max(1, Math.min(5000, newTimebase));
                             scopeTimeWindowMs = newTimebase;
-                            controls.scopeTime.el.value = scopeTimeWindowMs;
                         } else {
                             const span = initialPinchMaxFreq - initialPinchMinFreq;
                             const center = initialPinchMinFreq + span / 2;
@@ -1535,7 +1443,6 @@
                             newScale = Math.round(newScale * 100) / 100;
                             
                             vertScaleMultiplier = newScale;
-                            controls.vertScale.el.value = vertScaleMultiplier;
                         } else {
                             const invertRatio = initialPinchDistY / currentDistY; 
                             const span = initialPinchMaxDb - initialPinchMinDb;
@@ -1626,7 +1533,6 @@
                 if (activeDrag.id === 'trig') {
                     scopeTriggerLevel = getAmpFromScopeY(y, activeDrag.cvs.height);
                     scopeTriggerLevel = Math.max(-1, Math.min(1, scopeTriggerLevel)); 
-                    controls.scopeTrigger.el.value = scopeTriggerLevel;
                     updateOSD();
                 }
                 if (activeDrag.id === 'x1s') scopeCursorX1Ms = getMsFromScopeX(x, activeDrag.cvs.width);
@@ -1666,7 +1572,6 @@
             updateOSD();
         });
 
-        // REV 1.42.0: High-DPI Resilient Hover Axis Cursors
         mainDisplay.visCvs.addEventListener('mousemove', (e) => {
             handlePointerMove(e);
             
@@ -1688,7 +1593,6 @@
         window.addEventListener('mouseup', handlePointerUp);
         window.addEventListener('touchmove', handlePointerMove, { passive: false }); window.addEventListener('touchend', handlePointerUp);
 
-        // REV 1.42.0: High-DPI Resilient Mouse Wheel Zooming
         mainDisplay.visCvs.addEventListener('wheel', (e) => {
             e.preventDefault(); 
             const rect = mainDisplay.visCvs.getBoundingClientRect();
@@ -1698,12 +1602,10 @@
             const dir = Math.sign(e.deltaY);
             
             if (x < p.left) {
-                // Y-Axis Range Control
                 if (viewMode === 'oscilloscope' || viewMode === 'lissajous') {
                     let newScale = vertScaleMultiplier * (dir > 0 ? 0.9 : 1.1); 
                     newScale = Math.max(0.01, Math.min(100.0, newScale));
                     vertScaleMultiplier = Math.round(newScale * 100) / 100;
-                    controls.vertScale.el.value = vertScaleMultiplier;
                 } else {
                     const span = displayMaxDb - displayMinDb;
                     const center = displayMinDb + span / 2;
@@ -1716,12 +1618,10 @@
                 }
                 clampCursors(); updateCursorReadouts(); updateOSD();
             } else if (y > rect.height - p.bottom) {
-                // X-Axis Range Control
                 if (viewMode === 'oscilloscope') {
                     let newTime = scopeTimeWindowMs * (dir > 0 ? 1.1 : 0.9); 
                     newTime = Math.max(1, Math.min(5000, newTime));
                     scopeTimeWindowMs = newTime;
-                    controls.scopeTime.el.value = scopeTimeWindowMs;
                 } else if (viewMode !== 'lissajous') {
                     const span = zoomMaxFreq - zoomMinFreq;
                     const center = zoomMinFreq + span / 2;
@@ -1781,9 +1681,6 @@
 
             controls.minFreq.el.value = 0; controls.maxFreq.el.value = 22000; 
             controls.minDb.el.value = -140; controls.maxDb.el.value = 0; 
-            controls.scopeTime.el.value = 20; 
-            controls.vertScale.el.value = 1; 
-            controls.scopeTrigger.el.value = 0; 
 
             const btnFreeze = document.getElementById('btn-freeze'); btnFreeze.textContent = "FREEZE: OFF"; btnFreeze.classList.replace('bg-blue-800', 'bg-neutral-800');
             const btnPeaks = document.getElementById('btn-peaks'); btnPeaks.textContent = "PEAKS: OFF"; btnPeaks.classList.replace('bg-pink-900', 'bg-neutral-800');
@@ -1800,7 +1697,6 @@
             updateOSD();
         };
 
-        // Initialize display configuration on launch
         updateUIControlVisibility();
         document.getElementById('btn-mic').onclick = () => initAudio('mic'); document.getElementById('btn-system').onclick = () => initAudio('system'); document.getElementById('btn-stop').onclick = stopAudio;
         
