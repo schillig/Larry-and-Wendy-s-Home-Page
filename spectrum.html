@@ -51,6 +51,11 @@
             -ms-user-select: none;
             user-select: none;
         }
+
+        /* Enforce fixed character widths for dynamic readouts to prevent micro-jitters */
+        .tabular-data {
+            font-variant-numeric: tabular-nums;
+        }
     </style>
 </head>
 <body class="flex flex-col items-center px-1 md:px-2 pt-1 pb-2 font-sans h-screen overflow-hidden relative">
@@ -61,18 +66,18 @@
         </div>
     </div>
 
-    <!-- Header -->
+    <!-- Header Block -->
     <header class="w-full max-w-7xl flex-none flex flex-row justify-between items-center bg-neutral-800 py-1.5 px-3 border-b border-neutral-600 mb-2 shadow-sm">
         <div class="flex items-center gap-2">
             <h1 class="text-xs md:text-sm font-bold text-neutral-100 uppercase tracking-wider flex items-center whitespace-nowrap">
                 <span class="hidden sm:inline">Signal Analyzer</span>
                 <span class="sm:hidden">Analyzer</span>
-                <span class="text-neutral-500 text-[9px] font-mono ml-2">V1.53.0</span>
+                <span class="text-neutral-500 text-[9px] font-mono ml-2">V1.54.0</span>
             </h1>
-            <div class="flex gap-1 ml-2">
+            <div class="flex gap-1 ml-1 sm:ml-2">
                 <span id="engine-status" class="text-yellow-500 font-mono bg-neutral-900 px-1.5 py-0.5 border border-neutral-700 text-[9px] uppercase font-bold">READY</span>
-                <!-- NEW: Dynamic Hardware Profiler / Overload Indicator -->
-                <span id="fps-status" class="text-neutral-500 font-mono bg-neutral-900 px-1.5 py-0.5 border border-neutral-700 text-[9px] uppercase font-bold" style="display: none;" title="Frames Per Second">-- FPS</span>
+                <!-- Fixed-width Profiler to prevent Cumulative Layout Shift (CLS) on mobile -->
+                <span id="fps-status" class="w-[100px] inline-block text-center text-neutral-600 font-mono bg-neutral-900 px-1.5 py-0.5 border border-neutral-800 text-[9px] uppercase font-bold tabular-data overflow-hidden whitespace-nowrap" title="Frames Per Second">-- FPS</span>
             </div>
         </div>
 
@@ -98,7 +103,7 @@
                 <div id="osd-layer" class="absolute inset-0 z-30 pointer-events-none flex flex-col justify-between p-1.5 font-mono text-[9px] md:text-[11px] font-bold text-neutral-300 pb-[30px] pl-[60px] pr-2">
                     <!-- Top Readouts -->
                     <div class="flex justify-between items-start w-full relative">
-                        <div class="flex flex-col gap-0.5 osd-text">
+                        <div class="flex flex-col gap-0.5 osd-text tabular-data">
                             <span id="osd-ch-combined" class="text-cyan-400">CH L+R: --</span>
                             <span id="osd-ch-left" class="text-green-400">CH L: --</span>
                             <span id="osd-ch-right" class="text-pink-400">CH R: --</span>
@@ -106,12 +111,12 @@
                         
                         <!-- Top-Center Measurement Cursors -->
                         <div id="osd-cursors" class="absolute top-0 left-1/2 transform -translate-x-1/2 flex flex-col items-center gap-0.5 osd-text w-full max-w-[280px]" style="display: none;">
-                            <div id="osd-curs-x-container" class="flex gap-2 text-green-400 bg-neutral-900/80 px-2 py-0.5 border border-neutral-700 rounded" style="display: none;">
+                            <div id="osd-curs-x-container" class="flex gap-2 text-green-400 bg-neutral-900/80 px-2 py-0.5 border border-neutral-700 rounded tabular-data" style="display: none;">
                                 <span><span id="osd-lbl-x1" class="text-neutral-400">X1:</span> <span id="osd-val-x1">--</span></span>
                                 <span><span id="osd-lbl-x2" class="text-neutral-400">X2:</span> <span id="osd-val-x2">--</span></span>
                                 <span><span id="osd-lbl-dx" class="text-neutral-400">ΔX:</span> <span id="osd-val-dx">--</span></span>
                             </div>
-                            <div id="osd-curs-y-container" class="flex gap-2 text-purple-400 bg-neutral-900/80 px-2 py-0.5 border border-neutral-700 rounded" style="display: none;">
+                            <div id="osd-curs-y-container" class="flex gap-2 text-purple-400 bg-neutral-900/80 px-2 py-0.5 border border-neutral-700 rounded tabular-data" style="display: none;">
                                 <span><span id="osd-lbl-y1" class="text-neutral-400">Y1:</span> <span id="osd-val-y1">--</span></span>
                                 <span><span id="osd-lbl-y2" class="text-neutral-400">Y2:</span> <span id="osd-val-y2">--</span></span>
                                 <span><span id="osd-lbl-dy" class="text-neutral-400">ΔY:</span> <span id="osd-val-dy">--</span></span>
@@ -126,18 +131,18 @@
                     
                     <!-- Bottom Readouts -->
                     <div class="flex justify-between items-end w-full">
-                        <div class="flex flex-col gap-0.5 osd-text">
+                        <div class="flex flex-col gap-0.5 osd-text tabular-data">
                             <span id="osd-timebase" class="text-white">M: --</span>
                             <span id="osd-memory" class="text-neutral-400">POS: --</span>
                         </div>
-                        <div class="flex flex-col items-end gap-0.5 text-right osd-text">
+                        <div class="flex flex-col items-end gap-0.5 text-right osd-text tabular-data">
                             <span id="osd-freq-span" class="text-white">SPAN: --</span>
                             <span id="osd-db-span" class="text-neutral-400">SCALE: --</span>
                         </div>
                     </div>
                 </div>
 
-                <div class="ms-row-badge absolute top-12 right-2 text-[9px] font-mono font-bold text-neutral-400 z-20 bg-neutral-900/80 px-1 border border-neutral-700" style="display: none;">
+                <div class="ms-row-badge absolute top-12 right-2 text-[9px] font-mono font-bold text-neutral-400 z-20 bg-neutral-900/80 px-1 border border-neutral-700 tabular-data" style="display: none;">
                     <span class="val">--</span> ms/row
                 </div>
 
@@ -146,7 +151,7 @@
             </div>
         </section>
 
-        <!-- Refactored Bench Controls - Color Coded Groups & Button Only -->
+        <!-- Bench Controls - Color Coded Groups & Button Only -->
         <section class="order-2 md:order-1 w-full flex-none overflow-y-auto industrial-scroll pr-1 pb-2 flex flex-col gap-1 max-h-[45vh] md:max-h-none no-select">
             
             <div class="w-full flex justify-between items-end px-1 flex-none mb-1">
@@ -179,7 +184,7 @@
                         <span class="text-[9px] font-bold uppercase text-emerald-500">Gain</span>
                         <div class="flex items-center justify-between gap-1 w-full" id="scroll-wrap-gain">
                             <button id="btn-gain-down" aria-label="Decrease Gain" class="flex-1 py-1 bg-emerald-950 hover:bg-emerald-800 border border-emerald-800 text-emerald-200 font-bold text-xs leading-none">&#9660;</button>
-                            <span id="val-disp-gain" class="flex-1 text-center text-emerald-100 font-mono text-[10px] bg-neutral-950 py-1 border border-emerald-900">2.0x</span>
+                            <span id="val-disp-gain" class="flex-1 text-center text-emerald-100 font-mono text-[10px] bg-neutral-950 py-1 border border-emerald-900 tabular-data">2.0x</span>
                             <button id="btn-gain-up" aria-label="Increase Gain" class="flex-1 py-1 bg-emerald-950 hover:bg-emerald-800 border border-emerald-800 text-emerald-200 font-bold text-xs leading-none">&#9650;</button>
                         </div>
                     </div>
@@ -189,7 +194,7 @@
                         <span class="text-[9px] font-bold uppercase text-emerald-500">Average</span>
                         <div class="flex items-center justify-between gap-1 w-full" id="scroll-wrap-avg">
                             <button id="btn-avg-down" aria-label="Decrease Averaging" class="flex-1 py-1 bg-emerald-950 hover:bg-emerald-800 border border-emerald-800 text-emerald-200 font-bold text-xs leading-none">&#9660;</button>
-                            <span id="val-disp-avg" class="flex-1 text-center text-emerald-100 font-mono text-[10px] bg-neutral-950 py-1 border border-emerald-900">OFF</span>
+                            <span id="val-disp-avg" class="flex-1 text-center text-emerald-100 font-mono text-[10px] bg-neutral-950 py-1 border border-emerald-900 tabular-data">OFF</span>
                             <button id="btn-avg-up" aria-label="Increase Averaging" class="flex-1 py-1 bg-emerald-950 hover:bg-emerald-800 border border-emerald-800 text-emerald-200 font-bold text-xs leading-none">&#9650;</button>
                         </div>
                     </div>
@@ -209,7 +214,7 @@
                         <span class="text-[9px] font-bold uppercase text-amber-500">FFT Size</span>
                         <div class="flex items-center justify-between gap-1 w-full" id="scroll-wrap-fft">
                             <button id="btn-fft-down" aria-label="Decrease FFT Size" class="flex-1 py-1 bg-amber-950 hover:bg-amber-800 border border-amber-800 text-amber-200 font-bold text-xs leading-none">&#9660;</button>
-                            <span id="val-disp-fft" class="flex-1 text-center text-amber-100 font-mono text-[10px] bg-neutral-950 py-1 border border-amber-900">2048</span>
+                            <span id="val-disp-fft" class="flex-1 text-center text-amber-100 font-mono text-[10px] bg-neutral-950 py-1 border border-amber-900 tabular-data">2048</span>
                             <button id="btn-fft-up" aria-label="Increase FFT Size" class="flex-1 py-1 bg-amber-950 hover:bg-amber-800 border border-amber-800 text-amber-200 font-bold text-xs leading-none">&#9650;</button>
                         </div>
                     </div>
@@ -303,7 +308,7 @@
                 let lastDrawTime = 0;
                 let msPerRowAverage = 16.67; 
                 
-                // PERFORMANCE PROFILER VARIABLES (Rev 1.53.0)
+                // PERFORMANCE PROFILER VARIABLES (Rev 1.54.0)
                 let frameCount = 0;
                 let lastFpsTime = 0;
                 let currentFps = 60;
@@ -806,7 +811,9 @@
                     statusEl.textContent = "READY"; statusEl.className = "text-yellow-500 font-mono bg-neutral-900 px-1.5 py-0.5 border border-neutral-700 text-[9px] uppercase font-bold";
                     
                     if (fpsEl) {
-                        fpsEl.style.display = 'none';
+                        // Maintain the layout dimensions even when stopping
+                        fpsEl.textContent = "-- FPS";
+                        fpsEl.className = "w-[100px] inline-block text-center text-neutral-600 font-mono bg-neutral-900 px-1.5 py-0.5 border border-neutral-800 text-[9px] uppercase font-bold tabular-data overflow-hidden whitespace-nowrap";
                     }
                 }
 
@@ -816,7 +823,7 @@
                 function drawVisualizer(timestamp) {
                     animationId = requestAnimationFrame(drawVisualizer);
 
-                    // Dynamic FPS & Overload Profiler Implementation
+                    // Dynamic FPS & Overload Profiler Implementation (Fixed Width to stop layout jumping)
                     if (!lastFpsTime) lastFpsTime = timestamp;
                     frameCount++;
                     if (timestamp - lastFpsTime >= 1000) {
@@ -825,17 +832,17 @@
                         lastFpsTime = timestamp;
 
                         if (fpsEl && stream && stream.active) {
-                            fpsEl.style.display = 'inline-block';
+                            const baseClass = "w-[100px] inline-block text-center font-mono px-1.5 py-0.5 border text-[9px] uppercase font-bold tabular-data overflow-hidden whitespace-nowrap transition-colors ";
                             if (currentFps < 24 && !isFrozen) {
-                                // Overload detected!
-                                fpsEl.textContent = `⚠ ${currentFps} FPS OVERLOAD`;
-                                fpsEl.className = "text-red-100 font-mono bg-red-900 px-1.5 py-0.5 border border-red-500 text-[9px] uppercase font-bold animate-pulse";
+                                // Overload detected! Fits inside 100px box.
+                                fpsEl.textContent = `⚠ ${currentFps} FPS DROP`;
+                                fpsEl.className = baseClass + "text-red-100 bg-red-900 border-red-500 animate-pulse";
                             } else if (currentFps < 45 && !isFrozen) {
                                 fpsEl.textContent = `${currentFps} FPS`;
-                                fpsEl.className = "text-yellow-500 font-mono bg-neutral-900 px-1.5 py-0.5 border border-neutral-700 text-[9px] uppercase font-bold";
+                                fpsEl.className = baseClass + "text-yellow-500 bg-neutral-900 border-neutral-700";
                             } else {
                                 fpsEl.textContent = `${currentFps} FPS`;
-                                fpsEl.className = "text-emerald-500 font-mono bg-neutral-900 px-1.5 py-0.5 border border-neutral-700 text-[9px] uppercase font-bold";
+                                fpsEl.className = baseClass + "text-emerald-500 bg-neutral-900 border-neutral-700";
                             }
                         }
                     }
