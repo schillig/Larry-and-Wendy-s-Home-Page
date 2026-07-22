@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ONN TV Web Remote</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a855f7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect width='20' height='15' x='2' y='7' rx='2' ry='2'/><polyline points='17 2 12 7 7 2'/></svg>">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* Custom scrollbar for the terminal log */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #1f2937; }
+        ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #6b7280; }
+        
+        /* Prevent double-tap zoom on touch devices to feel more like a native app */
+        button { touch-action: manipulation; }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200 min-h-screen flex items-center justify-center p-4 font-sans selection:bg-purple-500 selection:text-white">
+
+    <div class="bg-gray-800 w-full max-w-sm rounded-[2rem] shadow-2xl border border-gray-700 overflow-hidden flex flex-col">
+        
+        <div class="bg-gray-950 p-6 rounded-b-3xl shadow-md z-10">
+            <h1 class="text-xl font-bold text-center text-gray-100 mb-4 tracking-wider flex items-center justify-center gap-2">
+                <i data-lucide="tv" class="w-5 h-5 text-purple-400"></i> ONN REMOTE
+            </h1>
+            <div class="flex gap-2">
+                <input type="text" id="ipInput" value="192.168.50.94" 
+                    class="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-sm text-purple-300 focus:outline-none focus:border-purple-500 transition-colors"
+                    aria-label="TV IP Address" placeholder="TV IP Address">
+                <button onclick="logAction('Settings', 'Saved IP: ' + document.getElementById('ipInput').value)" 
+                    class="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg transition-colors flex items-center justify-center"
+                    aria-label="Save IP">
+                    <i data-lucide="save" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="p-6 flex-1 overflow-y-auto space-y-6">
+            
+            <div class="flex gap-4">
+                <button onclick="sendAdbCommand('shell', 'input keyevent 0 && sleep 0.3 && input keyevent 224')" class="flex-1 bg-green-800 hover:bg-green-700 text-green-100 py-3 rounded-xl font-bold shadow-lg shadow-green-900/20 transition-transform active:scale-95 flex justify-center items-center gap-2">
+                    <i data-lucide="power" class="w-5 h-5"></i> ON
+                </button>
+                <button onclick="powerOffTv()" class="flex-1 bg-red-900 hover:bg-red-800 text-red-100 py-3 rounded-xl font-bold shadow-lg shadow-red-900/20 transition-transform active:scale-95 flex justify-center items-center gap-2">
+                    <i data-lucide="power-off" class="w-5 h-5"></i> OFF
+                </button>
+            </div>
+
+            <div class="flex justify-center items-center my-8">
+                <div class="grid grid-cols-3 grid-rows-3 gap-2 w-48 h-48 relative">
+                    <div class="absolute inset-0 bg-gray-700/30 rounded-full scale-125 -z-10"></div>
+                    
+                    <div></div> 
+                    <button onclick="sendAdbCommand('keyevent', '19')" class="bg-gray-700 hover:bg-gray-600 rounded-t-2xl flex justify-center items-center active:bg-gray-500 transition-colors shadow-inner" aria-label="Up">
+                        <i data-lucide="chevron-up" class="w-8 h-8"></i>
+                    </button>
+                    <div></div> 
+
+                    <button id="btnLeft" class="bg-gray-700 hover:bg-gray-600 rounded-l-2xl flex justify-center items-center active:bg-gray-500 transition-colors shadow-inner select-none" style="touch-action: none;" aria-label="Left">
+                        <i data-lucide="chevron-left" class="w-8 h-8"></i>
+                    </button>
+                    
+                    <button onclick="sendAdbCommand('keyevent', '66')" class="bg-blue-600 hover:bg-blue-500 rounded-full flex justify-center items-center font-bold shadow-lg shadow-blue-900/50 active:scale-95 transition-all z-10 text-sm">
+                        OK
+                    </button>
+
+                    <button id="btnRight" class="bg-gray-700 hover:bg-gray-600 rounded-r-2xl flex justify-center items-center active:bg-gray-500 transition-colors shadow-inner select-none" style="touch-action: none;" aria-label="Right">
+                        <i data-lucide="chevron-right" class="w-8 h-8"></i>
+                    </button>
+
+                    <div></div>
+                    <button onclick="sendAdbCommand('keyevent', '20')" class="bg-gray-700 hover:bg-gray-600 rounded-b-2xl flex justify-center items-center active:bg-gray-500 transition-colors shadow-inner" aria-label="Down">
+                        <i data-lucide="chevron-down" class="w-8 h-8"></i>
+                    </button>
+                    <div></div> 
+                </div>
+            </div>
+
+            <div class="flex gap-4">
+                <button id="btnBeginning" onclick="toggleSeek('left')" class="flex-1 bg-yellow-900/40 hover:bg-yellow-800/60 border border-yellow-900 text-yellow-100 py-2 rounded-lg font-bold tracking-wide active:scale-95 transition-all flex justify-center items-center gap-2">
+                    <i data-lucide="rewind" class="w-4 h-4"></i> BEGINNING
+                </button>
+                <button id="btnLive" onclick="toggleSeek('right')" class="flex-1 bg-yellow-900/40 hover:bg-yellow-800/60 border border-yellow-900 text-yellow-100 py-2 rounded-lg font-bold tracking-wide active:scale-95 transition-all flex justify-center items-center gap-2">
+                    LIVE <i data-lucide="fast-forward" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <div class="grid grid-cols-3 gap-3">
+                <button onclick="sendAdbCommand('keyevent', '4')" class="bg-gray-700 hover:bg-gray-600 py-3 rounded-lg font-bold text-xs flex flex-col items-center gap-1 active:scale-95 transition-transform">
+                    <i data-lucide="arrow-left" class="w-4 h-4"></i> BACK
+                </button>
+                <button onclick="sendAdbCommand('keyevent', '3')" class="bg-gray-700 hover:bg-gray-600 py-3 rounded-lg font-bold text-xs flex flex-col items-center gap-1 active:scale-95 transition-transform">
+                    <i data-lucide="home" class="w-4 h-4"></i> HOME
+                </button>
+                <button onclick="sendAdbCommand('keyevent', '164')" class="bg-gray-700 hover:bg-gray-600 py-3 rounded-lg font-bold text-xs flex flex-col items-center gap-1 active:scale-95 transition-transform text-red-400">
+                    <i data-lucide="volume-x" class="w-4 h-4"></i> MUTE
+                </button>
+                
+                <button onclick="sendAdbCommand('keyevent', '25')" class="col-span-1 bg-gray-700 hover:bg-gray-600 py-3 rounded-lg font-bold text-xs flex items-center justify-center gap-1 active:scale-95 transition-transform">
+                    <i data-lucide="volume-1" class="w-4 h-4"></i> VOL -
+                </button>
+                <div class="col-span-1"></div> 
+                <button onclick="sendAdbCommand('keyevent', '24')" class="col-span-1 bg-gray-700 hover:bg-gray-600 py-3 rounded-lg font-bold text-xs flex items-center justify-center gap-1 active:scale-95 transition-transform">
+                    <i data-lucide="volume-2" class="w-4 h-4"></i> VOL +
+                </button>
+            </div>
+
+            <div class="pt-4 border-t border-gray-700">
+                <p class="text-xs text-gray-400 mb-3 text-center uppercase tracking-widest">Quick Launch</p>
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="sendAdbCommand('shell', 'am start -n com.netflix.ninja/.MainActivity')" class="bg-red-900/40 hover:bg-red-800/60 border border-red-900 text-red-100 py-2 rounded-lg font-bold tracking-wide active:scale-95 transition-all">Netflix</button>
+                    <button onclick="sendAdbCommand('shell', 'am start -a android.intent.action.MAIN -c android.intent.category.LEANBACK_LAUNCHER -p com.hulu.livingroomplus')" class="bg-green-900/40 hover:bg-green-800/60 border border-green-900 text-green-100 py-2 rounded-lg font-bold tracking-wide active:scale-95 transition-all">Hulu</button>
+                    <button onclick="sendAdbCommand('shell', 'am start -a android.intent.action.MAIN -c android.intent.category.LEANBACK_LAUNCHER -p com.google.android.youtube.tv')" class="bg-red-600/40 hover:bg-red-500/60 border border-red-600 text-red-100 py-2 rounded-lg font-bold tracking-wide active:scale-95 transition-all">YouTube</button>
+                    <button onclick="sendAdbCommand('shell', 'monkey -p com.amazon.amazonvideo.livingroom 1 || am start -n com.amazon.amazonvideo.livingroom/com.amazon.ignition.IgnitionActivity')" class="bg-blue-900/40 hover:bg-blue-800/60 border border-blue-900 text-blue-100 py-2 rounded-lg font-bold tracking-wide active:scale-95 transition-all">Prime</button>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="bg-black p-4 h-32 border-t border-gray-700 flex flex-col font-mono text-xs">
+            <div class="text-gray-500 mb-1 flex justify-between">
+                <span>Terminal Log</span>
+                <span class="text-green-500">Live</span>
+            </div>
+            <div id="terminal" class="flex-1 overflow-y-auto text-green-400 whitespace-pre-wrap break-all">
+                > System Ready. Awaiting commands...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        const terminal = document.getElementById('terminal');
+
+        /**
+         * Sends an ADB command to the local Python Flask Server
+         */
+        async function sendAdbCommand(type, command) {
+            const ip = document.getElementById('ipInput').value;
+            let fullAdbString = "";
+
+            if (type === 'keyevent') {
+                fullAdbString = `adb -s ${ip}:5555 shell input keyevent ${command}`;
+            } else if (type === 'shell') {
+                fullAdbString = `adb -s ${ip}:5555 shell '${command}'`;
+            }
+
+            logAction('EXEC', fullAdbString);
+
+            const isLocalFile = window.location.protocol === 'file:' || window.location.hostname === '';
+            const apiUrl = isLocalFile ? 'http://127.0.0.1:5050/api/adb' : '/api/adb';
+
+            try {
+                const res = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ip: ip, type: type, command: command })
+                });
+                const data = await res.json();
+                
+                if (data.status === 'success') {
+                    logAction('SERVER', 'Success');
+                } else {
+                    logAction('ERROR', data.response);
+                }
+            } catch (err) {
+                logAction('ERROR', 'Server unreachable. Is tv_server.py running?');
+            }
+        }
+
+        function powerOffTv() {
+            const volDownBurst = Array(30).fill(25).join(' ');
+            sendAdbCommand('shell', `input keyevent ${volDownBurst} && sleep 0.2 && input keyevent 223`);
+        }
+
+        let isSeeking = false;
+        let currentSeekDirection = null;
+
+        async function toggleSeek(direction) {
+            const keyCode = direction === 'left' ? 21 : 22;
+            const btnId = direction === 'left' ? 'btnBeginning' : 'btnLive';
+            
+            if (isSeeking && currentSeekDirection === direction) {
+                isSeeking = false;
+                currentSeekDirection = null;
+                document.getElementById(btnId).classList.remove('bg-yellow-600', 'animate-pulse');
+                document.getElementById(btnId).classList.add('bg-yellow-900/40');
+                await sendAdbCommand('keyevent', '66');
+                return;
+            }
+
+            isSeeking = false;
+            document.getElementById('btnBeginning').classList.remove('bg-yellow-600', 'animate-pulse');
+            document.getElementById('btnBeginning').classList.add('bg-yellow-900/40');
+            document.getElementById('btnLive').classList.remove('bg-yellow-600', 'animate-pulse');
+            document.getElementById('btnLive').classList.add('bg-yellow-900/40');
+
+            await new Promise(r => setTimeout(r, 200));
+
+            isSeeking = true;
+            currentSeekDirection = direction;
+            
+            const activeBtn = document.getElementById(btnId);
+            activeBtn.classList.remove('bg-yellow-900/40');
+            activeBtn.classList.add('bg-yellow-600', 'animate-pulse');
+
+            while (isSeeking && currentSeekDirection === direction) {
+                await sendAdbCommand('keyevent', keyCode);
+                if (!isSeeking || currentSeekDirection !== direction) break;
+                await new Promise(r => setTimeout(r, 150));
+            }
+            
+            activeBtn.classList.remove('bg-yellow-600', 'animate-pulse');
+            activeBtn.classList.add('bg-yellow-900/40');
+        }
+
+        function logAction(prefix, message) {
+            const logEntry = document.createElement('div');
+            logEntry.innerHTML = `<span class="text-gray-500">[${prefix}]</span> ${message}`;
+            terminal.appendChild(logEntry);
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        function setupHoldToRepeat(buttonId, keyCode) {
+            const btn = document.getElementById(buttonId);
+            if (!btn) return;
+            
+            let isHolding = false;
+            let holdStartTime = 0;
+
+            async function startAction(e) {
+                if (isHolding) return;
+                isHolding = true;
+                holdStartTime = Date.now();
+
+                while (isHolding) {
+                    const heldFor = Date.now() - holdStartTime;
+                    await sendAdbCommand('keyevent', keyCode);
+                    if (!isHolding) break;
+
+                    let delay = 500; 
+                    if (heldFor > 10000) delay = 150; 
+                    else if (heldFor > 5000) delay = 250; 
+                    else if (heldFor < 2000) delay = 2000; 
+
+                    await new Promise(resolve => {
+                        let elapsed = 0;
+                        const timer = setInterval(() => {
+                            elapsed += 20;
+                            if (!isHolding || elapsed >= delay) {
+                                clearInterval(timer);
+                                resolve();
+                            }
+                        }, 20);
+                    });
+                }
+            }
+
+            function stopAction() { isHolding = false; }
+
+            btn.addEventListener('pointerdown', startAction);
+            btn.addEventListener('pointerup', stopAction);
+            btn.addEventListener('pointerleave', stopAction);
+            btn.addEventListener('pointercancel', stopAction);
+            btn.addEventListener('contextmenu', e => e.preventDefault());
+        }
+
+        setupHoldToRepeat('btnLeft', '21');
+        setupHoldToRepeat('btnRight', '22');
+
+        document.addEventListener('keydown', (event) => {
+            if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
+            switch(event.key) {
+                case 'ArrowUp': sendAdbCommand('keyevent', '19'); event.preventDefault(); break;
+                case 'ArrowDown': sendAdbCommand('keyevent', '20'); event.preventDefault(); break;
+                case 'ArrowLeft': sendAdbCommand('keyevent', '21'); event.preventDefault(); break;
+                case 'ArrowRight': sendAdbCommand('keyevent', '22'); event.preventDefault(); break;
+                case 'Enter': sendAdbCommand('keyevent', '66'); event.preventDefault(); break;
+                case 'Escape': sendAdbCommand('keyevent', '4'); event.preventDefault(); break;
+                case 'Backspace': sendAdbCommand('keyevent', '67'); break; 
+            }
+        });
+    </script>
+</body>
+</html>
