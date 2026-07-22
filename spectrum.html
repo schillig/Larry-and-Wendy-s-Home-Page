@@ -82,7 +82,7 @@
             <h1 class="text-[10px] md:text-sm font-bold text-neutral-100 uppercase tracking-wider flex items-center whitespace-nowrap">
                 <span class="hidden sm:inline">Signal Analyzer</span>
                 <span class="sm:hidden">Analyzer</span>
-                <span class="text-neutral-500 text-[8px] md:text-[9px] font-mono ml-1">V1.47.0</span>
+                <span class="text-neutral-500 text-[8px] md:text-[9px] font-mono ml-1">V1.48.0</span>
             </h1>
             <div class="text-[9px] uppercase font-bold text-neutral-400">
                 <span id="engine-status" class="text-yellow-500 font-mono bg-neutral-900 px-1 border border-neutral-700">READY</span>
@@ -270,6 +270,7 @@
 
         let dummyAudioEl = null;
 
+        // Headless State Variables
         let displayMaxDb = 0, displayMinDb = -140;
         let zoomMinFreq = 0, zoomMaxFreq = 22000;
         let actualNyquist = 22050; 
@@ -281,7 +282,6 @@
         let lastDrawTime = 0;
         let msPerRowAverage = 16.67; 
 
-        // Headless Scope Mathematics 
         let scopeTimeWindowMs = 20; 
         let vertScaleMultiplier = 1.0; 
         let scopeCursorX1Ms = 5, scopeCursorX2Ms = 15;
@@ -334,6 +334,7 @@
             right: { active: false, analyser: null, data: null, timeData: null, rawData: null, rawTimeData: null, color: '#f472b6', fill: 'rgba(244, 114, 182, 0.1)', name: 'R', offsetY: 0 }
         };
 
+        // DOM references specifically for variables still mapped to sliders
         const controls = {
             gain: { el: document.getElementById('gain'), disp: document.getElementById('gain-value') },
             avg: { el: document.getElementById('avg'), disp: document.getElementById('avg-value') },
@@ -642,7 +643,10 @@
                 }
 
                 if (audioCtx.state === 'suspended') await audioCtx.resume();
+                
+                // Set Nyquist correctly and prevent out-of-bounds frequency ranges
                 actualNyquist = audioCtx.sampleRate / 2;
+                if (zoomMaxFreq > actualNyquist) zoomMaxFreq = actualNyquist;
 
                 dummyAudioEl = new Audio(); dummyAudioEl.srcObject = stream; dummyAudioEl.muted = true; dummyAudioEl.play().catch(e => console.warn(e));
                 
@@ -1519,7 +1523,7 @@
             initialVertScale = null;
         }
 
-        // Single Event Source Pipeline (Fixes duplicate mousemove calculations)
+        // Single Event Source Pipeline
         mainDisplay.visCvs.addEventListener('mousedown', (e) => handlePointerDown(e, mainDisplay.visCvs)); 
         mainDisplay.visCvs.addEventListener('touchstart', (e) => handlePointerDown(e, mainDisplay.visCvs), { passive: false });
         
@@ -1626,6 +1630,7 @@
             }, { passive: false }); 
         });
 
+        // Purged references to minFreq/maxFreq/minDb/maxDb inputs to prevent crashing
         document.getElementById('btn-reset').onclick = () => {
             isLogScale = false; isFrozen = false; showPeaks = false; averagingAlpha = 0.0; 
             displayMaxDb = 0; displayMinDb = -140; zoomMinFreq = 0; zoomMaxFreq = 22000;
