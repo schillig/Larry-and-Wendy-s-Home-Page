@@ -72,7 +72,7 @@
             <h1 class="text-xs md:text-sm font-bold text-neutral-100 uppercase tracking-wider flex items-center whitespace-nowrap">
                 <span class="hidden sm:inline">Signal Analyzer</span>
                 <span class="sm:hidden">Analyzer</span>
-                <span class="text-neutral-500 text-[9px] font-mono ml-2">V1.56.0</span>
+                <span class="text-neutral-500 text-[9px] font-mono ml-2">V1.57.0</span>
             </h1>
             <div class="flex gap-1 ml-1 sm:ml-2">
                 <span id="engine-status" class="text-yellow-500 font-mono bg-neutral-900 px-1.5 py-0.5 border border-neutral-700 text-[9px] uppercase font-bold">READY</span>
@@ -313,7 +313,7 @@
                 let scopeTimeWindowMs = 20; 
                 let vertScaleMultiplier = 1.0; 
                 
-                // ABSOLUTE CURSOR TRACKING (Rev 1.56.0)
+                // ABSOLUTE CURSOR TRACKING
                 let scopeCursorX1Ms = 5, scopeCursorX2Ms = 15;
                 let scopeCursorY1Amp = 0.5, scopeCursorY2Amp = -0.5;
                 let scopeOffsetXMs = 0;
@@ -506,7 +506,6 @@
                         const trueGain = gainNode ? gainNode.gain.value : currentGain;
                         let dtStr = '--';
                         if (cursorsXEnabled && !isLissajous) {
-                            // Direct comparison of absolute timestamps (Rev 1.56.0)
                             const dt = Math.abs(scopeCursorX2Ms - scopeCursorX1Ms);
                             if (dt > 0) { const freq = 1000 / dt; dtStr = `${dt.toFixed(2)}ms (${freq.toFixed(1)}Hz)`; } else { dtStr = '0.00ms'; }
                         }
@@ -732,8 +731,19 @@
                             if (!navigator.mediaDevices.getDisplayMedia) {
                                 throw new Error("System Audio capture is restricted. You are likely on a mobile device or a local file:// protocol.");
                             }
-                            showToast("SYSTEM AUDIO: Select 'Entire Screen' and enable 'Share system audio'.", false);
-                            stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+                            showToast("SYSTEM AUDIO: Ensure 'Share system audio' is toggled ON.", false);
+                            
+                            // REV 1.57.0: Force "Entire Screen" default and disable signal processing
+                            stream = await navigator.mediaDevices.getDisplayMedia({ 
+                                video: { displaySurface: "monitor" },
+                                audio: { 
+                                    autoGainControl: false, 
+                                    echoCancellation: false, 
+                                    noiseSuppression: false 
+                                },
+                                systemAudio: "include",
+                                preferCurrentTab: false
+                            });
                             
                             const audioTracks = stream.getAudioTracks();
                             if (!audioTracks.length) throw new Error("No audio track detected. You must explicitly check 'Share audio' in the system prompt.");
@@ -1078,7 +1088,6 @@
 
                     if (viewMode === 'oscilloscope') {
                         if (cursorsXEnabled) {
-                            // Render X Cursors relative to absolute time tracking (Rev 1.56.0)
                             [scopeCursorX1Ms, scopeCursorX2Ms].forEach(ms => {
                                 const x = getScopeXPosition(ms - scopeOffsetXMs, cvs.width); 
                                 drawHighContrastLine(ctx, x, 0, x, gH, '#4ade80', true);
@@ -1324,7 +1333,6 @@
                     this.textContent = `X-SCALE: ${isLogScale ? 'LOG' : 'LINEAR'}`; 
                 };
 
-                // Helper to restrict panning so user doesn't drag into undefined buffer data
                 function clampScopeOffset(targetOffset) {
                     const sampleRate = actualNyquist * 2;
                     const minOffsetMs = -(lastTriggerIndex / sampleRate) * 1000;
@@ -1333,8 +1341,6 @@
                 }
 
                 function clampCursors() {
-                    // Cursors are no longer clamped to the viewport (Rev 1.56.0)
-                    // They stay mathematically attached to the off-screen trace data
                     const hBound = mainDisplay.visCvs.height || 350;
                     wfCursorY1Px = Math.max(0, Math.min(hBound, wfCursorY1Px));
                     wfCursorY2Px = Math.max(0, Math.min(hBound, wfCursorY2Px));
@@ -1482,7 +1488,6 @@
                             }
                         }
                         if (!activeDrag && cursorsXEnabled) {
-                            // Check absolute cursor times relative to current pan offset (Rev 1.56.0)
                             if (Math.abs(x - getScopeXPosition(scopeCursorX1Ms - scopeOffsetXMs, cvs.width)) < hitTest) activeDrag = { id: 'x1s', cvs };
                             else if (Math.abs(x - getScopeXPosition(scopeCursorX2Ms - scopeOffsetXMs, cvs.width)) < hitTest) activeDrag = { id: 'x2s', cvs };
                         }
@@ -1693,7 +1698,6 @@
                             scopeTriggerLevel = Math.max(-1, Math.min(1, scopeTriggerLevel)); 
                             updateOSD();
                         }
-                        // Update absolute cursors directly (Rev 1.56.0)
                         if (activeDrag.id === 'x1s') scopeCursorX1Ms = getMsFromScopeX(x, activeDrag.cvs.width) + scopeOffsetXMs;
                         if (activeDrag.id === 'x2s') scopeCursorX2Ms = getMsFromScopeX(x, activeDrag.cvs.width) + scopeOffsetXMs;
                         
@@ -1842,7 +1846,6 @@
                 });
                 resizeObserver.observe(mainDisplay.container);
 
-                // Pure Headless Memory Reset (No DOM assignments for deleted sliders)
                 document.getElementById('btn-reset').onclick = () => {
                     isLogScale = false; isFrozen = false; showPeaks = false; 
                     displayMaxDb = 0; displayMinDb = -140; zoomMinFreq = 0; zoomMaxFreq = 22000;
