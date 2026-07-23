@@ -72,7 +72,7 @@
             <h1 class="text-xs md:text-sm font-bold text-neutral-100 uppercase tracking-wider flex items-center whitespace-nowrap">
                 <span class="hidden sm:inline">Signal Analyzer</span>
                 <span class="sm:hidden">Analyzer</span>
-                <span class="text-neutral-500 text-[9px] font-mono ml-2">V1.55.0</span>
+                <span class="text-neutral-500 text-[9px] font-mono ml-2">V1.56.0</span>
             </h1>
             <div class="flex gap-1 ml-1 sm:ml-2">
                 <span id="engine-status" class="text-yellow-500 font-mono bg-neutral-900 px-1.5 py-0.5 border border-neutral-700 text-[9px] uppercase font-bold">READY</span>
@@ -312,6 +312,8 @@
 
                 let scopeTimeWindowMs = 20; 
                 let vertScaleMultiplier = 1.0; 
+                
+                // ABSOLUTE CURSOR TRACKING (Rev 1.56.0)
                 let scopeCursorX1Ms = 5, scopeCursorX2Ms = 15;
                 let scopeCursorY1Amp = 0.5, scopeCursorY2Amp = -0.5;
                 let scopeOffsetXMs = 0;
@@ -327,7 +329,7 @@
                 let cursorsXEnabled = false, cursorsYEnabled = false;
                 let activeDrag = null;
                 
-                // POINTER-RELATIVE ZOOM STATE (Rev 1.55.0)
+                // POINTER-RELATIVE ZOOM STATE
                 let initialPinchDistX = 0;
                 let initialPinchDistY = 0;
                 let pinchAxis = null; 
@@ -504,12 +506,13 @@
                         const trueGain = gainNode ? gainNode.gain.value : currentGain;
                         let dtStr = '--';
                         if (cursorsXEnabled && !isLissajous) {
+                            // Direct comparison of absolute timestamps (Rev 1.56.0)
                             const dt = Math.abs(scopeCursorX2Ms - scopeCursorX1Ms);
                             if (dt > 0) { const freq = 1000 / dt; dtStr = `${dt.toFixed(2)}ms (${freq.toFixed(1)}Hz)`; } else { dtStr = '0.00ms'; }
                         }
 
-                        let absoluteX1 = scopeCursorX1Ms + scopeOffsetXMs;
-                        let absoluteX2 = scopeCursorX2Ms + scopeOffsetXMs;
+                        let absoluteX1 = scopeCursorX1Ms;
+                        let absoluteX2 = scopeCursorX2Ms;
 
                         document.getElementById('osd-val-x1').textContent = (cursorsXEnabled && !isLissajous) ? absoluteX1.toFixed(2) + 'ms' : '--';
                         document.getElementById('osd-val-x2').textContent = (cursorsXEnabled && !isLissajous) ? absoluteX2.toFixed(2) + 'ms' : '--';
@@ -1075,8 +1078,10 @@
 
                     if (viewMode === 'oscilloscope') {
                         if (cursorsXEnabled) {
+                            // Render X Cursors relative to absolute time tracking (Rev 1.56.0)
                             [scopeCursorX1Ms, scopeCursorX2Ms].forEach(ms => {
-                                const x = getScopeXPosition(ms, cvs.width); drawHighContrastLine(ctx, x, 0, x, gH, '#4ade80', true);
+                                const x = getScopeXPosition(ms - scopeOffsetXMs, cvs.width); 
+                                drawHighContrastLine(ctx, x, 0, x, gH, '#4ade80', true);
                             });
                         }
                         if (cursorsYEnabled) {
@@ -1200,7 +1205,7 @@
                 };
 
                 // ==========================================
-                // 8. INTERACTION & CONTROLS
+                // 8. INTERACTION & CONTROLS (BUTTONS ONLY)
                 // ==========================================
                 function updateUIControlVisibility() {
                     const isScope = viewMode === 'oscilloscope'; const isWaterfall = viewMode === 'waterfall'; const isLissajous = viewMode === 'lissajous';
@@ -1226,6 +1231,7 @@
                     channels[key].active = !channels[key].active;
                     const btn = document.getElementById('btn-show-' + key);
                     
+                    // Routing group uses Blue Palette
                     btn.classList.toggle('bg-blue-700', channels[key].active); btn.classList.toggle('bg-blue-950', !channels[key].active);
                     btn.classList.toggle('text-white', channels[key].active); btn.classList.toggle('text-blue-300', !channels[key].active);
                     
@@ -1318,7 +1324,7 @@
                     this.textContent = `X-SCALE: ${isLogScale ? 'LOG' : 'LINEAR'}`; 
                 };
 
-                // Centralized offset clamping helper to restrict panning
+                // Helper to restrict panning so user doesn't drag into undefined buffer data
                 function clampScopeOffset(targetOffset) {
                     const sampleRate = actualNyquist * 2;
                     const minOffsetMs = -(lastTriggerIndex / sampleRate) * 1000;
@@ -1327,15 +1333,8 @@
                 }
 
                 function clampCursors() {
-                    if (viewMode === 'oscilloscope' || viewMode === 'lissajous') {
-                        scopeCursorX1Ms = Math.max(0, Math.min(scopeTimeWindowMs, scopeCursorX1Ms)); scopeCursorX2Ms = Math.max(0, Math.min(scopeTimeWindowMs, scopeCursorX2Ms));
-                        const visualCeiling = 1.0 / vertScaleMultiplier;
-                        scopeCursorY1Amp = Math.max(-visualCeiling, Math.min(visualCeiling, scopeCursorY1Amp)); 
-                        scopeCursorY2Amp = Math.max(-visualCeiling, Math.min(visualCeiling, scopeCursorY2Amp));
-                    } else {
-                        cursorX1Freq = Math.max(zoomMinFreq, Math.min(zoomMaxFreq, cursorX1Freq)); cursorX2Freq = Math.max(zoomMinFreq, Math.min(zoomMaxFreq, cursorX2Freq));
-                        cursorY1Db = Math.max(displayMinDb, Math.min(displayMaxDb, cursorY1Db)); cursorY2Db = Math.max(displayMinDb, Math.min(displayMaxDb, cursorY2Db));
-                    }
+                    // Cursors are no longer clamped to the viewport (Rev 1.56.0)
+                    // They stay mathematically attached to the off-screen trace data
                     const hBound = mainDisplay.visCvs.height || 350;
                     wfCursorY1Px = Math.max(0, Math.min(hBound, wfCursorY1Px));
                     wfCursorY2Px = Math.max(0, Math.min(hBound, wfCursorY2Px));
@@ -1394,7 +1393,8 @@
                     btnCursorX.classList.toggle('text-pink-300', !cursorsXEnabled); btnCursorX.classList.toggle('text-white', cursorsXEnabled);
                     if (cursorsXEnabled) {
                         if (viewMode === 'oscilloscope') {
-                            scopeCursorX1Ms = scopeTimeWindowMs * 0.33; scopeCursorX2Ms = scopeTimeWindowMs * 0.66;
+                            scopeCursorX1Ms = scopeOffsetXMs + scopeTimeWindowMs * 0.33; 
+                            scopeCursorX2Ms = scopeOffsetXMs + scopeTimeWindowMs * 0.66;
                         } else {
                             if (isLogScale) {
                                 const logMin = Math.log10(Math.max(1, zoomMinFreq)), logMax = Math.log10(zoomMaxFreq);
@@ -1446,7 +1446,6 @@
                         initialPinchMinDb = displayMinDb;
                         initialPinchMaxDb = displayMaxDb;
                         
-                        // POINTER-RELATIVE PINCH ZOOM INITIALIZATION
                         const rect = cvs.getBoundingClientRect();
                         const centerX = ((touch1.clientX + touch2.clientX) / 2) - rect.left;
                         const p = getPadding();
@@ -1483,8 +1482,9 @@
                             }
                         }
                         if (!activeDrag && cursorsXEnabled) {
-                            if (Math.abs(x - getScopeXPosition(scopeCursorX1Ms, cvs.width)) < hitTest) activeDrag = { id: 'x1s', cvs };
-                            else if (Math.abs(x - getScopeXPosition(scopeCursorX2Ms, cvs.width)) < hitTest) activeDrag = { id: 'x2s', cvs };
+                            // Check absolute cursor times relative to current pan offset (Rev 1.56.0)
+                            if (Math.abs(x - getScopeXPosition(scopeCursorX1Ms - scopeOffsetXMs, cvs.width)) < hitTest) activeDrag = { id: 'x1s', cvs };
+                            else if (Math.abs(x - getScopeXPosition(scopeCursorX2Ms - scopeOffsetXMs, cvs.width)) < hitTest) activeDrag = { id: 'x2s', cvs };
                         }
                         if (!activeDrag && cursorsYEnabled) {
                             if (Math.abs(y - getScopeYPosition(scopeCursorY1Amp, cvs.height)) < hitTest) activeDrag = { id: 'y1s', cvs };
@@ -1574,7 +1574,6 @@
                         if (pinchAxis === 'x') {
                             const currentDistX = Math.abs(touch1.clientX - touch2.clientX);
                             if (initialPinchDistX > 0 && currentDistX > 0) {
-                                // Pinching Out = Dist increases = Ratio decreases = Zooming In (smaller span)
                                 const ratio = initialPinchDistX / currentDistX;
                                 
                                 if (viewMode === 'oscilloscope') {
@@ -1582,9 +1581,7 @@
                                     newTimebase = Math.max(1, Math.min(5000, newTimebase));
                                     scopeTimeWindowMs = newTimebase;
                                     
-                                    // POINTER-RELATIVE OFFSET RECALCULATION
                                     scopeOffsetXMs = clampScopeOffset(initialPinchTimeUnderCursor - (initialPinchNormalizedX * scopeTimeWindowMs));
-                                    
                                 } else {
                                     if (isLogScale) {
                                         const logMin = Math.log10(Math.max(1, initialPinchMinFreq));
@@ -1696,8 +1693,10 @@
                             scopeTriggerLevel = Math.max(-1, Math.min(1, scopeTriggerLevel)); 
                             updateOSD();
                         }
-                        if (activeDrag.id === 'x1s') scopeCursorX1Ms = getMsFromScopeX(x, activeDrag.cvs.width);
-                        if (activeDrag.id === 'x2s') scopeCursorX2Ms = getMsFromScopeX(x, activeDrag.cvs.width);
+                        // Update absolute cursors directly (Rev 1.56.0)
+                        if (activeDrag.id === 'x1s') scopeCursorX1Ms = getMsFromScopeX(x, activeDrag.cvs.width) + scopeOffsetXMs;
+                        if (activeDrag.id === 'x2s') scopeCursorX2Ms = getMsFromScopeX(x, activeDrag.cvs.width) + scopeOffsetXMs;
+                        
                         if (activeDrag.id === 'y1s') scopeCursorY1Amp = getAmpFromScopeY(y, activeDrag.cvs.height);
                         if (activeDrag.id === 'y2s') scopeCursorY2Amp = getAmpFromScopeY(y, activeDrag.cvs.height);
                     } else if (viewMode === 'waterfall') {
@@ -1756,7 +1755,7 @@
                 window.addEventListener('touchmove', handlePointerMove, { passive: false }); 
                 window.addEventListener('touchend', handlePointerUp);
 
-                // POINTER-RELATIVE WHEEL ZOOM LOGIC (Rev 1.55.0)
+                // Mouse Wheel Range Scaling
                 mainDisplay.visCvs.addEventListener('wheel', (e) => {
                     e.preventDefault(); 
                     const rect = mainDisplay.visCvs.getBoundingClientRect();
@@ -1766,7 +1765,6 @@
                     const dir = Math.sign(e.deltaY);
                     
                     if (x < p.left) {
-                        // Standard Center-based Y-axis Zoom
                         if (viewMode === 'oscilloscope' || viewMode === 'lissajous') {
                             let newScale = vertScaleMultiplier * (dir > 0 ? 0.9 : 1.1); 
                             newScale = Math.max(0.01, Math.min(100.0, newScale));
@@ -1780,22 +1778,15 @@
                             displayMaxDb = Math.min(0, Math.round(center + newSpan / 2));
                         }
                         clampCursors(); updateCursorReadouts(); updateOSD();
-                        
                     } else if (y > rect.height - p.bottom) {
-                        
                         const w = rect.width - p.left || 1;
                         const normalizedX = Math.max(0, Math.min(1, (x - p.left) / w));
 
                         if (viewMode === 'oscilloscope') {
-                            // 1. Get exact time under cursor before zoom
                             const timeUnderCursor = (normalizedX * scopeTimeWindowMs) + scopeOffsetXMs;
-                            
-                            // 2. Perform Scale
                             let newTime = scopeTimeWindowMs * (dir > 0 ? 1.1 : 0.9); 
                             newTime = Math.max(1, Math.min(5000, newTime));
                             scopeTimeWindowMs = newTime;
-                            
-                            // 3. Shift the pan offset backwards to keep the same time under the pointer
                             scopeOffsetXMs = clampScopeOffset(timeUnderCursor - (normalizedX * scopeTimeWindowMs));
 
                         } else if (viewMode !== 'lissajous') {
@@ -1851,6 +1842,7 @@
                 });
                 resizeObserver.observe(mainDisplay.container);
 
+                // Pure Headless Memory Reset (No DOM assignments for deleted sliders)
                 document.getElementById('btn-reset').onclick = () => {
                     isLogScale = false; isFrozen = false; showPeaks = false; 
                     displayMaxDb = 0; displayMinDb = -140; zoomMinFreq = 0; zoomMaxFreq = 22000;
