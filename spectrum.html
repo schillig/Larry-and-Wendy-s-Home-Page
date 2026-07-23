@@ -72,7 +72,7 @@
             <h1 class="text-xs md:text-sm font-bold text-neutral-100 uppercase tracking-wider flex items-center whitespace-nowrap">
                 <span class="hidden sm:inline">Signal Analyzer</span>
                 <span class="sm:hidden">Analyzer</span>
-                <span class="text-neutral-500 text-[9px] font-mono ml-2">V1.54.0</span>
+                <span class="text-neutral-500 text-[9px] font-mono ml-2">V1.55.0</span>
             </h1>
             <div class="flex gap-1 ml-1 sm:ml-2">
                 <span id="engine-status" class="text-yellow-500 font-mono bg-neutral-900 px-1.5 py-0.5 border border-neutral-700 text-[9px] uppercase font-bold">READY</span>
@@ -161,10 +161,9 @@
                 </button>
             </div>
 
-            <!-- CSS Grid handles responsiveness across mobile, tablet, and desktop -->
             <div class="bg-neutral-800 p-2 md:p-3 border border-neutral-600 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 w-full flex-none">
                 
-                <!-- ROUTING GROUP (Blue Palette) -->
+                <!-- ROUTING GROUP -->
                 <div class="flex flex-col gap-1.5 p-2 bg-neutral-900/50 border border-blue-900/50 rounded-sm">
                     <h3 class="text-[10px] uppercase tracking-wider text-blue-400 font-bold border-b border-blue-900 pb-1">Routing</h3>
                     <div class="flex gap-1 mt-1">
@@ -175,27 +174,25 @@
                     <button id="btn-mode" class="py-1 mt-0.5 bg-blue-950 hover:bg-blue-800 border border-blue-800 text-[10px] font-bold text-blue-200">MODE: SPECTRUM</button>
                 </div>
 
-                <!-- PROCESSING GROUP (Emerald/Green Palette) -->
+                <!-- PROCESSING GROUP -->
                 <div class="flex flex-col gap-1.5 p-2 bg-neutral-900/50 border border-emerald-900/50 rounded-sm">
                     <h3 class="text-[10px] uppercase tracking-wider text-emerald-400 font-bold border-b border-emerald-900 pb-1">Processing</h3>
                     
-                    <!-- Gain Spinner Buttons -->
                     <div class="flex flex-col gap-0.5">
                         <span class="text-[9px] font-bold uppercase text-emerald-500">Gain</span>
                         <div class="flex items-center justify-between gap-1 w-full" id="scroll-wrap-gain">
-                            <button id="btn-gain-down" aria-label="Decrease Gain" class="flex-1 py-1 bg-emerald-950 hover:bg-emerald-800 border border-emerald-800 text-emerald-200 font-bold text-xs leading-none">&#9660;</button>
+                            <button id="btn-gain-down" class="flex-1 py-1 bg-emerald-950 hover:bg-emerald-800 border border-emerald-800 text-emerald-200 font-bold text-xs leading-none">&#9660;</button>
                             <span id="val-disp-gain" class="flex-1 text-center text-emerald-100 font-mono text-[10px] bg-neutral-950 py-1 border border-emerald-900 tabular-data">2.0x</span>
-                            <button id="btn-gain-up" aria-label="Increase Gain" class="flex-1 py-1 bg-emerald-950 hover:bg-emerald-800 border border-emerald-800 text-emerald-200 font-bold text-xs leading-none">&#9650;</button>
+                            <button id="btn-gain-up" class="flex-1 py-1 bg-emerald-950 hover:bg-emerald-800 border border-emerald-800 text-emerald-200 font-bold text-xs leading-none">&#9650;</button>
                         </div>
                     </div>
                     
-                    <!-- Average Spinner Buttons -->
                     <div class="flex flex-col gap-0.5 mode-spec">
                         <span class="text-[9px] font-bold uppercase text-emerald-500">Average</span>
                         <div class="flex items-center justify-between gap-1 w-full" id="scroll-wrap-avg">
-                            <button id="btn-avg-down" aria-label="Decrease Averaging" class="flex-1 py-1 bg-emerald-950 hover:bg-emerald-800 border border-emerald-800 text-emerald-200 font-bold text-xs leading-none">&#9660;</button>
+                            <button id="btn-avg-down" class="flex-1 py-1 bg-emerald-950 hover:bg-emerald-800 border border-emerald-800 text-emerald-200 font-bold text-xs leading-none">&#9660;</button>
                             <span id="val-disp-avg" class="flex-1 text-center text-emerald-100 font-mono text-[10px] bg-neutral-950 py-1 border border-emerald-900 tabular-data">OFF</span>
-                            <button id="btn-avg-up" aria-label="Increase Averaging" class="flex-1 py-1 bg-emerald-950 hover:bg-emerald-800 border border-emerald-800 text-emerald-200 font-bold text-xs leading-none">&#9650;</button>
+                            <button id="btn-avg-up" class="flex-1 py-1 bg-emerald-950 hover:bg-emerald-800 border border-emerald-800 text-emerald-200 font-bold text-xs leading-none">&#9650;</button>
                         </div>
                     </div>
 
@@ -205,24 +202,23 @@
                     </div>
                 </div>
 
-                <!-- TIMEBASE / FFT GROUP (Amber/Yellow Palette) -->
+                <!-- TIMEBASE / FFT GROUP -->
                 <div class="flex flex-col gap-1.5 p-2 bg-neutral-900/50 border border-amber-900/50 rounded-sm">
                     <h3 class="text-[10px] uppercase tracking-wider text-amber-400 font-bold border-b border-amber-900 pb-1">Timebase / FFT</h3>
                     
-                    <!-- FFT Spinner Buttons -->
                     <div class="flex flex-col gap-0.5">
                         <span class="text-[9px] font-bold uppercase text-amber-500">FFT Size</span>
                         <div class="flex items-center justify-between gap-1 w-full" id="scroll-wrap-fft">
-                            <button id="btn-fft-down" aria-label="Decrease FFT Size" class="flex-1 py-1 bg-amber-950 hover:bg-amber-800 border border-amber-800 text-amber-200 font-bold text-xs leading-none">&#9660;</button>
+                            <button id="btn-fft-down" class="flex-1 py-1 bg-amber-950 hover:bg-amber-800 border border-amber-800 text-amber-200 font-bold text-xs leading-none">&#9660;</button>
                             <span id="val-disp-fft" class="flex-1 text-center text-amber-100 font-mono text-[10px] bg-neutral-950 py-1 border border-amber-900 tabular-data">2048</span>
-                            <button id="btn-fft-up" aria-label="Increase FFT Size" class="flex-1 py-1 bg-amber-950 hover:bg-amber-800 border border-amber-800 text-amber-200 font-bold text-xs leading-none">&#9650;</button>
+                            <button id="btn-fft-up" class="flex-1 py-1 bg-amber-950 hover:bg-amber-800 border border-amber-800 text-amber-200 font-bold text-xs leading-none">&#9650;</button>
                         </div>
                     </div>
 
                     <button id="btn-scale" class="py-1.5 mt-auto bg-amber-950 hover:bg-amber-800 border border-amber-800 text-[9px] font-bold text-amber-200 mode-spec w-full">X-SCALE: LINEAR</button>
                 </div>
 
-                <!-- TRIGGER GROUP (Purple Palette) -->
+                <!-- TRIGGER GROUP -->
                 <div class="flex flex-col gap-1.5 p-2 bg-neutral-900/50 border border-purple-900/50 rounded-sm">
                     <h3 class="text-[10px] uppercase tracking-wider text-purple-400 font-bold border-b border-purple-900 pb-1">Trigger</h3>
                     <div id="zoom-scope" class="flex flex-col gap-1 mode-scope" style="display: none;">
@@ -236,7 +232,7 @@
                     <div class="text-[9px] text-neutral-500 italic mt-auto mode-spec text-center pt-2">Disabled in Spec Mode</div>
                 </div>
 
-                <!-- MEASUREMENT GROUP (Pink Palette) -->
+                <!-- MEASUREMENT GROUP -->
                 <div class="flex flex-col gap-1.5 p-2 bg-neutral-900/50 border border-pink-900/50 rounded-sm">
                     <h3 class="text-[10px] uppercase tracking-wider text-pink-400 font-bold border-b border-pink-900 pb-1">Measurement</h3>
                     <div class="flex gap-1 mt-1">
@@ -245,7 +241,7 @@
                     </div>
                 </div>
 
-                <!-- I/O GROUP (Orange Palette) -->
+                <!-- I/O GROUP -->
                 <div class="flex flex-col gap-1.5 p-2 bg-neutral-900/50 border border-orange-900/50 rounded-sm">
                     <h3 class="text-[10px] uppercase tracking-wider text-orange-400 font-bold border-b border-orange-900 pb-1">I/O Data</h3>
                     <button id="btn-mem-capture" class="w-full py-1 bg-orange-700 hover:bg-orange-600 border border-orange-500 text-[10px] font-bold text-white shadow-[0_2px_0_#fb923c]">CAP TO MEM</button>
@@ -289,7 +285,7 @@
                 let isFrozen = false;
                 let showPeaks = false;
                 
-                // Headless Spinner Variables (replacing DOM sliders)
+                // Headless Spinner Variables
                 let currentGain = 2.0;
                 let averagingAlpha = 0.0; 
                 let currentFftExp = 11; // 2^11 = 2048
@@ -308,7 +304,7 @@
                 let lastDrawTime = 0;
                 let msPerRowAverage = 16.67; 
                 
-                // PERFORMANCE PROFILER VARIABLES (Rev 1.54.0)
+                // PERFORMANCE PROFILER VARIABLES
                 let frameCount = 0;
                 let lastFpsTime = 0;
                 let currentFps = 60;
@@ -331,6 +327,7 @@
                 let cursorsXEnabled = false, cursorsYEnabled = false;
                 let activeDrag = null;
                 
+                // POINTER-RELATIVE ZOOM STATE (Rev 1.55.0)
                 let initialPinchDistX = 0;
                 let initialPinchDistY = 0;
                 let pinchAxis = null; 
@@ -338,6 +335,10 @@
                 let initialVertScale = null;
                 let initialPinchMinFreq = 0, initialPinchMaxFreq = 22000;
                 let initialPinchMinDb = -140, initialPinchMaxDb = 0;
+                
+                let initialPinchNormalizedX = 0.5;
+                let initialPinchTimeUnderCursor = 0;
+                let initialPinchFreqUnderCursor = 0;
 
                 const DEEP_MEM_SECONDS = 6;
                 let deepMemLength = 48000 * DEEP_MEM_SECONDS; 
@@ -1199,7 +1200,7 @@
                 };
 
                 // ==========================================
-                // 8. INTERACTION & CONTROLS (BUTTONS ONLY)
+                // 8. INTERACTION & CONTROLS
                 // ==========================================
                 function updateUIControlVisibility() {
                     const isScope = viewMode === 'oscilloscope'; const isWaterfall = viewMode === 'waterfall'; const isLissajous = viewMode === 'lissajous';
@@ -1225,7 +1226,6 @@
                     channels[key].active = !channels[key].active;
                     const btn = document.getElementById('btn-show-' + key);
                     
-                    // Routing group uses Blue Palette
                     btn.classList.toggle('bg-blue-700', channels[key].active); btn.classList.toggle('bg-blue-950', !channels[key].active);
                     btn.classList.toggle('text-white', channels[key].active); btn.classList.toggle('text-blue-300', !channels[key].active);
                     
@@ -1262,8 +1262,6 @@
                     updateOSD();
                 };
 
-                // ---- SPINNER CONTROLS LOGIC ----
-
                 const updateGain = (newVal) => {
                     currentGain = Math.max(0.1, Math.min(10.0, newVal));
                     document.getElementById('val-disp-gain').textContent = currentGain.toFixed(1) + 'x';
@@ -1290,8 +1288,6 @@
                 document.getElementById('btn-fft-down').onclick = () => updateFft(currentFftExp - 1);
                 document.getElementById('btn-fft-up').onclick = () => updateFft(currentFftExp + 1);
                 document.getElementById('scroll-wrap-fft').addEventListener('wheel', (e) => { e.preventDefault(); updateFft(currentFftExp + (e.deltaY < 0 ? 1 : -1)); }, {passive:false});
-
-                // ---- END SPINNER CONTROLS ----
 
                 document.getElementById('btn-freeze').onclick = function() {
                     isFrozen = !isFrozen; 
@@ -1321,6 +1317,14 @@
                     isLogScale = !isLogScale; 
                     this.textContent = `X-SCALE: ${isLogScale ? 'LOG' : 'LINEAR'}`; 
                 };
+
+                // Centralized offset clamping helper to restrict panning
+                function clampScopeOffset(targetOffset) {
+                    const sampleRate = actualNyquist * 2;
+                    const minOffsetMs = -(lastTriggerIndex / sampleRate) * 1000;
+                    const maxOffsetMs = ((deepMemLength - lastTriggerIndex) / sampleRate) * 1000 - scopeTimeWindowMs;
+                    return Math.max(minOffsetMs, Math.min(targetOffset, maxOffsetMs));
+                }
 
                 function clampCursors() {
                     if (viewMode === 'oscilloscope' || viewMode === 'lissajous') {
@@ -1442,6 +1446,23 @@
                         initialPinchMinDb = displayMinDb;
                         initialPinchMaxDb = displayMaxDb;
                         
+                        // POINTER-RELATIVE PINCH ZOOM INITIALIZATION
+                        const rect = cvs.getBoundingClientRect();
+                        const centerX = ((touch1.clientX + touch2.clientX) / 2) - rect.left;
+                        const p = getPadding();
+                        const w = rect.width - p.left || 1;
+                        
+                        initialPinchNormalizedX = Math.max(0, Math.min(1, (centerX - p.left) / w));
+                        initialPinchTimeUnderCursor = initialPinchNormalizedX * scopeTimeWindowMs + scopeOffsetXMs;
+                        
+                        if (isLogScale) {
+                            const logMin = Math.log10(Math.max(1, zoomMinFreq));
+                            const logMax = Math.log10(Math.max(2, zoomMaxFreq));
+                            initialPinchFreqUnderCursor = Math.pow(10, logMin + initialPinchNormalizedX * (logMax - logMin));
+                        } else {
+                            initialPinchFreqUnderCursor = zoomMinFreq + initialPinchNormalizedX * (zoomMaxFreq - zoomMinFreq);
+                        }
+                        
                         activeDrag = { id: 'pinch' };
                         return; 
                     }
@@ -1553,20 +1574,40 @@
                         if (pinchAxis === 'x') {
                             const currentDistX = Math.abs(touch1.clientX - touch2.clientX);
                             if (initialPinchDistX > 0 && currentDistX > 0) {
+                                // Pinching Out = Dist increases = Ratio decreases = Zooming In (smaller span)
                                 const ratio = initialPinchDistX / currentDistX;
                                 
                                 if (viewMode === 'oscilloscope') {
                                     let newTimebase = initialTimebase * ratio;
                                     newTimebase = Math.max(1, Math.min(5000, newTimebase));
                                     scopeTimeWindowMs = newTimebase;
-                                } else {
-                                    const span = initialPinchMaxFreq - initialPinchMinFreq;
-                                    const center = initialPinchMinFreq + span / 2;
-                                    let newSpan = span * ratio;
-                                    newSpan = Math.max(100, Math.min(24000, newSpan)); 
                                     
-                                    zoomMinFreq = Math.max(0, Math.round(center - newSpan / 2));
-                                    zoomMaxFreq = Math.min(actualNyquist, Math.round(center + newSpan / 2));
+                                    // POINTER-RELATIVE OFFSET RECALCULATION
+                                    scopeOffsetXMs = clampScopeOffset(initialPinchTimeUnderCursor - (initialPinchNormalizedX * scopeTimeWindowMs));
+                                    
+                                } else {
+                                    if (isLogScale) {
+                                        const logMin = Math.log10(Math.max(1, initialPinchMinFreq));
+                                        const logMax = Math.log10(Math.max(2, initialPinchMaxFreq));
+                                        const logSpan = logMax - logMin;
+                                        const newLogSpan = logSpan * ratio;
+                                        const newLogMin = Math.log10(initialPinchFreqUnderCursor) - (initialPinchNormalizedX * newLogSpan);
+                                        
+                                        zoomMinFreq = Math.max(0, Math.pow(10, newLogMin));
+                                        zoomMaxFreq = Math.min(actualNyquist, Math.pow(10, newLogMin + newLogSpan));
+                                    } else {
+                                        const span = initialPinchMaxFreq - initialPinchMinFreq;
+                                        let newSpan = span * ratio;
+                                        newSpan = Math.max(100, Math.min(24000, newSpan)); 
+                                        
+                                        zoomMinFreq = Math.max(0, Math.round(initialPinchFreqUnderCursor - (initialPinchNormalizedX * newSpan)));
+                                        zoomMaxFreq = Math.min(actualNyquist, Math.round(zoomMinFreq + newSpan));
+                                        
+                                        if (zoomMaxFreq > actualNyquist) {
+                                            zoomMaxFreq = actualNyquist;
+                                            zoomMinFreq = Math.max(0, zoomMaxFreq - newSpan);
+                                        }
+                                    }
                                 }
                             }
                         } else if (pinchAxis === 'y') {
@@ -1631,12 +1672,7 @@
                             if (viewMode === 'oscilloscope') {
                                 const deltaXMs = (dx / rect.width) * scopeTimeWindowMs;
                                 let targetOffset = activeDrag.startOffsetX - deltaXMs;
-                                
-                                const sampleRate = actualNyquist * 2;
-                                const minOffsetMs = -(lastTriggerIndex / sampleRate) * 1000;
-                                const maxOffsetMs = ((deepMemLength - lastTriggerIndex) / sampleRate) * 1000 - scopeTimeWindowMs;
-                                
-                                scopeOffsetXMs = Math.max(minOffsetMs, Math.min(targetOffset, maxOffsetMs));
+                                scopeOffsetXMs = clampScopeOffset(targetOffset);
                             } else if (viewMode === 'spectrum' || viewMode === 'waterfall' || viewMode === 'both') {
                                 const freqSpan = activeDrag.startMaxFreq - activeDrag.startMinFreq;
                                 const deltaFreq = (dx / rect.width) * freqSpan;
@@ -1720,7 +1756,7 @@
                 window.addEventListener('touchmove', handlePointerMove, { passive: false }); 
                 window.addEventListener('touchend', handlePointerUp);
 
-                // Mouse Wheel Range Scaling
+                // POINTER-RELATIVE WHEEL ZOOM LOGIC (Rev 1.55.0)
                 mainDisplay.visCvs.addEventListener('wheel', (e) => {
                     e.preventDefault(); 
                     const rect = mainDisplay.visCvs.getBoundingClientRect();
@@ -1730,6 +1766,7 @@
                     const dir = Math.sign(e.deltaY);
                     
                     if (x < p.left) {
+                        // Standard Center-based Y-axis Zoom
                         if (viewMode === 'oscilloscope' || viewMode === 'lissajous') {
                             let newScale = vertScaleMultiplier * (dir > 0 ? 0.9 : 1.1); 
                             newScale = Math.max(0.01, Math.min(100.0, newScale));
@@ -1743,18 +1780,50 @@
                             displayMaxDb = Math.min(0, Math.round(center + newSpan / 2));
                         }
                         clampCursors(); updateCursorReadouts(); updateOSD();
+                        
                     } else if (y > rect.height - p.bottom) {
+                        
+                        const w = rect.width - p.left || 1;
+                        const normalizedX = Math.max(0, Math.min(1, (x - p.left) / w));
+
                         if (viewMode === 'oscilloscope') {
+                            // 1. Get exact time under cursor before zoom
+                            const timeUnderCursor = (normalizedX * scopeTimeWindowMs) + scopeOffsetXMs;
+                            
+                            // 2. Perform Scale
                             let newTime = scopeTimeWindowMs * (dir > 0 ? 1.1 : 0.9); 
                             newTime = Math.max(1, Math.min(5000, newTime));
                             scopeTimeWindowMs = newTime;
+                            
+                            // 3. Shift the pan offset backwards to keep the same time under the pointer
+                            scopeOffsetXMs = clampScopeOffset(timeUnderCursor - (normalizedX * scopeTimeWindowMs));
+
                         } else if (viewMode !== 'lissajous') {
-                            const span = zoomMaxFreq - zoomMinFreq;
-                            const center = zoomMinFreq + span / 2;
-                            let newSpan = span * (dir > 0 ? 1.1 : 0.9);
-                            newSpan = Math.max(100, Math.min(24000, newSpan));
-                            zoomMinFreq = Math.max(0, Math.round(center - newSpan / 2));
-                            zoomMaxFreq = Math.min(actualNyquist, Math.round(center + newSpan / 2));
+                            if (isLogScale) {
+                                const logMin = Math.log10(Math.max(1, zoomMinFreq));
+                                const logMax = Math.log10(Math.max(2, zoomMaxFreq));
+                                const freqUnderCursor = Math.pow(10, logMin + normalizedX * (logMax - logMin));
+                                
+                                const logSpan = logMax - logMin;
+                                const newLogSpan = logSpan * (dir > 0 ? 1.1 : 0.9);
+                                const newLogMin = Math.log10(freqUnderCursor) - (normalizedX * newLogSpan);
+                                
+                                zoomMinFreq = Math.max(0, Math.pow(10, newLogMin));
+                                zoomMaxFreq = Math.min(actualNyquist, Math.pow(10, newLogMin + newLogSpan));
+                            } else {
+                                const freqUnderCursor = zoomMinFreq + normalizedX * (zoomMaxFreq - zoomMinFreq);
+                                const span = zoomMaxFreq - zoomMinFreq;
+                                let newSpan = span * (dir > 0 ? 1.1 : 0.9);
+                                newSpan = Math.max(100, Math.min(24000, newSpan));
+                                
+                                zoomMinFreq = Math.max(0, Math.round(freqUnderCursor - (normalizedX * newSpan)));
+                                zoomMaxFreq = Math.min(actualNyquist, Math.round(zoomMinFreq + newSpan));
+                                
+                                if (zoomMaxFreq > actualNyquist) {
+                                    zoomMaxFreq = actualNyquist;
+                                    zoomMinFreq = Math.max(0, zoomMaxFreq - newSpan);
+                                }
+                            }
                         }
                         clampCursors(); updateCursorReadouts(); updateOSD();
                     }
@@ -1782,7 +1851,6 @@
                 });
                 resizeObserver.observe(mainDisplay.container);
 
-                // Pure Headless Memory Reset (No DOM assignments for deleted sliders)
                 document.getElementById('btn-reset').onclick = () => {
                     isLogScale = false; isFrozen = false; showPeaks = false; 
                     displayMaxDb = 0; displayMinDb = -140; zoomMinFreq = 0; zoomMaxFreq = 22000;
