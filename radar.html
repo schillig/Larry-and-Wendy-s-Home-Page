@@ -6,10 +6,11 @@
   <meta name="description" content="LiteRadar - Real Radar GPU Advection" />
   <title>LiteRadar — Real-Time NOAA MRMS GPU Advection</title>
 
-  <!-- MapLibre GL JS Stylesheet (v3.6.2 for maximum compatibility) -->
+  <!-- MapLibre GL JS Stylesheet -->
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" />
 
   <style>
+    /* CSS Custom Properties for Semantic Theming (W3C Standard) */
     :root {
       --bg-dark: #0f172a;
       --panel-bg: rgba(15, 23, 42, 0.85);
@@ -114,7 +115,7 @@
   <main id="map" aria-label="Interactive Weather Map"></main>
 
   <div id="diagnostics" aria-live="polite">
-    <div>[SYS] Hardware Engine Initialized</div>
+    <div>[SYS] WebGL Coordinate Correction Initialized</div>
   </div>
 
   <header class="glass-panel">
@@ -153,7 +154,7 @@
   </nav>
 
   <script>
-    // 1. Diagnostics Logging
+    // 1. Diagnostics Logging Interface
     const logDOM = document.getElementById('diagnostics');
     const systemLog = (msg, type = 'INFO') => {
       const color = type === 'ERR' ? '#ef4444' : type === 'WARN' ? '#f59e0b' : '#32cd32';
@@ -163,7 +164,7 @@
     const originalError = console.error;
     console.error = function(...args) { systemLog(args.join(' '), 'ERR'); originalError.apply(console, args); };
 
-    // 2. Map Setup
+    // 2. Base Map Setup
     systemLog('Initializing MapLibre GL JS Engine...');
     const map = new maplibregl.Map({
       container: 'map',
@@ -190,7 +191,7 @@
       zoom: 4.8
     });
 
-    // 3. WebGL Layer with Real Texture Mapping
+    // 3. WebGL Layer with Corrected UV Mapping
     const AdvectionRadarLayer = {
       id: 'mrms-advection-layer',
       type: 'custom',
@@ -202,14 +203,15 @@
         
         this.program = gl.createProgram();
 
+        // Standard compliant Vertex Shader (No Y-Flipping Hack)
         const vsSource = `
           attribute vec2 a_position;
           attribute vec2 a_uv;
           varying vec2 v_texCoord;
           uniform mat4 u_matrix;
+          
           void main() {
-            // WMS Images are typically flipped on the Y axis compared to WebGL expectations
-            v_texCoord = vec2(a_uv.x, 1.0 - a_uv.y); 
+            v_texCoord = a_uv; 
             gl_Position = u_matrix * vec4(a_position, 0.0, 1.0);
           }
         `;
@@ -221,28 +223,21 @@
           uniform sampler2D u_radar_data;
 
           void main() {
-            // In your real data, you'd extract velocity from the G/B channels here:
-            // vec2 velocity = texture2D(u_radar_data, v_texCoord).gb;
-            
-            // Since this WMS image is standard RGB radar, we generate a synthetic velocity 
-            // field to demonstrate the advection physics still working on real raster data.
+            // Synthetic velocity field for advection demo on RGB texture
             float u_vec = 0.015 + 0.005 * sin(v_texCoord.y * 10.0);
             float v_vec = -0.005 + 0.002 * cos(v_texCoord.x * 10.0);
             vec2 syntheticVelocity = vec2(u_vec, v_vec);
 
-            // Apply Advection Physics
+            // Back-project coordinates using velocity field
             vec2 advectedUV = v_texCoord - (syntheticVelocity * (u_time_offset / 10.0));
             
-            // Ensure we don't wrap the texture infinitely
+            // Hard clamp to prevent texture repeating/smearing over the ocean
             if(advectedUV.x < 0.0 || advectedUV.x > 1.0 || advectedUV.y < 0.0 || advectedUV.y > 1.0) {
               discard;
             }
 
-            // Sample the real WMS texture at the advected coordinates
-            vec4 radarPixel = texture2D(u_radar_data, advectedUV);
-            
-            // Output real pixel
-            gl_FragColor = radarPixel;
+            // Read the perfectly aligned texture
+            gl_FragColor = texture2D(u_radar_data, advectedUV);
           }
         `;
 
@@ -267,14 +262,19 @@
         this.uTimeOffset = gl.getUniformLocation(this.program, 'u_time_offset');
         this.uRadarData = gl.getUniformLocation(this.program, 'u_radar_data');
 
-        // Geodesic Quad Definition matching the WMS Request bounds exactly
+        // CORRECTED: Geodesic Quad Definition matching standard WebGL coordinates
+        // [Longitude (X), Latitude (Y), Texture U, Texture V]
+        // WebGL Texture Origin (0,0) is Bottom-Left.
         const rawGeometry = [
-          -125.0, 24.0,  0.0, 1.0,
-           -66.0, 24.0,  1.0, 1.0,
-          -125.0, 50.0,  0.0, 0.0,
-          -125.0, 50.0,  0.0, 0.0,
-           -66.0, 24.0,  1.0, 1.0,
-           -66.0, 50.0,  1.0, 0.0
+          // Triangle 1
+          -125.0, 24.0,  0.0, 0.0,  // Bottom-Left (SW)
+           -66.0, 24.0,  1.0, 0.0,  // Bottom-Right (SE)
+          -125.0, 50.0,  0.0, 1.0,  // Top-Left (NW)
+          
+          // Triangle 2
+          -125.0, 50.0,  0.0, 1.0,  // Top-Left (NW)
+           -66.0, 24.0,  1.0, 0.0,  // Bottom-Right (SE)
+           -66.0, 50.0,  1.0, 1.0   // Top-Right (NE)
         ];
 
         this.vertexData = new Float32Array(24);
@@ -293,25 +293,32 @@
         // --- LOAD REAL RADAR TEXTURE ---
         this.texture = gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, this.texture);
-        // Fill with transparent pixel while loading
+        
+        // Fill with transparent pixel while loading over network
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 0, 0]));
 
         const image = new Image();
-        image.crossOrigin = "anonymous"; // CRITICAL for WebGL security
+        image.crossOrigin = "anonymous"; 
         
-        // Live WMS Request for US CONUS Base Reflectivity (Matches our -125,24 to -66,50 bounds)
-        // REPLACE THIS URL WITH YOUR CLOUDFLARE R2 ENDPOINT IN PRODUCTION
+        // Live WMS Request matching our bounding box exactly (-125,24,-66,50)
         image.src = "https://mesonet.agron.iastate.edu/cgi-bin/wms/nexrad/n0r.cgi?SERVICE=WMS&REQUEST=GetMap&FORMAT=image/png&TRANSPARENT=true&VERSION=1.1.1&LAYERS=nexrad-n0r&STYLES=&SRS=EPSG:4326&BBOX=-125,24,-66,50&WIDTH=1024&HEIGHT=512";
         
         image.onload = () => {
           systemLog('Live Radar Texture Loaded successfully.');
+          
           gl.bindTexture(gl.TEXTURE_2D, this.texture);
+          
+          // CRITICAL FIX: Tell WebGL to flip the image Y-axis internally during upload
+          // This ensures pixel (0,0) from the image becomes (0,1) top-left in WebGL space.
+          gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+          
           gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
           gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
           gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
           gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
           gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-          map.triggerRepaint(); // Force render now that data is here
+          
+          map.triggerRepaint(); // Force render to display the aligned data
         };
         
         image.onerror = () => {
@@ -337,7 +344,7 @@
         gl.uniformMatrix4fv(this.uMatrix, false, matrix);
         gl.uniform1f(this.uTimeOffset, window.currentOffset || 0.0);
 
-        // Bind the actual radar texture to texture unit 0
+        // Bind Texture
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, this.texture);
         gl.uniform1i(this.uRadarData, 0);
