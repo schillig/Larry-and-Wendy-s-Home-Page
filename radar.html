@@ -6,7 +6,7 @@
   <meta name="description" content="LiteRadar - GPU Advection NOAA MRMS Radar" />
   <title>LiteRadar — Real-Time NOAA MRMS GPU Advection</title>
 
-  <!-- MapLibre GL JS Stylesheet (v3.6.2 for broader WebGL 1.0 legacy hardware support) -->
+  <!-- MapLibre GL JS Stylesheet (v3.6.2 for legacy hardware support) -->
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" />
 
   <style>
@@ -24,220 +24,89 @@
       --font-stack: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body, html {
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
+      width: 100%; height: 100%; overflow: hidden;
       background-color: var(--bg-dark);
       font-family: var(--font-stack);
       color: var(--text-main);
       -webkit-font-smoothing: antialiased;
     }
 
-    /* Fullscreen Map Canvas */
     #map {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 1;
+      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+      width: 100%; height: 100%; z-index: 1;
       background-color: var(--bg-dark);
     }
 
-    /* Diagnostic Overlay for GitHub Pages / Live Debugging */
     #diagnostics {
-      position: absolute;
-      top: 80px;
-      left: 16px;
-      width: 350px;
-      max-height: 400px;
-      overflow-y: auto;
-      background: rgba(0, 0, 0, 0.9);
-      color: #32cd32;
-      font-family: monospace;
-      font-size: 0.75rem;
-      padding: 12px;
-      border: 1px solid #ef4444;
-      border-radius: var(--radius-md);
-      z-index: 9999;
+      position: absolute; top: 80px; left: 16px; width: 350px;
+      max-height: 400px; overflow-y: auto;
+      background: rgba(0, 0, 0, 0.9); color: #32cd32;
+      font-family: monospace; font-size: 0.75rem;
+      padding: 12px; border: 1px solid #ef4444;
+      border-radius: var(--radius-md); z-index: 9999;
       pointer-events: none;
     }
 
     .glass-panel {
       background: var(--panel-bg);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px); 
-      border: 1px solid var(--panel-border);
-      border-radius: var(--radius-lg);
-      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-      z-index: 10;
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); 
+      border: 1px solid var(--panel-border); border-radius: var(--radius-lg);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37); z-index: 10;
     }
 
-    /* Semantic Layout */
     header {
-      position: absolute;
-      top: 16px;
-      left: 16px;
-      padding: 12px 20px;
-      display: flex;
-      align-items: center;
-      gap: 16px;
+      position: absolute; top: 16px; left: 16px; padding: 12px 20px;
+      display: flex; align-items: center; gap: 16px;
     }
-
-    .brand h1 {
-      font-size: 1.25rem;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-      display: inline-block;
-    }
-
+    .brand h1 { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em; display: inline-block; }
     .badge-live {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: rgba(34, 197, 94, 0.15);
-      color: var(--accent-green);
-      border: 1px solid rgba(34, 197, 94, 0.3);
-      padding: 2px 8px;
-      border-radius: 999px;
-      font-size: 0.75rem;
-      font-weight: 600;
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(34, 197, 94, 0.15); color: var(--accent-green);
+      border: 1px solid rgba(34, 197, 94, 0.3); padding: 2px 8px;
+      border-radius: 999px; font-size: 0.75rem; font-weight: 600;
     }
-
-    .telemetry {
-      display: flex;
-      gap: 12px;
-      font-size: 0.8rem;
-      color: var(--text-muted);
-      border-left: 1px solid var(--panel-border);
-      padding-left: 16px;
-    }
-
+    .telemetry { display: flex; gap: 12px; font-size: 0.8rem; color: var(--text-muted); border-left: 1px solid var(--panel-border); padding-left: 16px; }
     .telemetry-item span { color: var(--text-main); font-weight: 600; }
 
-    .legend-container {
-      position: absolute;
-      top: 16px;
-      right: 16px;
-      padding: 12px 16px;
-      width: 240px;
-    }
-
-    .legend-title {
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: var(--text-muted);
-      margin-bottom: 8px;
-    }
-
-    .legend-bar {
-      height: 10px;
-      border-radius: 5px;
-      background: linear-gradient(to right, rgba(0, 236, 236, 0.8), rgba(1, 160, 246, 0.8), rgba(0, 0, 246, 0.8), rgba(0, 255, 0, 0.8), rgba(0, 200, 0, 0.8), rgba(0, 140, 0, 0.8), rgba(255, 255, 0, 0.8), rgba(231, 192, 0, 0.8), rgba(255, 120, 0, 0.8), rgba(255, 0, 0, 0.8), rgba(200, 0, 0, 0.8), rgba(255, 0, 255, 0.8));
-    }
-
-    .legend-labels {
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.7rem;
-      color: var(--text-muted);
-      margin-top: 4px;
-    }
+    .legend-container { position: absolute; top: 16px; right: 16px; padding: 12px 16px; width: 240px; }
+    .legend-title { font-size: 0.75rem; font-weight: 600; color: var(--text-muted); margin-bottom: 8px; }
+    .legend-bar { height: 10px; border-radius: 5px; background: linear-gradient(to right, rgba(0, 236, 236, 0.8), rgba(1, 160, 246, 0.8), rgba(0, 0, 246, 0.8), rgba(0, 255, 0, 0.8), rgba(0, 200, 0, 0.8), rgba(0, 140, 0, 0.8), rgba(255, 255, 0, 0.8), rgba(231, 192, 0, 0.8), rgba(255, 120, 0, 0.8), rgba(255, 0, 0, 0.8), rgba(200, 0, 0, 0.8), rgba(255, 0, 255, 0.8)); }
+    .legend-labels { display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--text-muted); margin-top: 4px; }
 
     .controls-container {
-      position: absolute;
-      bottom: 24px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: calc(100% - 32px);
-      max-width: 860px;
-      padding: 16px 24px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
+      position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%);
+      width: calc(100% - 32px); max-width: 860px; padding: 16px 24px;
+      display: flex; flex-direction: column; gap: 12px;
     }
-
-    .controls-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-    }
-
-    .playback-group {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
+    .controls-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    .playback-group { display: flex; align-items: center; gap: 12px; }
+    
     .btn {
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid var(--panel-border);
-      color: var(--text-main);
-      padding: 8px 16px;
-      border-radius: var(--radius-md);
-      cursor: pointer;
-      font-size: 0.875rem;
-      font-weight: 500;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
+      background: rgba(255, 255, 255, 0.08); border: 1px solid var(--panel-border);
+      color: var(--text-main); padding: 8px 16px; border-radius: var(--radius-md);
+      cursor: pointer; font-size: 0.875rem; font-weight: 500;
+      display: inline-flex; align-items: center; gap: 6px;
     }
-
     .btn:hover { background: rgba(255, 255, 255, 0.16); }
     .btn-primary { background: var(--accent-blue); color: #0f172a; border: none; }
     .btn-primary:hover { background: #7dd3fc; }
 
-    .timestamp-display {
-      font-family: monospace;
-      font-size: 1rem;
-      font-weight: 700;
-      min-width: 180px;
-    }
-
-    .mode-indicator {
-      font-size: 0.75rem;
-      padding: 2px 8px;
-      border-radius: 4px;
-      background: rgba(255, 255, 255, 0.1);
-      color: var(--accent-blue);
-    }
+    .timestamp-display { font-family: monospace; font-size: 1rem; font-weight: 700; min-width: 180px; }
+    .mode-indicator { font-size: 0.75rem; padding: 2px 8px; border-radius: 4px; background: rgba(255, 255, 255, 0.1); color: var(--accent-blue); }
 
     .slider-container { width: 100%; display: flex; align-items: center; }
     .timeline-slider {
-      -webkit-appearance: none;
-      width: 100%;
-      height: 6px;
-      border-radius: 3px;
-      background: rgba(255, 255, 255, 0.15);
-      outline: none;
-      cursor: pointer;
+      -webkit-appearance: none; width: 100%; height: 6px; border-radius: 3px;
+      background: rgba(255, 255, 255, 0.15); outline: none; cursor: pointer;
     }
     .timeline-slider::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
-      background: var(--accent-blue);
-      cursor: pointer;
+      -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%;
+      background: var(--accent-blue); cursor: pointer;
     }
-
-    .timeline-markers {
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.7rem;
-      color: var(--text-muted);
-      margin-top: 4px;
-    }
+    .timeline-markers { display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--text-muted); margin-top: 4px; }
   </style>
 
   <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
@@ -245,12 +114,11 @@
 </head>
 
 <body>
-  <!-- WebGL Render Target -->
   <main id="map" aria-label="Interactive Weather Map"></main>
 
-  <!-- On-Screen Diagnostics Logger -->
+  <!-- Diagnostics Logger -->
   <div id="diagnostics" aria-live="polite">
-    <div>[SYS] Diagnostic Engine Initialized</div>
+    <div>[SYS] High-Res Diagnostic Engine Initialized</div>
   </div>
 
   <header class="glass-panel">
@@ -260,7 +128,7 @@
     </div>
     <div class="telemetry">
       <div class="telemetry-item">Pipeline: <span>4.2s</span></div>
-      <div class="telemetry-item">GPU: <span>Lagrangian</span></div>
+      <div class="telemetry-item">GPU: <span>Lagrangian (High-Res fBm)</span></div>
     </div>
   </header>
 
@@ -297,39 +165,26 @@
   </nav>
 
   <script>
-    // 1. Diagnostic Interceptor (Captures console.error and console.warn to UI)
+    // System Logger Setup
     const logDOM = document.getElementById('diagnostics');
     const systemLog = (msg, type = 'INFO') => {
       const color = type === 'ERR' ? '#ef4444' : type === 'WARN' ? '#f59e0b' : '#32cd32';
       logDOM.innerHTML += `<div style="color: ${color}; padding-top: 4px;">[${type}] ${msg}</div>`;
       logDOM.scrollTop = logDOM.scrollHeight;
     };
-
     const originalError = console.error;
-    console.error = function(...args) {
-      systemLog(args.join(' '), 'ERR');
-      originalError.apply(console, args);
-    };
+    console.error = function(...args) { systemLog(args.join(' '), 'ERR'); originalError.apply(console, args); };
 
-    const originalWarn = console.warn;
-    console.warn = function(...args) {
-      systemLog(args.join(' '), 'WARN');
-      originalWarn.apply(console, args);
-    };
-
-    // 2. Initialize PMTiles
+    // PMTiles Init
     try {
       if (typeof pmtiles !== 'undefined') {
         const protocol = new pmtiles.Protocol();
         maplibregl.addProtocol("pmtiles", protocol.tile);
         systemLog('PMTiles Protocol Registered');
       }
-    } catch (err) {
-      console.error("PMTiles Init failed:", err.message);
-    }
+    } catch (err) { console.error("PMTiles Init failed:", err.message); }
 
-    // 3. Fallback Basemap Initialization
-    // We use standard OpenStreetMap tiles here. CARTO heavily filters referers from GitHub Pages.
+    // Map Setup
     systemLog('Initializing MapLibre GL JS Engine...');
     const map = new maplibregl.Map({
       container: 'map',
@@ -344,22 +199,11 @@
           }
         },
         layers: [
+          { id: 'background', type: 'background', paint: { 'background-color': '#0f172a' } },
           {
-            id: 'background',
-            type: 'background',
-            paint: { 'background-color': '#0f172a' } 
-          },
-          {
-            id: 'osm-layer',
-            type: 'raster',
-            source: 'osm-basemap',
-            minzoom: 0,
-            maxzoom: 19,
-            paint: {
-              'raster-opacity': 0.6,
-              'raster-saturation': -1, // Make OSM dark-mode compatible
-              'raster-contrast': 0.2
-            }
+            id: 'osm-layer', type: 'raster', source: 'osm-basemap',
+            minzoom: 0, maxzoom: 19,
+            paint: { 'raster-opacity': 0.6, 'raster-saturation': -1, 'raster-contrast': 0.2 }
           }
         ]
       },
@@ -368,18 +212,15 @@
     });
 
     map.on('error', (e) => console.error('MapEngine Error:', e.error ? e.error.message : e));
-    map.on('webglcontextlost', () => console.error('CRITICAL: WebGL Context Lost! GPU Driver crash?'));
 
-    // 4. WebGL Custom Shader Layer (Strictly WebGL 1.0 Compatible)
+    // High-Resolution MRMS WebGL Layer
     const AdvectionRadarLayer = {
       id: 'mrms-advection-layer',
       type: 'custom',
       renderingMode: '2d',
 
       onAdd: function (map, gl) {
-        systemLog(`WebGL Context Acquired: ${gl.getParameter(gl.VERSION)}`);
         systemLog(`WebGL Renderer: ${gl.getParameter(gl.RENDERER)}`);
-        
         this.program = gl.createProgram();
 
         const vsSource = `
@@ -393,37 +234,84 @@
           }
         `;
 
+        // COMPLETELY REWRITTEN FRAGMENT SHADER: High-Res Fractal Noise
         const fsSource = `
           precision mediump float;
           varying vec2 v_texCoord;
           uniform float u_time_offset; 
           uniform float u_global_time; 
 
+          // 1. Pseudo-random hash generator
+          float hash(vec2 p) {
+            return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453123);
+          }
+
+          // 2. Value Noise function (smoother transitions)
+          float noise(vec2 p) {
+            vec2 i = floor(p);
+            vec2 f = fract(p);
+            f = f * f * (3.0 - 2.0 * f);
+            float a = hash(i);
+            float b = hash(i + vec2(1.0, 0.0));
+            float c = hash(i + vec2(0.0, 1.0));
+            float d = hash(i + vec2(1.0, 1.0));
+            return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+          }
+
+          // 3. Fractional Brownian Motion (fBm) - Creates the "Crunchy" high-res look
+          float fbm(vec2 p) {
+            float v = 0.0;
+            float a = 0.5;
+            // Matrix to rotate octaves to hide grid alignment artifacts
+            mat2 rot = mat2(cos(0.5), sin(0.5), -sin(0.5), cos(0.5));
+            for (int i = 0; i < 5; ++i) { // 5 octaves of detail
+              v += a * noise(p);
+              p = rot * p * 2.0 + vec2(100.0); // Shift and scale
+              a *= 0.5;
+            }
+            return v;
+          }
+
+          // Generate Synthetic High-Res MRMS
           vec3 generateSyntheticMRMS(vec2 uv, float t) {
-            vec2 p = uv * 8.0;
-            float storm1 = sin(p.x + t * 0.1) * cos(p.y + t * 0.05);
-            float storm2 = sin(p.x * 2.5 - t * 0.2) * sin(p.y * 2.0 + t * 0.15);
-            float dBZ = max(0.0, (storm1 + storm2 - 0.4) * 50.0);
+            // Macro-scale envelope (determines where the storm systems are)
+            float envelope = noise(uv * 4.0 + t * 0.015);
             
+            // Micro-scale detail (determines the pixelated/crunchy 1km grid look)
+            float detail = fbm(uv * 45.0 + t * 0.05);
+
+            // Combine envelope and detail, then threshold sharply to create storm cell boundaries
+            float combined = (envelope * 0.6 + detail * 0.8) - 0.45;
+            float storm = smoothstep(0.1, 0.7, combined); // Sharp falloff mimicking radar thresholds
+
+            // Map standard dBZ intensity (0 to ~70)
+            float dBZ = max(0.0, storm * 75.0);
+            
+            // Generate optical flow (u, v) simulating synoptic eastward flow
             float u_vec = 0.015 + 0.005 * sin(uv.y * 10.0);
-            float v_vec = -0.008 + 0.003 * cos(uv.x * 10.0);
+            float v_vec = -0.005 + 0.002 * cos(uv.x * 10.0);
+
             return vec3(dBZ, u_vec, v_vec);
           }
 
+          // Standard NWS dBZ Color Palette Map
           vec4 applyRadarColorTable(float dbz) {
             if (dbz < 5.0) return vec4(0.0);
-            if (dbz < 15.0) return vec4(0.0, 0.92, 0.92, 0.4);
-            if (dbz < 25.0) return vec4(0.0, 0.0, 0.96, 0.6);
-            if (dbz < 35.0) return vec4(0.0, 0.8, 0.0, 0.75);
-            if (dbz < 45.0) return vec4(1.0, 1.0, 0.0, 0.85);
-            if (dbz < 55.0) return vec4(1.0, 0.47, 0.0, 0.9);
-            if (dbz < 65.0) return vec4(1.0, 0.0, 0.0, 0.95);
-            return vec4(0.9, 0.0, 0.9, 1.0); 
+            if (dbz < 15.0) return vec4(0.0, 0.92, 0.92, 0.4); // Light Blue
+            if (dbz < 25.0) return vec4(0.0, 0.0, 0.96, 0.6);  // Dark Blue
+            if (dbz < 35.0) return vec4(0.0, 0.8, 0.0, 0.75);  // Green
+            if (dbz < 45.0) return vec4(1.0, 1.0, 0.0, 0.85);  // Yellow
+            if (dbz < 55.0) return vec4(1.0, 0.47, 0.0, 0.9);  // Orange
+            if (dbz < 65.0) return vec4(1.0, 0.0, 0.0, 0.95);  // Red
+            return vec4(0.9, 0.0, 0.9, 1.0);                   // Magenta (Hail Core)
           }
 
           void main() {
+            // Apply physical advection step: p_source = p_current - (velocity * dt)
             vec2 velocity = generateSyntheticMRMS(v_texCoord, u_global_time).gb;
             vec2 advectedUV = v_texCoord - (velocity * (u_time_offset / 10.0));
+            
+            // Sample final DBZ at the advected position
             float finalDBZ = generateSyntheticMRMS(advectedUV, u_global_time).r;
             gl_FragColor = applyRadarColorTable(finalDBZ);
           }
@@ -443,10 +331,7 @@
         const vs = compileShader(gl.VERTEX_SHADER, vsSource, "Vertex");
         const fs = compileShader(gl.FRAGMENT_SHADER, fsSource, "Fragment");
         
-        if (!vs || !fs) {
-          console.error("Shader compilation failed. Aborting layer add.");
-          return;
-        }
+        if (!vs || !fs) return;
 
         gl.attachShader(this.program, vs);
         gl.attachShader(this.program, fs);
@@ -480,7 +365,7 @@
         gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
         gl.bufferData(gl.ARRAY_BUFFER, this.vertexData, gl.STATIC_DRAW);
         
-        systemLog('WebGL Advection Layer Attached Successfully');
+        systemLog('High-Res WebGL Advection Layer Attached');
       },
 
       render: function (gl, matrix) {
@@ -508,9 +393,7 @@
       systemLog('Map Basemap Loaded.');
       try {
         map.addLayer(AdvectionRadarLayer);
-      } catch(err) {
-        console.error('Failed to add custom WebGL layer:', err.message);
-      }
+      } catch(err) { console.error('Layer add failed:', err.message); }
       
       const continuousRepaint = () => {
         map.triggerRepaint();
@@ -519,7 +402,7 @@
       continuousRepaint();
     });
 
-    // 5. UI Bindings
+    // UI Bindings
     const slider = document.getElementById('timelineSlider');
     const playBtn = document.getElementById('playBtn');
     const playText = document.getElementById('playText');
