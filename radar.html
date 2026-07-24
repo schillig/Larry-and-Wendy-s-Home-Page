@@ -3,431 +3,78 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="LiteRadar - Real Radar GPU Advection" />
-  <title>LiteRadar — Real-Time NOAA MRMS GPU Advection</title>
-
-  <!-- MapLibre GL JS Stylesheet -->
+  <title>LiteRadar Live</title>
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" />
-
-  <style>
-    /* CSS Custom Properties for Semantic Theming (W3C Standard) */
-    :root {
-      --bg-dark: #0f172a;
-      --panel-bg: rgba(15, 23, 42, 0.85);
-      --panel-border: rgba(255, 255, 255, 0.12);
-      --accent-blue: #38bdf8;
-      --accent-green: #22c55e;
-      --text-main: #f8fafc;
-      --text-muted: #94a3b8;
-      --radius-lg: 12px;
-      --radius-md: 8px;
-      --font-stack: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body, html {
-      width: 100%; height: 100%; overflow: hidden;
-      background-color: var(--bg-dark);
-      font-family: var(--font-stack);
-      color: var(--text-main);
-      -webkit-font-smoothing: antialiased;
-    }
-
-    #map {
-      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-      width: 100%; height: 100%; z-index: 1;
-      background-color: var(--bg-dark);
-    }
-
-    #diagnostics {
-      position: absolute; top: 80px; left: 16px; width: 350px;
-      max-height: 400px; overflow-y: auto;
-      background: rgba(0, 0, 0, 0.9); color: #32cd32;
-      font-family: monospace; font-size: 0.75rem;
-      padding: 12px; border: 1px solid #ef4444;
-      border-radius: var(--radius-md); z-index: 9999;
-      pointer-events: none;
-    }
-
-    .glass-panel {
-      background: var(--panel-bg);
-      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); 
-      border: 1px solid var(--panel-border); border-radius: var(--radius-lg);
-      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37); z-index: 10;
-    }
-
-    header {
-      position: absolute; top: 16px; left: 16px; padding: 12px 20px;
-      display: flex; align-items: center; gap: 16px;
-    }
-    
-    .brand h1 { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em; display: inline-block; }
-    
-    .badge-live {
-      display: inline-flex; align-items: center; gap: 6px;
-      background: rgba(34, 197, 94, 0.15); color: var(--accent-green);
-      border: 1px solid rgba(34, 197, 94, 0.3); padding: 2px 8px;
-      border-radius: 999px; font-size: 0.75rem; font-weight: 600;
-    }
-    
-    .telemetry { display: flex; gap: 12px; font-size: 0.8rem; color: var(--text-muted); border-left: 1px solid var(--panel-border); padding-left: 16px; }
-    .telemetry-item span { color: var(--text-main); font-weight: 600; }
-
-    .controls-container {
-      position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%);
-      width: calc(100% - 32px); max-width: 860px; padding: 16px 24px;
-      display: flex; flex-direction: column; gap: 12px;
-    }
-    
-    .controls-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-    .playback-group { display: flex; align-items: center; gap: 12px; }
-    
-    .btn {
-      background: rgba(255, 255, 255, 0.08); border: 1px solid var(--panel-border);
-      color: var(--text-main); padding: 8px 16px; border-radius: var(--radius-md);
-      cursor: pointer; font-size: 0.875rem; font-weight: 500;
-      display: inline-flex; align-items: center; gap: 6px;
-    }
-    .btn:hover { background: rgba(255, 255, 255, 0.16); }
-    .btn-primary { background: var(--accent-blue); color: #0f172a; border: none; }
-    .btn-primary:hover { background: #7dd3fc; }
-
-    .timestamp-display { font-family: monospace; font-size: 1rem; font-weight: 700; min-width: 180px; }
-    .mode-indicator { font-size: 0.75rem; padding: 2px 8px; border-radius: 4px; background: rgba(255, 255, 255, 0.1); color: var(--accent-blue); }
-
-    .slider-container { width: 100%; display: flex; align-items: center; }
-    .timeline-slider {
-      -webkit-appearance: none; width: 100%; height: 6px; border-radius: 3px;
-      background: rgba(255, 255, 255, 0.15); outline: none; cursor: pointer;
-    }
-    .timeline-slider::-webkit-slider-thumb {
-      -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%;
-      background: var(--accent-blue); cursor: pointer;
-    }
-    .timeline-markers { display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--text-muted); margin-top: 4px; }
-  </style>
-
   <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+  <style>
+    body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #0f172a; }
+    #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+    .crosshair {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      width: 20px; height: 20px; pointer-events: none; z-index: 10;
+    }
+    .crosshair::before, .crosshair::after { content: ''; position: absolute; background: white; }
+    .crosshair::before { top: 9px; left: 0; width: 20px; height: 2px; }
+    .crosshair::after { top: 0; left: 9px; width: 2px; height: 20px; }
+    #status { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(0,0,0,0.7); color: #22c55e; padding: 10px; border-radius: 5px; font-family: monospace; }
+  </style>
 </head>
-
 <body>
-  <main id="map" aria-label="Interactive Weather Map"></main>
-
-  <div id="diagnostics" aria-live="polite">
-    <div>[SYS] WebGL Coordinate Correction Initialized</div>
-  </div>
-
-  <header class="glass-panel">
-    <div class="brand">
-      <h1>LiteRadar</h1>
-      <span class="badge-live">LIVE WMS DATA</span>
-    </div>
-    <div class="telemetry">
-      <div class="telemetry-item">Pipeline: <span>Iowa Mesonet WMS</span></div>
-      <div class="telemetry-item">GPU: <span>Texture Sampler Advection</span></div>
-    </div>
-  </header>
-
-  <nav class="controls-container glass-panel">
-    <div class="controls-row">
-      <div class="playback-group">
-        <button id="playBtn" class="btn btn-primary">
-          <svg id="playIcon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-          <span id="playText">Play</span>
-        </button>
-        <button id="nowBtn" class="btn">LIVE</button>
-      </div>
-
-      <div class="playback-group">
-        <span id="modeBadge" class="mode-indicator">OBSERVED</span>
-        <div id="timeDisplay" class="timestamp-display">--:-- UTC</div>
-      </div>
-    </div>
-
-    <div class="slider-container">
-      <input type="range" id="timelineSlider" class="timeline-slider" min="-60" max="60" value="0" step="1" />
-    </div>
-    <div class="timeline-markers">
-      <span>-60 min</span><span>NOW</span><span>+60 min</span>
-    </div>
-  </nav>
+  <div id="map"></div>
+  <div class="crosshair"></div>
+  <div id="status">INITIALIZING...</div>
 
   <script>
-    // 1. Diagnostics Logging Interface
-    const logDOM = document.getElementById('diagnostics');
-    const systemLog = (msg, type = 'INFO') => {
-      const color = type === 'ERR' ? '#ef4444' : type === 'WARN' ? '#f59e0b' : '#32cd32';
-      logDOM.innerHTML += `<div style="color: ${color}; padding-top: 4px;">[${type}] ${msg}</div>`;
-      logDOM.scrollTop = logDOM.scrollHeight;
-    };
-    const originalError = console.error;
-    console.error = function(...args) { systemLog(args.join(' '), 'ERR'); originalError.apply(console, args); };
-
-    // 2. Base Map Setup
-    systemLog('Initializing MapLibre GL JS Engine...');
+    // 1. Force main thread execution and disable origin checks
+    maplibregl.workerCount = 0;
+    
+    // 2. Initialize map with a dummy transform to bypass document.location access
     const map = new maplibregl.Map({
       container: 'map',
       style: {
         version: 8,
         sources: {
-          'osm-basemap': {
-            type: 'raster',
-            tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-            tileSize: 256,
-            attribution: '&copy; OpenStreetMap Contributors'
-          }
+          'osm': { type: 'raster', tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'], tileSize: 256 }
         },
         layers: [
-          { id: 'background', type: 'background', paint: { 'background-color': '#0f172a' } },
-          {
-            id: 'osm-layer', type: 'raster', source: 'osm-basemap',
-            minzoom: 0, maxzoom: 19,
-            paint: { 'raster-opacity': 0.5, 'raster-saturation': -1, 'raster-contrast': 0.2 }
-          }
+          { id: 'bg', type: 'background', paint: { 'background-color': '#0f172a' } },
+          { id: 'osm', type: 'raster', source: 'osm', paint: { 'raster-opacity': 0.5, 'raster-saturation': -1 } }
         ]
       },
-      center: [-97.5164, 35.4676], 
-      zoom: 4.8
+      center: [-98, 38],
+      zoom: 4,
+      transformRequest: (url, resourceType) => {
+        return { url: url };
+      }
     });
 
-    // 3. WebGL Layer with Corrected UV Mapping
-    const AdvectionRadarLayer = {
-      id: 'mrms-advection-layer',
-      type: 'custom',
-      renderingMode: '2d',
-
-      onAdd: function (map, gl) {
-        this.gl = gl;
-        systemLog(`WebGL Renderer: ${gl.getParameter(gl.RENDERER)}`);
-        
-        this.program = gl.createProgram();
-
-        // Standard compliant Vertex Shader (No Y-Flipping Hack)
-        const vsSource = `
-          attribute vec2 a_position;
-          attribute vec2 a_uv;
-          varying vec2 v_texCoord;
-          uniform mat4 u_matrix;
-          
-          void main() {
-            v_texCoord = a_uv; 
-            gl_Position = u_matrix * vec4(a_position, 0.0, 1.0);
-          }
-        `;
-
-        const fsSource = `
-          precision mediump float;
-          varying vec2 v_texCoord;
-          uniform float u_time_offset; 
-          uniform sampler2D u_radar_data;
-
-          void main() {
-            // Synthetic velocity field for advection demo on RGB texture
-            float u_vec = 0.015 + 0.005 * sin(v_texCoord.y * 10.0);
-            float v_vec = -0.005 + 0.002 * cos(v_texCoord.x * 10.0);
-            vec2 syntheticVelocity = vec2(u_vec, v_vec);
-
-            // Back-project coordinates using velocity field
-            vec2 advectedUV = v_texCoord - (syntheticVelocity * (u_time_offset / 10.0));
-            
-            // Hard clamp to prevent texture repeating/smearing over the ocean
-            if(advectedUV.x < 0.0 || advectedUV.x > 1.0 || advectedUV.y < 0.0 || advectedUV.y > 1.0) {
-              discard;
-            }
-
-            // Read the perfectly aligned texture
-            gl_FragColor = texture2D(u_radar_data, advectedUV);
-          }
-        `;
-
-        const compileShader = (type, source, name) => {
-          const shader = gl.createShader(type);
-          gl.shaderSource(shader, source);
-          gl.compileShader(shader);
-          if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-            console.error(`${name} Shader Error:`, gl.getShaderInfoLog(shader));
-            return null;
-          }
-          return shader;
-        };
-
-        gl.attachShader(this.program, compileShader(gl.VERTEX_SHADER, vsSource, "Vertex"));
-        gl.attachShader(this.program, compileShader(gl.FRAGMENT_SHADER, fsSource, "Fragment"));
-        gl.linkProgram(this.program);
-
-        this.aPosition = gl.getAttribLocation(this.program, 'a_position');
-        this.aUV = gl.getAttribLocation(this.program, 'a_uv');
-        this.uMatrix = gl.getUniformLocation(this.program, 'u_matrix');
-        this.uTimeOffset = gl.getUniformLocation(this.program, 'u_time_offset');
-        this.uRadarData = gl.getUniformLocation(this.program, 'u_radar_data');
-
-        // CORRECTED: Geodesic Quad Definition matching standard WebGL coordinates
-        // [Longitude (X), Latitude (Y), Texture U, Texture V]
-        // WebGL Texture Origin (0,0) is Bottom-Left.
-        const rawGeometry = [
-          // Triangle 1
-          -125.0, 24.0,  0.0, 0.0,  // Bottom-Left (SW)
-           -66.0, 24.0,  1.0, 0.0,  // Bottom-Right (SE)
-          -125.0, 50.0,  0.0, 1.0,  // Top-Left (NW)
-          
-          // Triangle 2
-          -125.0, 50.0,  0.0, 1.0,  // Top-Left (NW)
-           -66.0, 24.0,  1.0, 0.0,  // Bottom-Right (SE)
-           -66.0, 50.0,  1.0, 1.0   // Top-Right (NE)
-        ];
-
-        this.vertexData = new Float32Array(24);
-        for (let i = 0; i < 6; i++) {
-          const coord = maplibregl.MercatorCoordinate.fromLngLat([rawGeometry[i * 4], rawGeometry[i * 4 + 1]]);
-          this.vertexData[i * 4] = coord.x;
-          this.vertexData[i * 4 + 1] = coord.y;
-          this.vertexData[i * 4 + 2] = rawGeometry[i * 4 + 2];
-          this.vertexData[i * 4 + 3] = rawGeometry[i * 4 + 3];
-        }
-
-        this.buffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
-        gl.bufferData(gl.ARRAY_BUFFER, this.vertexData, gl.STATIC_DRAW);
-
-        // --- LOAD REAL RADAR TEXTURE ---
-        this.texture = gl.createTexture();
-        gl.bindTexture(gl.TEXTURE_2D, this.texture);
-        
-        // Fill with transparent pixel while loading over network
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 0, 0]));
-
-        const image = new Image();
-        image.crossOrigin = "anonymous"; 
-        
-        // Live WMS Request matching our bounding box exactly (-125,24,-66,50)
-        image.src = "https://mesonet.agron.iastate.edu/cgi-bin/wms/nexrad/n0r.cgi?SERVICE=WMS&REQUEST=GetMap&FORMAT=image/png&TRANSPARENT=true&VERSION=1.1.1&LAYERS=nexrad-n0r&STYLES=&SRS=EPSG:4326&BBOX=-125,24,-66,50&WIDTH=1024&HEIGHT=512";
-        
-        image.onload = () => {
-          systemLog('Live Radar Texture Loaded successfully.');
-          
-          gl.bindTexture(gl.TEXTURE_2D, this.texture);
-          
-          // CRITICAL FIX: Tell WebGL to flip the image Y-axis internally during upload
-          // This ensures pixel (0,0) from the image becomes (0,1) top-left in WebGL space.
-          gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-          
-          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
-          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-          
-          map.triggerRepaint(); // Force render to display the aligned data
-        };
-        
-        image.onerror = () => {
-          systemLog('Failed to load real radar texture (CORS or Network issue).', 'ERR');
-        };
+    // 3. Location Tracking
+    navigator.geolocation.watchPosition(
+      (pos) => {
+        map.flyTo({ center: [pos.coords.longitude, pos.coords.latitude], zoom: 7 });
+        document.getElementById('status').innerText = "GPS: LOCKED";
       },
+      () => { document.getElementById('status').innerText = "GPS: ERROR"; },
+      { enableHighAccuracy: true }
+    );
 
-      render: function (gl, matrix) {
-        if (!this.program) return;
-        gl.useProgram(this.program);
-        
-        gl.enable(gl.BLEND);
-        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-        
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
-        gl.enableVertexAttribArray(this.aPosition);
-        gl.vertexAttribPointer(this.aPosition, 2, gl.FLOAT, false, 16, 0);
+    // 4. Radar Polling
+    function updateRadar() {
+      if (map.getSource('radar')) map.removeLayer('radar'), map.removeSource('radar');
+      
+      map.addSource('radar', {
+        type: 'image',
+        url: `https://mesonet.agron.iastate.edu/cgi-bin/wms/nexrad/n0r.cgi?SERVICE=WMS&REQUEST=GetMap&FORMAT=image/png&TRANSPARENT=true&VERSION=1.1.1&LAYERS=nexrad-n0r&STYLES=&SRS=EPSG:4326&BBOX=-125,24,-66,50&WIDTH=1024&HEIGHT=512&ts=${Date.now()}`,
+        coordinates: [[-125, 50], [-66, 50], [-66, 24], [-125, 24]]
+      });
 
-        gl.enableVertexAttribArray(this.aUV);
-        gl.vertexAttribPointer(this.aUV, 2, gl.FLOAT, false, 16, 8);
-
-        // Bind Uniforms
-        gl.uniformMatrix4fv(this.uMatrix, false, matrix);
-        gl.uniform1f(this.uTimeOffset, window.currentOffset || 0.0);
-
-        // Bind Texture
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, this.texture);
-        gl.uniform1i(this.uRadarData, 0);
-
-        gl.drawArrays(gl.TRIANGLES, 0, 6);
-      }
-    };
+      map.addLayer({ id: 'radar', type: 'raster', source: 'radar', paint: { 'raster-opacity': 0.8 } });
+    }
 
     map.on('load', () => {
-      systemLog('Map Basemap Loaded.');
-      map.addLayer(AdvectionRadarLayer);
+      updateRadar();
+      setInterval(updateRadar, 60000);
     });
-
-    // 4. UI Bindings
-    const slider = document.getElementById('timelineSlider');
-    const playBtn = document.getElementById('playBtn');
-    const playText = document.getElementById('playText');
-    const playIcon = document.getElementById('playIcon');
-    const nowBtn = document.getElementById('nowBtn');
-    const timeDisplay = document.getElementById('timeDisplay');
-    const modeBadge = document.getElementById('modeBadge');
-
-    let isPlaying = false;
-    let animationFrameId = null;
-    window.currentOffset = 0; 
-
-    function updateTimestampUI(offsetMinutes) {
-      const targetTime = new Date(new Date().getTime() + offsetMinutes * 60000);
-      const hours = String(targetTime.getUTCHours()).padStart(2, '0');
-      const mins = String(targetTime.getUTCMinutes()).padStart(2, '0');
-      const dateStr = targetTime.toISOString().split('T')[0];
-      timeDisplay.textContent = `${dateStr} ${hours}:${mins} UTC`;
-
-      if (offsetMinutes > 2) {
-        modeBadge.textContent = 'FORECAST';
-        modeBadge.style.color = '#f59e0b';
-      } else if (offsetMinutes < -2) {
-        modeBadge.textContent = 'PAST';
-        modeBadge.style.color = '#94a3b8';
-      } else {
-        modeBadge.textContent = 'OBSERVED';
-        modeBadge.style.color = 'var(--accent-blue)';
-      }
-    }
-
-    slider.addEventListener('input', (e) => {
-      window.currentOffset = parseFloat(e.target.value);
-      updateTimestampUI(window.currentOffset);
-      map.triggerRepaint();
-    });
-
-    function stepAnimation() {
-      if (!isPlaying) return;
-      window.currentOffset += 0.4;
-      if (window.currentOffset > 60) window.currentOffset = -60;
-      
-      slider.value = window.currentOffset;
-      updateTimestampUI(window.currentOffset);
-      map.triggerRepaint();
-      animationFrameId = requestAnimationFrame(stepAnimation);
-    }
-
-    playBtn.addEventListener('click', () => {
-      isPlaying = !isPlaying;
-      if (isPlaying) {
-        playText.textContent = 'Pause';
-        playIcon.innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
-        stepAnimation();
-      } else {
-        playText.textContent = 'Play';
-        playIcon.innerHTML = '<path d="M8 5v14l11-7z"/>';
-        if (animationFrameId) cancelAnimationFrame(animationFrameId);
-      }
-    });
-
-    nowBtn.addEventListener('click', () => {
-      window.currentOffset = 0;
-      slider.value = 0;
-      updateTimestampUI(0);
-      map.triggerRepaint();
-    });
-
-    updateTimestampUI(0);
   </script>
 </body>
 </html>
