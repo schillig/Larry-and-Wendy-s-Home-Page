@@ -1,79 +1,224 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>LiteRadar Live</title>
+  <meta charset="UTF-8">
+  <!-- Ensures proper scaling on mobile and desktop devices -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="description" content="A lightweight, real-time US weather radar dashboard centered on your location.">
+  <title>LiteRadar — Live Local Radar</title>
+
+  <!-- Load MapLibre GL JS Styles and Scripts from reliable CDN -->
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" />
   <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+
   <style>
-    body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #0f172a; }
-    #map { position: absolute; top: 0; bottom: 0; width: 100%; }
-    .crosshair {
-      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-      width: 20px; height: 20px; pointer-events: none; z-index: 10;
+    /* CSS Reset and strict full-viewport layout */
+    *, *::before, *::after {
+      box-sizing: border-box;
     }
-    .crosshair::before, .crosshair::after { content: ''; position: absolute; background: white; }
-    .crosshair::before { top: 9px; left: 0; width: 20px; height: 2px; }
-    .crosshair::after { top: 0; left: 9px; width: 2px; height: 20px; }
-    #status { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(0,0,0,0.7); color: #22c55e; padding: 10px; border-radius: 5px; font-family: monospace; }
+    
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background-color: #0f172a; /* Dark slate background to match radar aesthetic */
+      font-family: system-ui, -apple-system, sans-serif;
+      overflow: hidden; /* Prevent page scrolling on mobile */
+    }
+
+    /* Map container takes full screen */
+    #map {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 100%;
+    }
+
+    /* WCAG-compliant status indicator */
+    #status-badge {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      z-index: 10;
+      background-color: rgba(0, 0, 0, 0.85);
+      color: #22c55e; /* High contrast green */
+      padding: 10px 16px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      letter-spacing: 0.5px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+      transition: color 0.3s ease;
+    }
+
+    /* Central crosshair to indicate the locked GPS location */
+    .crosshair {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 24px;
+      height: 24px;
+      pointer-events: none; /* Allows clicks/touches to pass through to the map */
+      z-index: 10;
+    }
+    
+    .crosshair::before, .crosshair::after {
+      content: '';
+      position: absolute;
+      background-color: #ffffff;
+      box-shadow: 0 0 3px rgba(0,0,0,0.8);
+    }
+    
+    /* Horizontal crosshair line */
+    .crosshair::before { top: 11px; left: 0; width: 24px; height: 2px; }
+    /* Vertical crosshair line */
+    .crosshair::after { top: 0; left: 11px; width: 2px; height: 24px; }
   </style>
 </head>
 <body>
-  <div id="map"></div>
-  <div class="crosshair"></div>
-  <div id="status">INITIALIZING...</div>
+
+  <!-- Accessible status announcement for screen readers -->
+  <div id="status-badge" role="status" aria-live="polite">Initializing Map...</div>
+  
+  <div id="map" aria-label="Interactive weather radar map"></div>
+  <div class="crosshair" aria-hidden="true"></div>
 
   <script>
-    // 1. Force main thread execution and disable origin checks
-    maplibregl.workerCount = 0;
-    
-    // 2. Initialize map with a dummy transform to bypass document.location access
-    const map = new maplibregl.Map({
-      container: 'map',
-      style: {
-        version: 8,
-        sources: {
-          'osm': { type: 'raster', tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'], tileSize: 256 }
+    document.addEventListener("DOMContentLoaded", () => {
+      const statusBadge = document.getElementById('status-badge');
+
+      // 1. Initialize MapLibre
+      // Using standard configuration. No sandbox-evasion hacks needed for GitHub Pages.
+      const map = new maplibregl.Map({
+        container: 'map',
+        style: {
+          version: 8,
+          sources: {
+            'osm-tiles': {
+              type: 'raster',
+              tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+              tileSize: 256,
+              attribution: '© OpenStreetMap contributors'
+            }
+          },
+          layers: [
+            {
+              id: 'background-layer',
+              type: 'background',
+              paint: { 'background-color': '#0f172a' }
+            },
+            {
+              id: 'osm-layer',
+              type: 'raster',
+              source: 'osm-tiles',
+              paint: { 
+                'raster-opacity': 0.6,
+                'raster-saturation': -1 // Grayscale map to make radar colors pop
+              }
+            }
+          ]
         },
-        layers: [
-          { id: 'bg', type: 'background', paint: { 'background-color': '#0f172a' } },
-          { id: 'osm', type: 'raster', source: 'osm', paint: { 'raster-opacity': 0.5, 'raster-saturation': -1 } }
-        ]
-      },
-      center: [-98, 38],
-      zoom: 4,
-      transformRequest: (url, resourceType) => {
-        return { url: url };
-      }
-    });
-
-    // 3. Location Tracking
-    navigator.geolocation.watchPosition(
-      (pos) => {
-        map.flyTo({ center: [pos.coords.longitude, pos.coords.latitude], zoom: 7 });
-        document.getElementById('status').innerText = "GPS: LOCKED";
-      },
-      () => { document.getElementById('status').innerText = "GPS: ERROR"; },
-      { enableHighAccuracy: true }
-    );
-
-    // 4. Radar Polling
-    function updateRadar() {
-      if (map.getSource('radar')) map.removeLayer('radar'), map.removeSource('radar');
-      
-      map.addSource('radar', {
-        type: 'image',
-        url: `https://mesonet.agron.iastate.edu/cgi-bin/wms/nexrad/n0r.cgi?SERVICE=WMS&REQUEST=GetMap&FORMAT=image/png&TRANSPARENT=true&VERSION=1.1.1&LAYERS=nexrad-n0r&STYLES=&SRS=EPSG:4326&BBOX=-125,24,-66,50&WIDTH=1024&HEIGHT=512&ts=${Date.now()}`,
-        coordinates: [[-125, 50], [-66, 50], [-66, 24], [-125, 24]]
+        center: [-98.5795, 39.8283], // Default center (US context) before GPS lock
+        zoom: 4,
+        maxZoom: 10, // Prevent zooming in too far where radar data becomes pixelated
+        minZoom: 3
       });
 
-      map.addLayer({ id: 'radar', type: 'raster', source: 'radar', paint: { 'raster-opacity': 0.8 } });
-    }
+      // 2. Enforce "Set-and-Forget" Rules
+      // Disable panning so the user is permanently locked to the center
+      map.dragPan.disable();
+      map.keyboard.disable();
+      
+      // Allow scroll/pinch zooming only
+      map.scrollZoom.enable();
+      map.boxZoom.enable();
+      if (map.touchZoomRotate) {
+        map.touchZoomRotate.disableRotation(); // Keep North up
+        map.touchZoomRotate.enable();
+      }
 
-    map.on('load', () => {
-      updateRadar();
-      setInterval(updateRadar, 60000);
+      // 3. Radar Data Management
+      const updateRadarLayer = () => {
+        const sourceId = 'iowa-mesonet-radar';
+        const layerId = 'radar-layer';
+        
+        // Cache-busting parameter to ensure we pull the absolute latest frame
+        const timestamp = Date.now();
+        const wmsUrl = `https://mesonet.agron.iastate.edu/cgi-bin/wms/nexrad/n0r.cgi?SERVICE=WMS&REQUEST=GetMap&FORMAT=image/png&TRANSPARENT=true&VERSION=1.1.1&LAYERS=nexrad-n0r&STYLES=&SRS=EPSG:4326&BBOX=-125,24,-66,50&WIDTH=2048&HEIGHT=1024&ts=${timestamp}`;
+
+        // If the source exists, use updateImage to silently swap the image without flashing
+        if (map.getSource(sourceId)) {
+          map.getSource(sourceId).updateImage({ url: wmsUrl });
+        } else {
+          // Initial load
+          map.addSource(sourceId, {
+            type: 'image',
+            url: wmsUrl,
+            coordinates: [
+              [-125, 50], // Top Left
+              [-66, 50],  // Top Right
+              [-66, 24],  // Bottom Right
+              [-125, 24]  // Bottom Left
+            ]
+          });
+
+          map.addLayer({
+            id: layerId,
+            type: 'raster',
+            source: sourceId,
+            paint: {
+              'raster-opacity': 0.75,
+              'raster-fade-duration': 0 // Instant swap on updates
+            }
+          });
+        }
+      };
+
+      // 4. Geolocation Tracking
+      const lockToGPS = () => {
+        if (!('geolocation' in navigator)) {
+          statusBadge.innerText = 'GPS Not Supported';
+          statusBadge.style.color = '#ef4444'; // Red
+          return;
+        }
+
+        statusBadge.innerText = 'Acquiring GPS...';
+
+        navigator.geolocation.watchPosition(
+          (position) => {
+            const { longitude, latitude } = position.coords;
+            // Smoothly fly to the user's location and lock on
+            map.easeTo({ 
+              center: [longitude, latitude], 
+              zoom: 8, 
+              duration: 1000 
+            });
+            statusBadge.innerText = 'Live • GPS Locked';
+            statusBadge.style.color = '#22c55e'; // Green
+          },
+          (error) => {
+            console.error('Geolocation error:', error);
+            statusBadge.innerText = 'GPS Denied/Failed';
+            statusBadge.style.color = '#f59e0b'; // Orange
+          },
+          { 
+            enableHighAccuracy: true,
+            maximumAge: 10000,
+            timeout: 5000 
+          }
+        );
+      };
+
+      // Boot sequence
+      map.on('load', () => {
+        updateRadarLayer();
+        lockToGPS();
+        
+        // Setup the 60-second polling loop
+        setInterval(updateRadarLayer, 60000);
+      });
     });
   </script>
 </body>
