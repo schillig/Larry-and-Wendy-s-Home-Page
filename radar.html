@@ -6,7 +6,7 @@
   <meta name="description" content="LiteRadar - GPU Advection NOAA MRMS Radar" />
   <title>LiteRadar — Real-Time NOAA MRMS GPU Advection</title>
 
-  <!-- MapLibre GL JS Stylesheet (v3.6.2 for legacy hardware support) -->
+  <!-- MapLibre GL JS Stylesheet -->
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" />
 
   <style>
@@ -116,9 +116,8 @@
 <body>
   <main id="map" aria-label="Interactive Weather Map"></main>
 
-  <!-- Diagnostics Logger -->
   <div id="diagnostics" aria-live="polite">
-    <div>[SYS] High-Res Diagnostic Engine Initialized</div>
+    <div>[SYS] Physics-Corrected Engine Initialized</div>
   </div>
 
   <header class="glass-panel">
@@ -128,7 +127,7 @@
     </div>
     <div class="telemetry">
       <div class="telemetry-item">Pipeline: <span>4.2s</span></div>
-      <div class="telemetry-item">GPU: <span>Lagrangian (High-Res fBm)</span></div>
+      <div class="telemetry-item">GPU: <span>Lagrangian Flow</span></div>
     </div>
   </header>
 
@@ -165,7 +164,6 @@
   </nav>
 
   <script>
-    // System Logger Setup
     const logDOM = document.getElementById('diagnostics');
     const systemLog = (msg, type = 'INFO') => {
       const color = type === 'ERR' ? '#ef4444' : type === 'WARN' ? '#f59e0b' : '#32cd32';
@@ -175,7 +173,6 @@
     const originalError = console.error;
     console.error = function(...args) { systemLog(args.join(' '), 'ERR'); originalError.apply(console, args); };
 
-    // PMTiles Init
     try {
       if (typeof pmtiles !== 'undefined') {
         const protocol = new pmtiles.Protocol();
@@ -184,7 +181,6 @@
       }
     } catch (err) { console.error("PMTiles Init failed:", err.message); }
 
-    // Map Setup
     systemLog('Initializing MapLibre GL JS Engine...');
     const map = new maplibregl.Map({
       container: 'map',
@@ -213,7 +209,6 @@
 
     map.on('error', (e) => console.error('MapEngine Error:', e.error ? e.error.message : e));
 
-    // High-Resolution MRMS WebGL Layer
     const AdvectionRadarLayer = {
       id: 'mrms-advection-layer',
       type: 'custom',
@@ -234,85 +229,77 @@
           }
         `;
 
-        // COMPLETELY REWRITTEN FRAGMENT SHADER: High-Res Fractal Noise
         const fsSource = `
           precision mediump float;
           varying vec2 v_texCoord;
+          
+          // Slider value: negative is past, positive is future
           uniform float u_time_offset; 
-          uniform float u_global_time; 
+          
+          // uniform sampler2D u_radar_data; // <-- UNCOMMENT THIS WHEN USING REAL DATA
 
-          // 1. Pseudo-random hash generator
-          float hash(vec2 p) {
-            return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453123);
-          }
-
-          // 2. Value Noise function (smoother transitions)
+          // --- PROCEDURAL GENERATOR (FALLBACK) ---
+          float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453123); }
           float noise(vec2 p) {
-            vec2 i = floor(p);
-            vec2 f = fract(p);
+            vec2 i = floor(p); vec2 f = fract(p);
             f = f * f * (3.0 - 2.0 * f);
-            float a = hash(i);
-            float b = hash(i + vec2(1.0, 0.0));
-            float c = hash(i + vec2(0.0, 1.0));
-            float d = hash(i + vec2(1.0, 1.0));
+            float a = hash(i); float b = hash(i + vec2(1.0, 0.0));
+            float c = hash(i + vec2(0.0, 1.0)); float d = hash(i + vec2(1.0, 1.0));
             return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
           }
-
-          // 3. Fractional Brownian Motion (fBm) - Creates the "Crunchy" high-res look
           float fbm(vec2 p) {
-            float v = 0.0;
-            float a = 0.5;
-            // Matrix to rotate octaves to hide grid alignment artifacts
+            float v = 0.0; float a = 0.5;
             mat2 rot = mat2(cos(0.5), sin(0.5), -sin(0.5), cos(0.5));
-            for (int i = 0; i < 5; ++i) { // 5 octaves of detail
-              v += a * noise(p);
-              p = rot * p * 2.0 + vec2(100.0); // Shift and scale
-              a *= 0.5;
+            for (int i = 0; i < 5; ++i) {
+              v += a * noise(p); p = rot * p * 2.0 + vec2(100.0); a *= 0.5;
             }
             return v;
           }
 
-          // Generate Synthetic High-Res MRMS
-          vec3 generateSyntheticMRMS(vec2 uv, float t) {
-            // Macro-scale envelope (determines where the storm systems are)
-            float envelope = noise(uv * 4.0 + t * 0.015);
+          // FIX: Removed the global time tick from spatial coordinates. 
+          // The base frame is now perfectly static to prevent drift fighting advection.
+          vec3 getRadarData(vec2 uv) {
             
-            // Micro-scale detail (determines the pixelated/crunchy 1km grid look)
-            float detail = fbm(uv * 45.0 + t * 0.05);
+            // --- YOUR ACTUAL DATA IMPLEMENTATION ---
+            // return texture2D(u_radar_data, uv).rgb;
+            // ---------------------------------------
 
-            // Combine envelope and detail, then threshold sharply to create storm cell boundaries
+            float envelope = noise(uv * 4.0);
+            float detail = fbm(uv * 45.0);
             float combined = (envelope * 0.6 + detail * 0.8) - 0.45;
-            float storm = smoothstep(0.1, 0.7, combined); // Sharp falloff mimicking radar thresholds
-
-            // Map standard dBZ intensity (0 to ~70)
+            float storm = smoothstep(0.1, 0.7, combined);
             float dBZ = max(0.0, storm * 75.0);
             
             // Generate optical flow (u, v) simulating synoptic eastward flow
-            float u_vec = 0.015 + 0.005 * sin(uv.y * 10.0);
-            float v_vec = -0.005 + 0.002 * cos(uv.x * 10.0);
+            float u_vec = 0.015 + 0.005 * sin(uv.y * 10.0); // Eastward Flow
+            float v_vec = -0.005 + 0.002 * cos(uv.x * 10.0); // Slight Southward Dip
 
             return vec3(dBZ, u_vec, v_vec);
           }
 
-          // Standard NWS dBZ Color Palette Map
           vec4 applyRadarColorTable(float dbz) {
             if (dbz < 5.0) return vec4(0.0);
-            if (dbz < 15.0) return vec4(0.0, 0.92, 0.92, 0.4); // Light Blue
-            if (dbz < 25.0) return vec4(0.0, 0.0, 0.96, 0.6);  // Dark Blue
-            if (dbz < 35.0) return vec4(0.0, 0.8, 0.0, 0.75);  // Green
-            if (dbz < 45.0) return vec4(1.0, 1.0, 0.0, 0.85);  // Yellow
-            if (dbz < 55.0) return vec4(1.0, 0.47, 0.0, 0.9);  // Orange
-            if (dbz < 65.0) return vec4(1.0, 0.0, 0.0, 0.95);  // Red
-            return vec4(0.9, 0.0, 0.9, 1.0);                   // Magenta (Hail Core)
+            if (dbz < 15.0) return vec4(0.0, 0.92, 0.92, 0.4); 
+            if (dbz < 25.0) return vec4(0.0, 0.0, 0.96, 0.6);  
+            if (dbz < 35.0) return vec4(0.0, 0.8, 0.0, 0.75);  
+            if (dbz < 45.0) return vec4(1.0, 1.0, 0.0, 0.85);  
+            if (dbz < 55.0) return vec4(1.0, 0.47, 0.0, 0.9);  
+            if (dbz < 65.0) return vec4(1.0, 0.0, 0.0, 0.95);  
+            return vec4(0.9, 0.0, 0.9, 1.0);                   
           }
 
           void main() {
-            // Apply physical advection step: p_source = p_current - (velocity * dt)
-            vec2 velocity = generateSyntheticMRMS(v_texCoord, u_global_time).gb;
+            // 1. Sample velocity at the current screen pixel
+            vec2 velocity = getRadarData(v_texCoord).gb;
+            
+            // 2. Apply Advection Physics:
+            // p_source = p_current - (velocity * dt)
+            // If u_time_offset is positive (future), we sample backwards along the flow line 
+            // to simulate the storm moving forward into the current pixel.
             vec2 advectedUV = v_texCoord - (velocity * (u_time_offset / 10.0));
             
-            // Sample final DBZ at the advected position
-            float finalDBZ = generateSyntheticMRMS(advectedUV, u_global_time).r;
+            // 3. Sample Final Reflectivity
+            float finalDBZ = getRadarData(advectedUV).r;
             gl_FragColor = applyRadarColorTable(finalDBZ);
           }
         `;
@@ -341,7 +328,6 @@
         this.aUV = gl.getAttribLocation(this.program, 'a_uv');
         this.uMatrix = gl.getUniformLocation(this.program, 'u_matrix');
         this.uTimeOffset = gl.getUniformLocation(this.program, 'u_time_offset');
-        this.uGlobalTime = gl.getUniformLocation(this.program, 'u_global_time');
 
         const rawGeometry = [
           -125.0, 24.0,  0.0, 1.0,
@@ -365,7 +351,7 @@
         gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
         gl.bufferData(gl.ARRAY_BUFFER, this.vertexData, gl.STATIC_DRAW);
         
-        systemLog('High-Res WebGL Advection Layer Attached');
+        systemLog('Physics-Corrected Layer Attached');
       },
 
       render: function (gl, matrix) {
@@ -383,7 +369,6 @@
 
         gl.uniformMatrix4fv(this.uMatrix, false, matrix);
         gl.uniform1f(this.uTimeOffset, window.currentOffset || 0.0);
-        gl.uniform1f(this.uGlobalTime, (performance.now() / 1000.0) % 3600.0);
 
         gl.drawArrays(gl.TRIANGLES, 0, 6);
       }
@@ -394,15 +379,9 @@
       try {
         map.addLayer(AdvectionRadarLayer);
       } catch(err) { console.error('Layer add failed:', err.message); }
-      
-      const continuousRepaint = () => {
-        map.triggerRepaint();
-        requestAnimationFrame(continuousRepaint);
-      };
-      continuousRepaint();
     });
 
-    // UI Bindings
+    // UI Bindings & Animation Logic
     const slider = document.getElementById('timelineSlider');
     const playBtn = document.getElementById('playBtn');
     const playText = document.getElementById('playText');
@@ -425,23 +404,31 @@
       if (offsetMinutes > 2) {
         modeBadge.textContent = 'FORECAST';
         modeBadge.style.color = '#f59e0b';
+      } else if (offsetMinutes < -2) {
+        modeBadge.textContent = 'PAST';
+        modeBadge.style.color = '#94a3b8';
       } else {
         modeBadge.textContent = 'OBSERVED';
         modeBadge.style.color = 'var(--accent-blue)';
       }
     }
 
+    // Trigger map repaint manually ONLY when slider changes (Optimization)
     slider.addEventListener('input', (e) => {
       window.currentOffset = parseFloat(e.target.value);
       updateTimestampUI(window.currentOffset);
+      map.triggerRepaint();
     });
 
     function stepAnimation() {
       if (!isPlaying) return;
       window.currentOffset += 0.4;
       if (window.currentOffset > 60) window.currentOffset = -60;
+      
       slider.value = window.currentOffset;
       updateTimestampUI(window.currentOffset);
+      map.triggerRepaint();
+      
       animationFrameId = requestAnimationFrame(stepAnimation);
     }
 
@@ -462,6 +449,7 @@
       window.currentOffset = 0;
       slider.value = 0;
       updateTimestampUI(0);
+      map.triggerRepaint();
     });
 
     updateTimestampUI(0);
