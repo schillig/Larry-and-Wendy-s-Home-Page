@@ -3,14 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="LiteRadar - GPU Advection NOAA MRMS Radar" />
+  <meta name="description" content="LiteRadar - Real Radar GPU Advection" />
   <title>LiteRadar — Real-Time NOAA MRMS GPU Advection</title>
 
-  <!-- MapLibre GL JS Stylesheet -->
+  <!-- MapLibre GL JS Stylesheet (v3.6.2 for maximum compatibility) -->
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" />
 
   <style>
-    /* CSS Custom Properties for Semantic Theming (W3C Standard) */
     :root {
       --bg-dark: #0f172a;
       --panel-bg: rgba(15, 23, 42, 0.85);
@@ -61,26 +60,25 @@
       position: absolute; top: 16px; left: 16px; padding: 12px 20px;
       display: flex; align-items: center; gap: 16px;
     }
+    
     .brand h1 { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em; display: inline-block; }
+    
     .badge-live {
       display: inline-flex; align-items: center; gap: 6px;
       background: rgba(34, 197, 94, 0.15); color: var(--accent-green);
       border: 1px solid rgba(34, 197, 94, 0.3); padding: 2px 8px;
       border-radius: 999px; font-size: 0.75rem; font-weight: 600;
     }
+    
     .telemetry { display: flex; gap: 12px; font-size: 0.8rem; color: var(--text-muted); border-left: 1px solid var(--panel-border); padding-left: 16px; }
     .telemetry-item span { color: var(--text-main); font-weight: 600; }
-
-    .legend-container { position: absolute; top: 16px; right: 16px; padding: 12px 16px; width: 240px; }
-    .legend-title { font-size: 0.75rem; font-weight: 600; color: var(--text-muted); margin-bottom: 8px; }
-    .legend-bar { height: 10px; border-radius: 5px; background: linear-gradient(to right, rgba(0, 236, 236, 0.8), rgba(1, 160, 246, 0.8), rgba(0, 0, 246, 0.8), rgba(0, 255, 0, 0.8), rgba(0, 200, 0, 0.8), rgba(0, 140, 0, 0.8), rgba(255, 255, 0, 0.8), rgba(231, 192, 0, 0.8), rgba(255, 120, 0, 0.8), rgba(255, 0, 0, 0.8), rgba(200, 0, 0, 0.8), rgba(255, 0, 255, 0.8)); }
-    .legend-labels { display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--text-muted); margin-top: 4px; }
 
     .controls-container {
       position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%);
       width: calc(100% - 32px); max-width: 860px; padding: 16px 24px;
       display: flex; flex-direction: column; gap: 12px;
     }
+    
     .controls-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
     .playback-group { display: flex; align-items: center; gap: 12px; }
     
@@ -110,34 +108,25 @@
   </style>
 
   <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
-  <script src="https://unpkg.com/pmtiles@3.0.6/dist/pmtiles.js"></script>
 </head>
 
 <body>
   <main id="map" aria-label="Interactive Weather Map"></main>
 
   <div id="diagnostics" aria-live="polite">
-    <div>[SYS] Physics-Corrected Engine Initialized</div>
+    <div>[SYS] Hardware Engine Initialized</div>
   </div>
 
   <header class="glass-panel">
     <div class="brand">
       <h1>LiteRadar</h1>
-      <span class="badge-live">MRMS 2-Min</span>
+      <span class="badge-live">LIVE WMS DATA</span>
     </div>
     <div class="telemetry">
-      <div class="telemetry-item">Pipeline: <span>4.2s</span></div>
-      <div class="telemetry-item">GPU: <span>Lagrangian Flow</span></div>
+      <div class="telemetry-item">Pipeline: <span>Iowa Mesonet WMS</span></div>
+      <div class="telemetry-item">GPU: <span>Texture Sampler Advection</span></div>
     </div>
   </header>
-
-  <aside class="legend-container glass-panel">
-    <div class="legend-title">Reflectivity (dBZ)</div>
-    <div class="legend-bar"></div>
-    <div class="legend-labels">
-      <span>5</span><span>20</span><span>35</span><span>50</span><span>65+</span>
-    </div>
-  </aside>
 
   <nav class="controls-container glass-panel">
     <div class="controls-row">
@@ -151,7 +140,7 @@
 
       <div class="playback-group">
         <span id="modeBadge" class="mode-indicator">OBSERVED</span>
-        <div id="timeDisplay" class="timestamp-display">2026-07-24 --:-- UTC</div>
+        <div id="timeDisplay" class="timestamp-display">--:-- UTC</div>
       </div>
     </div>
 
@@ -164,6 +153,7 @@
   </nav>
 
   <script>
+    // 1. Diagnostics Logging
     const logDOM = document.getElementById('diagnostics');
     const systemLog = (msg, type = 'INFO') => {
       const color = type === 'ERR' ? '#ef4444' : type === 'WARN' ? '#f59e0b' : '#32cd32';
@@ -173,14 +163,7 @@
     const originalError = console.error;
     console.error = function(...args) { systemLog(args.join(' '), 'ERR'); originalError.apply(console, args); };
 
-    try {
-      if (typeof pmtiles !== 'undefined') {
-        const protocol = new pmtiles.Protocol();
-        maplibregl.addProtocol("pmtiles", protocol.tile);
-        systemLog('PMTiles Protocol Registered');
-      }
-    } catch (err) { console.error("PMTiles Init failed:", err.message); }
-
+    // 2. Map Setup
     systemLog('Initializing MapLibre GL JS Engine...');
     const map = new maplibregl.Map({
       container: 'map',
@@ -199,7 +182,7 @@
           {
             id: 'osm-layer', type: 'raster', source: 'osm-basemap',
             minzoom: 0, maxzoom: 19,
-            paint: { 'raster-opacity': 0.6, 'raster-saturation': -1, 'raster-contrast': 0.2 }
+            paint: { 'raster-opacity': 0.5, 'raster-saturation': -1, 'raster-contrast': 0.2 }
           }
         ]
       },
@@ -207,15 +190,16 @@
       zoom: 4.8
     });
 
-    map.on('error', (e) => console.error('MapEngine Error:', e.error ? e.error.message : e));
-
+    // 3. WebGL Layer with Real Texture Mapping
     const AdvectionRadarLayer = {
       id: 'mrms-advection-layer',
       type: 'custom',
       renderingMode: '2d',
 
       onAdd: function (map, gl) {
+        this.gl = gl;
         systemLog(`WebGL Renderer: ${gl.getParameter(gl.RENDERER)}`);
+        
         this.program = gl.createProgram();
 
         const vsSource = `
@@ -224,7 +208,8 @@
           varying vec2 v_texCoord;
           uniform mat4 u_matrix;
           void main() {
-            v_texCoord = a_uv;
+            // WMS Images are typically flipped on the Y axis compared to WebGL expectations
+            v_texCoord = vec2(a_uv.x, 1.0 - a_uv.y); 
             gl_Position = u_matrix * vec4(a_position, 0.0, 1.0);
           }
         `;
@@ -232,75 +217,32 @@
         const fsSource = `
           precision mediump float;
           varying vec2 v_texCoord;
-          
-          // Slider value: negative is past, positive is future
           uniform float u_time_offset; 
-          
-          // uniform sampler2D u_radar_data; // <-- UNCOMMENT THIS WHEN USING REAL DATA
-
-          // --- PROCEDURAL GENERATOR (FALLBACK) ---
-          float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453123); }
-          float noise(vec2 p) {
-            vec2 i = floor(p); vec2 f = fract(p);
-            f = f * f * (3.0 - 2.0 * f);
-            float a = hash(i); float b = hash(i + vec2(1.0, 0.0));
-            float c = hash(i + vec2(0.0, 1.0)); float d = hash(i + vec2(1.0, 1.0));
-            return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
-          }
-          float fbm(vec2 p) {
-            float v = 0.0; float a = 0.5;
-            mat2 rot = mat2(cos(0.5), sin(0.5), -sin(0.5), cos(0.5));
-            for (int i = 0; i < 5; ++i) {
-              v += a * noise(p); p = rot * p * 2.0 + vec2(100.0); a *= 0.5;
-            }
-            return v;
-          }
-
-          // FIX: Removed the global time tick from spatial coordinates. 
-          // The base frame is now perfectly static to prevent drift fighting advection.
-          vec3 getRadarData(vec2 uv) {
-            
-            // --- YOUR ACTUAL DATA IMPLEMENTATION ---
-            // return texture2D(u_radar_data, uv).rgb;
-            // ---------------------------------------
-
-            float envelope = noise(uv * 4.0);
-            float detail = fbm(uv * 45.0);
-            float combined = (envelope * 0.6 + detail * 0.8) - 0.45;
-            float storm = smoothstep(0.1, 0.7, combined);
-            float dBZ = max(0.0, storm * 75.0);
-            
-            // Generate optical flow (u, v) simulating synoptic eastward flow
-            float u_vec = 0.015 + 0.005 * sin(uv.y * 10.0); // Eastward Flow
-            float v_vec = -0.005 + 0.002 * cos(uv.x * 10.0); // Slight Southward Dip
-
-            return vec3(dBZ, u_vec, v_vec);
-          }
-
-          vec4 applyRadarColorTable(float dbz) {
-            if (dbz < 5.0) return vec4(0.0);
-            if (dbz < 15.0) return vec4(0.0, 0.92, 0.92, 0.4); 
-            if (dbz < 25.0) return vec4(0.0, 0.0, 0.96, 0.6);  
-            if (dbz < 35.0) return vec4(0.0, 0.8, 0.0, 0.75);  
-            if (dbz < 45.0) return vec4(1.0, 1.0, 0.0, 0.85);  
-            if (dbz < 55.0) return vec4(1.0, 0.47, 0.0, 0.9);  
-            if (dbz < 65.0) return vec4(1.0, 0.0, 0.0, 0.95);  
-            return vec4(0.9, 0.0, 0.9, 1.0);                   
-          }
+          uniform sampler2D u_radar_data;
 
           void main() {
-            // 1. Sample velocity at the current screen pixel
-            vec2 velocity = getRadarData(v_texCoord).gb;
+            // In your real data, you'd extract velocity from the G/B channels here:
+            // vec2 velocity = texture2D(u_radar_data, v_texCoord).gb;
             
-            // 2. Apply Advection Physics:
-            // p_source = p_current - (velocity * dt)
-            // If u_time_offset is positive (future), we sample backwards along the flow line 
-            // to simulate the storm moving forward into the current pixel.
-            vec2 advectedUV = v_texCoord - (velocity * (u_time_offset / 10.0));
+            // Since this WMS image is standard RGB radar, we generate a synthetic velocity 
+            // field to demonstrate the advection physics still working on real raster data.
+            float u_vec = 0.015 + 0.005 * sin(v_texCoord.y * 10.0);
+            float v_vec = -0.005 + 0.002 * cos(v_texCoord.x * 10.0);
+            vec2 syntheticVelocity = vec2(u_vec, v_vec);
+
+            // Apply Advection Physics
+            vec2 advectedUV = v_texCoord - (syntheticVelocity * (u_time_offset / 10.0));
             
-            // 3. Sample Final Reflectivity
-            float finalDBZ = getRadarData(advectedUV).r;
-            gl_FragColor = applyRadarColorTable(finalDBZ);
+            // Ensure we don't wrap the texture infinitely
+            if(advectedUV.x < 0.0 || advectedUV.x > 1.0 || advectedUV.y < 0.0 || advectedUV.y > 1.0) {
+              discard;
+            }
+
+            // Sample the real WMS texture at the advected coordinates
+            vec4 radarPixel = texture2D(u_radar_data, advectedUV);
+            
+            // Output real pixel
+            gl_FragColor = radarPixel;
           }
         `;
 
@@ -315,20 +257,17 @@
           return shader;
         };
 
-        const vs = compileShader(gl.VERTEX_SHADER, vsSource, "Vertex");
-        const fs = compileShader(gl.FRAGMENT_SHADER, fsSource, "Fragment");
-        
-        if (!vs || !fs) return;
-
-        gl.attachShader(this.program, vs);
-        gl.attachShader(this.program, fs);
+        gl.attachShader(this.program, compileShader(gl.VERTEX_SHADER, vsSource, "Vertex"));
+        gl.attachShader(this.program, compileShader(gl.FRAGMENT_SHADER, fsSource, "Fragment"));
         gl.linkProgram(this.program);
 
         this.aPosition = gl.getAttribLocation(this.program, 'a_position');
         this.aUV = gl.getAttribLocation(this.program, 'a_uv');
         this.uMatrix = gl.getUniformLocation(this.program, 'u_matrix');
         this.uTimeOffset = gl.getUniformLocation(this.program, 'u_time_offset');
+        this.uRadarData = gl.getUniformLocation(this.program, 'u_radar_data');
 
+        // Geodesic Quad Definition matching the WMS Request bounds exactly
         const rawGeometry = [
           -125.0, 24.0,  0.0, 1.0,
            -66.0, 24.0,  1.0, 1.0,
@@ -350,25 +289,58 @@
         this.buffer = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
         gl.bufferData(gl.ARRAY_BUFFER, this.vertexData, gl.STATIC_DRAW);
+
+        // --- LOAD REAL RADAR TEXTURE ---
+        this.texture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, this.texture);
+        // Fill with transparent pixel while loading
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 0, 0]));
+
+        const image = new Image();
+        image.crossOrigin = "anonymous"; // CRITICAL for WebGL security
         
-        systemLog('Physics-Corrected Layer Attached');
+        // Live WMS Request for US CONUS Base Reflectivity (Matches our -125,24 to -66,50 bounds)
+        // REPLACE THIS URL WITH YOUR CLOUDFLARE R2 ENDPOINT IN PRODUCTION
+        image.src = "https://mesonet.agron.iastate.edu/cgi-bin/wms/nexrad/n0r.cgi?SERVICE=WMS&REQUEST=GetMap&FORMAT=image/png&TRANSPARENT=true&VERSION=1.1.1&LAYERS=nexrad-n0r&STYLES=&SRS=EPSG:4326&BBOX=-125,24,-66,50&WIDTH=1024&HEIGHT=512";
+        
+        image.onload = () => {
+          systemLog('Live Radar Texture Loaded successfully.');
+          gl.bindTexture(gl.TEXTURE_2D, this.texture);
+          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+          map.triggerRepaint(); // Force render now that data is here
+        };
+        
+        image.onerror = () => {
+          systemLog('Failed to load real radar texture (CORS or Network issue).', 'ERR');
+        };
       },
 
       render: function (gl, matrix) {
         if (!this.program) return;
         gl.useProgram(this.program);
+        
         gl.enable(gl.BLEND);
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
         
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
         gl.enableVertexAttribArray(this.aPosition);
         gl.vertexAttribPointer(this.aPosition, 2, gl.FLOAT, false, 16, 0);
 
         gl.enableVertexAttribArray(this.aUV);
         gl.vertexAttribPointer(this.aUV, 2, gl.FLOAT, false, 16, 8);
 
+        // Bind Uniforms
         gl.uniformMatrix4fv(this.uMatrix, false, matrix);
         gl.uniform1f(this.uTimeOffset, window.currentOffset || 0.0);
+
+        // Bind the actual radar texture to texture unit 0
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, this.texture);
+        gl.uniform1i(this.uRadarData, 0);
 
         gl.drawArrays(gl.TRIANGLES, 0, 6);
       }
@@ -376,12 +348,10 @@
 
     map.on('load', () => {
       systemLog('Map Basemap Loaded.');
-      try {
-        map.addLayer(AdvectionRadarLayer);
-      } catch(err) { console.error('Layer add failed:', err.message); }
+      map.addLayer(AdvectionRadarLayer);
     });
 
-    // UI Bindings & Animation Logic
+    // 4. UI Bindings
     const slider = document.getElementById('timelineSlider');
     const playBtn = document.getElementById('playBtn');
     const playText = document.getElementById('playText');
@@ -413,7 +383,6 @@
       }
     }
 
-    // Trigger map repaint manually ONLY when slider changes (Optimization)
     slider.addEventListener('input', (e) => {
       window.currentOffset = parseFloat(e.target.value);
       updateTimestampUI(window.currentOffset);
@@ -428,7 +397,6 @@
       slider.value = window.currentOffset;
       updateTimestampUI(window.currentOffset);
       map.triggerRepaint();
-      
       animationFrameId = requestAnimationFrame(stepAnimation);
     }
 
