@@ -138,7 +138,9 @@
         .msg-animate { animation: slideDown 0.3s ease-out forwards; }
     </style>
 </head>
-<body class="bg-black"> <div id="landscape-warning" class="fixed inset-0 z-[10000] hidden flex-col items-center justify-center text-center p-6 bg-[#0f5a2b] bg-[radial-gradient(circle,#157338_0%,#0a3d1c_100%)]">
+<body class="bg-black">
+
+    <div id="landscape-warning" class="fixed inset-0 z-[10000] hidden flex-col items-center justify-center text-center p-6 bg-[#0f5a2b] bg-[radial-gradient(circle,#157338_0%,#0a3d1c_100%)]">
         <div class="text-7xl mb-6 animate-bounce">📱</div>
         <h2 class="text-3xl font-bold text-[#fbbf24] mb-4 tracking-wider">Portrait Mode Required</h2>
         <p class="text-white text-lg max-w-md leading-relaxed">
@@ -267,7 +269,7 @@
                 </button>
                 
                 <div class="mt-4 text-white/30 text-xs font-mono tracking-widest">
-                    v1.1.16
+                    v1.1.17
                 </div>
             </div>
         </div>
@@ -276,18 +278,23 @@
             
             <div class="w-full max-w-[1200px] px-4 py-6 flex justify-between items-end">
                 <div class="flex gap-2 cursor-pointer group" id="stock-container" title="Deal Cards">
-                    </div>
+                    <!-- Javascript populates standard stock -->
+                </div>
 
                 <div class="flex gap-2" id="foundations-container">
-                    </div>
+                    <!-- Javascript populates foundations -->
+                </div>
             </div>
 
             <div id="game-board">
-                </div>
+                <!-- Javascript populates game board tableaus -->
+            </div>
 
         </main>
 
-    </div> <script>
+    </div>
+
+    <script>
         // --- SCREEN ORIENTATION LOCK ATTEMPT ---
         // Will silently fail on standard browsers, but activates if saved as a PWA app
         try {
@@ -438,6 +445,18 @@
                 autoSave(); // Save fresh board to localStorage
             }
 
+            // Failsafe helper to kill drag physics if a button is pressed mid-drag
+            function abortDrag() {
+                if (!drag.active) return;
+                drag.active = false;
+                drag.isDragging = false;
+                drag.elements.forEach(el => {
+                    el.classList.remove('dragging');
+                    el.style.transform = '';
+                });
+                drag.elements = [];
+            }
+
             // --- UNDO / REDO SYSTEM (DELTA ARCHITECTURE) ---
             // PERFORMANCE OPTIMIZATION: Instead of deep copying all 104 cards every single move, 
             // this function only takes a snapshot of the specific columns (piles) that are changing.
@@ -463,12 +482,13 @@
                 
                 history.push(delta);
                 
-                // V1.1.15 FIX: Removed the RAM cap so the active playing session has INFINITE UNDOS.
-                
                 els.undoBtn.disabled = false;
             }
 
             function undo() {
+                abortDrag(); // Prevent multi-touch bugs if undo clicked while dragging
+                stopFireworks(); // Clear win state if user decides to reverse their win
+
                 if (history.length === 0) return;
                 const previousState = history.pop();
 
@@ -509,6 +529,9 @@
             }
 
             function redo() {
+                abortDrag();
+                stopFireworks();
+
                 if (redoHistory.length === 0) return;
                 const nextState = redoHistory.pop();
 
@@ -549,24 +572,31 @@
             // --- SAVE / LOAD SYSTEM ---
             const SAVE_KEY = 'spider_solitaire_save';
 
-            // V1.1.15 FIX: Active session has infinite RAM undos, but the background save 
-            // process silently slices it to exactly 75 to guarantee the phone never lags.
+            // V1.1.17 FIX: Asynchronous saving prevents UI lag while allowing infinite history saves.
+            // Wrapping stringify in setTimeout allows the UI to render smoothly before the heavy work begins.
             function autoSave() {
-                const safeHistory = history.length > 75 ? history.slice(-75) : history;
-                const safeRedo = redoHistory.length > 75 ? redoHistory.slice(-75) : redoHistory;
-                
-                const saveData = { 
-                    state: state, 
-                    history: safeHistory, 
-                    redoHistory: safeRedo, 
-                    initialGameState: initialGameState 
-                };
+                setTimeout(() => {
+                    const saveData = {
+                        state: state,
+                        history: history, // Keep everything!
+                        redoHistory: redoHistory,
+                        initialGameState: initialGameState
+                    };
 
-                try {
-                    localStorage.setItem(SAVE_KEY, JSON.stringify(saveData));
-                } catch (e) {
-                    console.warn("Storage quota exceeded, skipping background save.");
-                }
+                    try {
+                        localStorage.setItem(SAVE_KEY, JSON.stringify(saveData));
+                    } catch (e) {
+                        console.warn('Storage quota exceeded, performing emergency prune.');
+                        // Failsafe: Only if the phone's literal memory quota is hit do we slice.
+                        saveData.history = history.slice(-50);
+                        saveData.redoHistory = redoHistory.slice(-50);
+                        try {
+                            localStorage.setItem(SAVE_KEY, JSON.stringify(saveData));
+                        } catch(err) {
+                            console.error('Save completely failed.');
+                        }
+                    }
+                }, 10);
             }
 
             // --- DECK MANAGEMENT ---
@@ -708,6 +738,8 @@
 
             // Triggered via stock click
             function dealFromStock() {
+                abortDrag(); // Failsafe for multi-touch
+
                 if (state.stock.length === 0) return;
 
                 // --- ORIGINAL RULE CHECK ---
