@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Wendy's Monte Carlo</title>
+    
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect x='20' y='15' width='60' height='70' rx='8' fill='white' stroke='%23d1d5db' stroke-width='4' transform='rotate(-6 50 50)'/%3E%3Ctext x='50' y='63' font-size='45' fill='%23171717' text-anchor='middle' font-family='sans-serif' transform='rotate(-6 50 50)'%3E%E2%99%A3%3C/text%3E%3C/svg%3E">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+    
+    <style>
+        /* --- GLOBAL & MOBILE FIXES --- */
+        html, body {
+            overscroll-behavior-y: none; 
+            overscroll-behavior-x: none; 
+            height: 100%;
+            width: 100%;
+        }
+
+        body {
+            background-color: #0f5a2b; 
+            background-image: radial-gradient(circle, #157338 0%, #0a3d1c 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; 
+        }
+
+        #game-wrapper {
+            overflow-y: auto;
+            overflow-x: hidden;
+            touch-action: pan-y;
+        }
+
+        /* --- CARD STYLING & PHYSICS --- */
+        .card {
+            width: 100%; 
+            aspect-ratio: 2.5 / 3.5; 
+            border-radius: 0.375rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.4);
+            transition: transform 0.15s ease-in-out, box-shadow 0.15s ease-in-out, opacity 0.3s ease-out;
+            user-select: none;  
+            -webkit-user-drag: none;
+            cursor: pointer;
+            background-color: white;
+            border: 1px solid #cbd5e1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 4%;
+            overflow: hidden;
+            container-type: inline-size;
+            position: relative;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 12px rgba(0,0,0,0.5);
+        }
+
+        /* Highlight a selected card waiting for a match */
+        .card.selected {
+            transform: translateY(-8px) scale(1.05);
+            box-shadow: 0 10px 20px -3px rgba(255, 215, 0, 0.6), 0 4px 6px -2px rgba(255, 215, 0, 0.3);
+            border-color: #fbbf24;
+            border-width: 2px;
+            z-index: 50;
+        }
+
+        .card.red-suit { color: #dc2626; }
+        .card.black-suit { color: #171717; }
+
+        /* --- GAME BOARD LAYOUT --- */
+        .drop-zone {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 2.5 / 3.5;
+            background-color: rgba(0, 0, 0, 0.2);
+            border-radius: 0.375rem;
+            border: 1px dashed rgba(255,255,255,0.15);
+            transition: background-color 0.3s;
+        }
+
+        /* The 5x5 grid specific to Monte Carlo */
+        #game-board {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: clamp(0.25rem, 1.5vw, 0.75rem); 
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        /* Animations */
+        @keyframes slideDown {
+            from { transform: translate(-50%, -100%); opacity: 0; }
+            to { transform: translate(-50%, 0); opacity: 1; }
+        }
+        .msg-animate { animation: slideDown 0.3s ease-out forwards; }
+        
+        @keyframes popOut {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+            100% { transform: scale(0); opacity: 0; }
+        }
+        .anim-match { animation: popOut 0.3s ease-in forwards; pointer-events: none; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .anim-deal { animation: fadeIn 0.4s ease-out forwards; }
+
+    </style>
+</head>
+<body class="bg-black">
+
+    <div id="game-wrapper" class="flex-grow flex flex-col w-full relative h-[100dvh]">
+        
+        <header class="bg-black/40 p-3 md:p-4 shadow-lg backdrop-blur-sm z-20 sticky top-0 shrink-0">
+            <div class="max-w-[1200px] mx-auto flex flex-col md:flex-row md:flex-wrap justify-between items-start md:items-center gap-3 md:gap-4">
+                
+                <div class="flex items-center gap-3 w-full md:w-auto">
+                    <div class="w-6 h-8 shrink-0 bg-white rounded shadow-sm flex items-center justify-center border border-gray-300 transform -rotate-6">
+                        <span class="text-black text-lg leading-none">♣</span>
+                    </div>
+                    <h1 class="font-bold tracking-wider whitespace-nowrap text-[clamp(1.1rem,4.5vw,1.875rem)] text-white drop-shadow">WENDY'S MONTE CARLO</h1>
+                </div>
+                
+                <div class="flex items-center justify-between w-full md:w-auto gap-4">
+                    <div class="flex items-center gap-4 md:gap-6 text-sm md:text-base font-semibold text-gray-200">
+                        <div>SCORE: <span id="score-display" class="text-white">0</span></div>
+                        <div>MOVES: <span id="moves-display" class="text-white">0</span></div>
+                    </div>
+                    <button id="new-game-btn" class="bg-green-600 hover:bg-green-500 text-white px-3 md:px-4 py-1.5 rounded transition-colors shadow-md select-none touch-none text-sm md:text-base whitespace-nowrap" title="Long press for new game">
+                        New Game
+                    </button>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2 md:gap-3 w-full md:w-auto">
+                    <button id="gear-btn" class="bg-gray-800 hover:bg-gray-700 border border-gray-600 text-white px-3 py-1.5 rounded transition-colors shadow-md select-none touch-none" title="Long press for Settings">
+                        ⚙️
+                    </button>
+                    <button id="undo-btn" class="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-1.5 rounded transition-colors shadow-md" disabled>
+                        Undo
+                    </button>
+                    <button id="redo-btn" class="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-1.5 rounded transition-colors shadow-md" disabled>
+                        Redo
+                    </button>
+                    <button id="replay-btn" class="bg-orange-600 hover:bg-orange-500 text-white px-4 py-1.5 rounded transition-colors shadow-md select-none touch-none" title="Long press to replay">
+                        Replay
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <div id="message-box" class="fixed top-20 left-1/2 hidden z-50 bg-red-600 text-white px-6 py-3 rounded shadow-2xl border border-red-400 text-center font-semibold transform -translate-x-1/2 whitespace-nowrap">
+            <span id="message-text"></span>
+        </div>
+
+        <!-- Instructions Modal -->
+        <div id="instructions-modal" class="fixed inset-0 bg-black/80 z-[9999] hidden flex items-center justify-center backdrop-blur-sm px-4">
+            <div class="bg-[#0f5a2b] border-2 border-blue-400 rounded-xl p-6 shadow-2xl max-w-lg w-full text-left max-h-[80vh] overflow-y-auto">
+                <h2 class="text-3xl font-bold text-white border-b border-gray-400 pb-2 mb-4 text-center">How to Play</h2>
+                
+                <div class="text-gray-100 space-y-4 text-sm leading-relaxed">
+                    <p><strong>The Goal:</strong> Remove all 52 cards from the deck by matching pairs of identical ranks (e.g., two Queens, two 8s).</p>
+                    
+                    <h3 class="text-lg font-bold text-[#fbbf24] mt-4 border-b border-[#fbbf24]/30 pb-1">Rules of Matching</h3>
+                    <ul class="list-disc pl-5 space-y-2">
+                        <li>You can only remove pairs of cards that are <strong>adjacent</strong> to each other (touching horizontally, vertically, or diagonally).</li>
+                        <li>Simply <strong>tap one card, then tap a matching card</strong> to remove them!</li>
+                        <li>There is no dragging in Monte Carlo.</li>
+                    </ul>
+
+                    <h3 class="text-lg font-bold text-[#fbbf24] mt-4 border-b border-[#fbbf24]/30 pb-1">Consolidation</h3>
+                    <ul class="list-disc pl-5 space-y-2">
+                        <li>When you run out of matches (or whenever you want to), press the <strong>"Consolidate & Deal"</strong> button.</li>
+                        <li>All cards on the board will slide up and to the left to fill the empty gaps, retaining their exact order.</li>
+                        <li>New cards will be dealt from the stock to refill the 25-card grid.</li>
+                    </ul>
+                    
+                    <div class="bg-black/30 p-3 rounded border border-blue-400/50 mt-4 text-xs">
+                        <p class="font-bold text-blue-300 mb-1">⚙️ Variants Available in Settings!</p>
+                        <p>Monte Carlo features 4 classic rule variants ranging from the strict "Orthogonal Only" to the wildly casual "Match Anywhere". Check the settings gear!</p>
+                    </div>
+                </div>
+
+                <div class="mt-6 text-center">
+                    <button id="close-instructions-btn" class="bg-gray-200 text-black font-bold py-2 px-8 rounded hover:bg-white transition-colors shadow-md w-full">
+                        Got it!
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Modal -->
+        <div id="settings-modal" class="fixed inset-0 bg-black/80 z-[9999] hidden flex items-center justify-center backdrop-blur-sm px-4">
+            <div class="bg-[#0f5a2b] border-2 border-[#fbbf24] rounded-xl p-6 shadow-2xl max-w-sm w-full text-center">
+                <h2 class="text-2xl font-bold text-[#fbbf24] mb-4">Settings</h2>
+                
+                <div class="mb-5 text-left">
+                    <label class="block text-sm font-semibold mb-2 text-white">Adjacency Rules (Variant):</label>
+                    <select id="rules-select" class="bg-gray-800 text-white border border-gray-600 rounded px-3 py-2 w-full focus:ring-2 focus:ring-[#fbbf24] outline-none cursor-pointer">
+                        <option value="standard">Standard (Touch Any Direction)</option>
+                        <option value="orthogonal">Orthogonal (Up/Down/Left/Right Only)</option>
+                        <option value="rowcol">Fourteen Puzzle (Anywhere in same Row/Col)</option>
+                        <option value="anywhere">Relaxed (Match anywhere on board)</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <button id="help-btn" class="w-full bg-blue-800 hover:bg-blue-700 border border-blue-600 text-white px-4 py-2 rounded transition-colors shadow-md font-bold text-sm">
+                        ❓ Read Instructions
+                    </button>
+                </div>
+
+                <button id="close-settings-btn" class="bg-gray-200 text-black font-bold py-2 px-8 rounded hover:bg-white transition-colors shadow-md w-full mt-4">
+                    Done
+                </button>
+            </div>
+        </div>
+
+        <main class="flex-grow flex flex-col items-center relative pb-12 px-2 md:px-4 pt-4 md:pt-8">
+            
+            <div class="w-full max-w-[800px] flex flex-col gap-6">
+                
+                <!-- PLAY AREA (5x5 GRID) -->
+                <div class="bg-black/20 p-3 md:p-6 rounded-xl border border-white/10 shadow-inner">
+                    <div id="game-board">
+                        <!-- JS Inject 25 slots -->
+                    </div>
+                </div>
+                
+                <!-- ACTION BUTTON AREA -->
+                <div class="flex flex-col items-center gap-3 w-full">
+                    <button id="consolidate-btn" class="w-full max-w-sm bg-[#fbbf24] hover:bg-[#f59e0b] text-black font-extrabold text-lg py-4 px-6 rounded-xl shadow-[0_4px_14px_0_rgba(251,191,36,0.39)] transition-all hover:-translate-y-1 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:shadow-none">
+                        Consolidate & Deal
+                    </button>
+                    <div class="text-white/60 font-semibold text-sm tracking-wider">
+                        CARDS IN DECK: <span id="cards-left" class="text-white">27</span>
+                    </div>
+                </div>
+                
+            </div>
+        </main>
+    </div>
+
+    <script>
+        (function() {
+            // --- CONSTANTS ---
+            const SUITS = {
+                SPADES: { icon: '♠', color: 'black-suit' },
+                HEARTS: { icon: '♥', color: 'red-suit' },
+                CLUBS: { icon: '♣', color: 'black-suit' },
+                DIAMONDS: { icon: '♦', color: 'red-suit' }
+            };
+            const RANKS = [13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1];
+            const RANK_LABELS = { 13: 'K', 12: 'Q', 11: 'J', 1: 'A' };
+
+            // --- STREAMING_CHUNK:Initializing state memory... ---
+            let state = {
+                deck: [],
+                grid: Array(25).fill(null), // 1D array representing the 5x5 board
+                moves: 0,
+                score: 0,
+                rules: 'standard', // 'standard', 'orthogonal', 'rowcol', 'anywhere'
+                selectedIndex: null // Index (0-24) of currently tapped card
+            };
+
+            let history = [];
+            let redoHistory = [];
+            let initialGameState = null;
+            let saveTimeout = null;
+
+            // DOM CACHE
+            const els = {
+                board: document.getElementById('game-board'),
+                scoreDisplay: document.getElementById('score-display'),
+                movesDisplay: document.getElementById('moves-display'),
+                cardsLeftDisplay: document.getElementById('cards-left'),
+                consolidateBtn: document.getElementById('consolidate-btn'),
+                newGameBtn: document.getElementById('new-game-btn'),
+                msgBox: document.getElementById('message-box'),
+                msgText: document.getElementById('message-text'),
+                undoBtn: document.getElementById('undo-btn'),
+                redoBtn: document.getElementById('redo-btn'),
+                replayBtn: document.getElementById('replay-btn'),
+                gearBtn: document.getElementById('gear-btn'),
+                settingsModal: document.getElementById('settings-modal'),
+                rulesSel: document.getElementById('rules-select'),
+                closeSettingsBtn: document.getElementById('close-settings-btn'),
+                helpBtn: document.getElementById('help-btn'),
+                instructionsModal: document.getElementById('instructions-modal'),
+                closeInstructionsBtn: document.getElementById('close-instructions-btn'),
+            };
+
+            // Fireworks System
+            let fireworksInterval = null; 
+            function launchFireworks() {
+                if (fireworksInterval) clearInterval(fireworksInterval);
+                const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 9999 };
+                function r(min, max) { return Math.random() * (max - min) + min; }
+                fireworksInterval = setInterval(() => {
+                    confetti(Object.assign({}, defaults, { particleCount: 50, origin: { x: r(0.1, 0.3), y: Math.random() - 0.2 } }));
+                    confetti(Object.assign({}, defaults, { particleCount: 50, origin: { x: r(0.7, 0.9), y: Math.random() - 0.2 } }));
+                }, 250);
+            }
+            function stopFireworks() {
+                if (fireworksInterval) { clearInterval(fireworksInterval); fireworksInterval = null; }
+                if (typeof confetti === "function") confetti.reset(); 
+            }
+
+            // --- STREAMING_CHUNK:Deck and Initialization... ---
+            function initGame() {
+                state.grid = Array(25).fill(null);
+                state.moves = 0;
+                state.score = 0;
+                state.selectedIndex = null;
+                
+                history = [];
+                redoHistory = [];
+                els.undoBtn.disabled = true;
+                els.redoBtn.disabled = true;
+                
+                stopFireworks();
+                hideMessage();
+                
+                buildDeck();
+                shuffleDeck();
+                dealInitialCards();
+                
+                initialGameState = JSON.parse(JSON.stringify(state));
+                updateUI();
+                autoSave();
+            }
+
+            function buildDeck() {
+                state.deck = [];
+                let cardId = 0;
+                const suits = [SUITS.SPADES, SUITS.HEARTS, SUITS.CLUBS, SUITS.DIAMONDS];
+                suits.forEach(suit => {
+                    RANKS.forEach(rank => {
+                        state.deck.push({ id: `card-${cardId++}`, suit: suit, rank: rank });
+                    });
+                });
+            }
+
+            function shuffleDeck() {
+                for (let i = state.deck.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [state.deck[i], state.deck[j]] = [state.deck[j], state.deck[i]];
+                }
+            }
+
+            function dealInitialCards() {
+                for (let i = 0; i < 25; i++) {
+                    state.grid[i] = state.deck.pop();
+                }
+            }
+
+            // --- STREAMING_CHUNK:Monte Carlo Adjacency Math... ---
+            // Evaluates if two grid indices (0-24) are adjacent based on the active variant settings
+            function isAdjacent(index1, index2) {
+                if (state.rules === 'anywhere') return true;
+
+                const r1 = Math.floor(index1 / 5); const c1 = index1 % 5;
+                const r2 = Math.floor(index2 / 5); const c2 = index2 % 5;
+                
+                const dr = Math.abs(r1 - r2);
+                const dc = Math.abs(c1 - c2);
+
+                if (state.rules === 'standard') {
+                    // Touching in any of the 8 directions
+                    return (dr <= 1 && dc <= 1) && !(dr === 0 && dc === 0);
+                } 
+                else if (state.rules === 'orthogonal') {
+                    // strictly left/right/up/down
+                    return (dr === 1 && dc === 0) || (dr === 0 && dc === 1);
+                } 
+                else if (state.rules === 'rowcol') {
+                    // Fourteen Puzzle rules: anywhere in same row or column
+                    return (dr === 0 || dc === 0) && !(dr === 0 && dc === 0);
+                }
+                
+                return false;
+            }
+
+            function hasValidMoves() {
+                // Scan entire grid for any valid matching pair
+                for (let i = 0; i < 25; i++) {
+                    if (!state.grid[i]) continue;
+                    for (let j = i + 1; j < 25; j++) {
+                        if (!state.grid[j]) continue;
+                        
+                        if (state.grid[i].rank === state.grid[j].rank && isAdjacent(i, j)) {
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            }
+
+            // --- STREAMING_CHUNK:Interaction Logic... ---
+            function processCardClick(index) {
+                const clickedCard = state.grid[index];
+                if (!clickedCard) return; // Clicked an empty slot
+
+                // 1. If nothing is selected, select this card
+                if (state.selectedIndex === null) {
+                    state.selectedIndex = index;
+                    updateUI();
+                    return;
+                }
+
+                // 2. If clicking the already selected card, deselect it
+                if (state.selectedIndex === index) {
+                    state.selectedIndex = null;
+                    updateUI();
+                    return;
+                }
+
+                // 3. Evaluate Match
+                const selectedCard = state.grid[state.selectedIndex];
+                
+                if (clickedCard.rank === selectedCard.rank && isAdjacent(index, state.selectedIndex)) {
+                    // MATCH SUCCESS!
+                    saveState();
+                    
+                    // Trigger visual pop animation before deleting from DOM
+                    const domCard1 = els.board.children[index].firstElementChild;
+                    const domCard2 = els.board.children[state.selectedIndex].firstElementChild;
+                    if(domCard1) domCard1.classList.add('anim-match');
+                    if(domCard2) domCard2.classList.add('anim-match');
+                    
+                    // Wait for animation to finish before nuking from state
+                    setTimeout(() => {
+                        state.grid[index] = null;
+                        state.grid[state.selectedIndex] = null;
+                        state.selectedIndex = null;
+                        state.moves++;
+                        state.score += 20;
+                        updateUI();
+                        autoSave();
+                        checkWinCondition();
+                    }, 250);
+                    
+                } else {
+                    // MATCH FAIL
+                    const domCard = els.board.children[index].firstElementChild;
+                    if(domCard) domCard.classList.add('border-red-500', 'border-2', 'animate-pulse');
+                    setTimeout(() => {
+                        state.selectedIndex = index; // Swap selection to the new card
+                        updateUI();
+                    }, 300);
+                }
+            }
+
+            // The core mechanic of Monte Carlo
+            function consolidateAndDeal() {
+                saveState();
+                state.selectedIndex = null;
+                
+                // 1. Remove gaps and slide all cards left/up
+                const consolidatedCards = state.grid.filter(card => card !== null);
+                
+                // 2. Deal new cards from stock to reach 25
+                let newCardsAdded = 0;
+                while (consolidatedCards.length < 25 && state.deck.length > 0) {
+                    consolidatedCards.push(state.deck.pop());
+                    newCardsAdded++;
+                }
+                
+                // 3. Pad end with nulls if deck is empty and grid isn't full
+                while (consolidatedCards.length < 25) {
+                    consolidatedCards.push(null);
+                }
+                
+                state.grid = consolidatedCards;
+                state.moves++;
+                
+                // Pass newCardsAdded to updateUI so it can animate them dealing in
+                updateUI(newCardsAdded); 
+                autoSave();
+                
+                setTimeout(checkWinCondition, 500); // Check for game over after dealing
+            }
+
+            function checkWinCondition() {
+                const isEmpty = state.grid.every(c => c === null);
+                if (isEmpty) {
+                    setTimeout(() => {
+                        showMessage("🎉 Incredible! You beat Monte Carlo! 🎉", true);
+                        launchFireworks();
+                    }, 500);
+                    return;
+                }
+
+                if (state.deck.length === 0 && !hasValidMoves()) {
+                    showMessage("Game Over! No more valid moves.", true);
+                }
+            }
+
+            // --- STREAMING_CHUNK:Undo, Redo, and Persistence... ---
+            function saveState() {
+                redoHistory = [];
+                els.redoBtn.disabled = true;
+                const snapshot = JSON.parse(JSON.stringify(state));
+                history.push(snapshot);
+                els.undoBtn.disabled = false;
+            }
+
+            function undo() {
+                if (history.length === 0) return;
+                redoHistory.push(JSON.parse(JSON.stringify(state)));
+                state = history.pop();
+                els.undoBtn.disabled = history.length === 0;
+                els.redoBtn.disabled = false;
+                state.selectedIndex = null; // Clear selection on time travel
+                updateUI(); autoSave();
+            }
+
+            function redo() {
+                if (redoHistory.length === 0) return;
+                history.push(JSON.parse(JSON.stringify(state)));
+                state = redoHistory.pop();
+                els.undoBtn.disabled = false;
+                els.redoBtn.disabled = redoHistory.length === 0;
+                state.selectedIndex = null;
+                updateUI(); autoSave();
+            }
+
+            function autoSave() {
+                if (saveTimeout) clearTimeout(saveTimeout);
+                saveTimeout = setTimeout(() => {
+                    const saveData = { state, history, redoHistory, initialGameState };
+                    try { localStorage.setItem('montecarlo_save', JSON.stringify(saveData)); } catch (e) {}
+                }, 500);
+            }
+
+            // --- STREAMING_CHUNK:Rendering Engine... ---
+            function getRankDisplay(rank) { return RANK_LABELS[rank] || rank.toString(); }
+
+            function updateUI(newCardsCount = 0) {
+                els.scoreDisplay.innerText = state.score;
+                els.movesDisplay.innerText = state.moves;
+                els.cardsLeftDisplay.innerText = state.deck.length;
+
+                // Disable consolidate button if grid is fully populated with 25 cards
+                const emptySlots = state.grid.filter(c => c === null).length;
+                els.consolidateBtn.disabled = emptySlots === 0;
+
+                els.board.innerHTML = '';
+                
+                // Track which cards are brand new to animate them
+                const startIndexForNewCards = 25 - emptySlots - newCardsCount;
+
+                state.grid.forEach((card, index) => {
+                    const zone = document.createElement('div');
+                    zone.className = 'drop-zone flex items-center justify-center';
+                    
+                    if (card) {
+                        const cardEl = document.createElement('div');
+                        cardEl.className = `card ${card.suit.color}`;
+                        if (index === state.selectedIndex) {
+                            cardEl.classList.add('selected');
+                        }
+                        
+                        // Apply deal animation to freshly injected cards
+                        if (newCardsCount > 0 && index >= startIndexForNewCards && index < startIndexForNewCards + newCardsCount) {
+                            cardEl.classList.add('anim-deal');
+                        }
+
+                        cardEl.innerHTML = `
+                            <div class="font-bold tracking-tighter" style="font-size: clamp(0.7rem, 25cqi, 1.5rem); line-height: 0.8; margin-top: 2px;">${getRankDisplay(card.rank)}</div>
+                            <div class="leading-none text-center flex-grow flex items-center justify-center" style="font-size: clamp(1.5rem, 50cqi, 3.5rem);">${card.suit.icon}</div>
+                            <div class="font-bold tracking-tighter self-end rotate-180" style="font-size: clamp(0.7rem, 25cqi, 1.5rem); line-height: 0.8; margin-bottom: 2px;">${getRankDisplay(card.rank)}</div>
+                        `;
+                        
+                        cardEl.onclick = () => processCardClick(index);
+                        zone.appendChild(cardEl);
+                    }
+                    
+                    els.board.appendChild(zone);
+                });
+            }
+
+            // --- STREAMING_CHUNK:UI Interactions & Settings... ---
+            els.consolidateBtn.addEventListener('click', consolidateAndDeal);
+
+            function showMessage(text, permanent = false) {
+                els.msgText.innerText = text;
+                els.msgBox.classList.remove('hidden');
+                els.msgBox.classList.add('msg-animate');
+                if (!permanent) setTimeout(hideMessage, 3000);
+            }
+            function hideMessage() {
+                els.msgBox.classList.add('hidden');
+                els.msgBox.classList.remove('msg-animate');
+            }
+
+            els.helpBtn.addEventListener('click', (e) => {
+                e.preventDefault(); 
+                els.settingsModal.classList.add('hidden');
+                els.instructionsModal.classList.remove('hidden');
+            });
+            els.closeInstructionsBtn.addEventListener('click', () => els.instructionsModal.classList.add('hidden'));
+
+            let gearTimer; let isGearLong = false;
+            els.gearBtn.addEventListener('pointerdown', (e) => {
+                e.preventDefault(); isGearLong = false;
+                gearTimer = setTimeout(() => {
+                    isGearLong = true;
+                    els.rulesSel.value = state.rules;
+                    els.settingsModal.classList.remove('hidden');
+                }, 600);
+            });
+            const cancelGear = () => clearTimeout(gearTimer);
+            els.gearBtn.addEventListener('pointerleave', cancelGear);
+            els.gearBtn.addEventListener('pointercancel', cancelGear);
+            els.gearBtn.addEventListener('pointerup', () => {
+                clearTimeout(gearTimer);
+                if (!isGearLong) showMessage("Long press ⚙️ for settings!");
+            });
+            els.gearBtn.addEventListener('contextmenu', (e) => e.preventDefault());
+
+            els.rulesSel.addEventListener('change', (e) => {
+                state.rules = e.target.value;
+                autoSave();
+            });
+            els.closeSettingsBtn.addEventListener('click', () => els.settingsModal.classList.add('hidden'));
+
+            // New Game
+            let newGameTimer; let isNewGameLong = false;
+            els.newGameBtn.addEventListener('pointerdown', (e) => {
+                e.preventDefault(); isNewGameLong = false;
+                newGameTimer = setTimeout(() => { isNewGameLong = true; initGame(); }, 600);
+            });
+            const cancelNew = () => clearTimeout(newGameTimer);
+            els.newGameBtn.addEventListener('pointerleave', cancelNew);
+            els.newGameBtn.addEventListener('pointercancel', cancelNew);
+            els.newGameBtn.addEventListener('pointerup', () => {
+                clearTimeout(newGameTimer);
+                if (!isNewGameLong) showMessage("Long press 'New Game' to restart!");
+            });
+            els.newGameBtn.addEventListener('contextmenu', (e) => e.preventDefault());
+
+            // Replay
+            let replayTimer; let isReplayLong = false;
+            els.replayBtn.addEventListener('pointerdown', (e) => {
+                e.preventDefault(); 
+                if (!initialGameState) return; 
+                isReplayLong = false;
+                replayTimer = setTimeout(() => {
+                    isReplayLong = true;
+                    state = JSON.parse(JSON.stringify(initialGameState));
+                    history = []; redoHistory = [];
+                    els.undoBtn.disabled = true; els.redoBtn.disabled = true;
+                    stopFireworks(); hideMessage(); updateUI(); autoSave();
+                }, 600);
+            });
+            const cancelReplay = () => clearTimeout(replayTimer);
+            els.replayBtn.addEventListener('pointerleave', cancelReplay);
+            els.replayBtn.addEventListener('pointercancel', cancelReplay);
+            els.replayBtn.addEventListener('pointerup', () => {
+                clearTimeout(replayTimer);
+                if (!isReplayLong && initialGameState) showMessage("Long press 'Replay' to restart this deal!");
+            });
+            els.replayBtn.addEventListener('contextmenu', (e) => e.preventDefault());
+
+            function throttle(func, limit) {
+                let inThrottle;
+                return function() {
+                    const args = arguments; const context = this;
+                    if (!inThrottle) {
+                        func.apply(context, args);
+                        inThrottle = true; setTimeout(() => inThrottle = false, limit);
+                    }
+                }
+            }
+
+            els.undoBtn.addEventListener('click', throttle(undo, 300));
+            els.redoBtn.addEventListener('click', throttle(redo, 300));
+
+            // BOOT
+            const savedString = localStorage.getItem('montecarlo_save');
+            if (savedString) {
+                try {
+                    const parsed = JSON.parse(savedString);
+                    state = parsed.state;
+                    if (!state.rules) state.rules = 'standard';
+                    history = parsed.history || [];
+                    redoHistory = parsed.redoHistory || [];
+                    initialGameState = parsed.initialGameState;
+                    
+                    els.undoBtn.disabled = history.length === 0;
+                    els.redoBtn.disabled = redoHistory.length === 0;
+                    state.selectedIndex = null;
+                    updateUI();
+                } catch (e) {
+                    initGame();
+                }
+            } else {
+                initGame(); 
+            }
+
+        })();
+    </script>
+</body>
+</html>
