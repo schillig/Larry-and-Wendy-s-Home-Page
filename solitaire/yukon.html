@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Wendy's Yukon Solitaire</title>
+    
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect x='20' y='15' width='60' height='70' rx='8' fill='white' stroke='%23d1d5db' stroke-width='4' transform='rotate(-6 50 50)'/%3E%3Ctext x='50' y='63' font-size='45' fill='%23171717' text-anchor='middle' font-family='sans-serif' transform='rotate(-6 50 50)'%3E%E2%99%A0%3C/text%3E%3C/svg%3E">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+    
+    <style>
+        /* --- GLOBAL & MOBILE FIXES --- */
+        html, body {
+            overscroll-behavior-y: none; 
+            overscroll-behavior-x: none; 
+            height: 100%;
+            width: 100%;
+        }
+
+        body {
+            background-color: #0f5a2b; 
+            background-image: radial-gradient(circle, #157338 0%, #0a3d1c 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; 
+        }
+
+        #game-wrapper {
+            overflow-y: auto;
+            overflow-x: hidden;
+            touch-action: pan-y;
+        }
+
+        /* --- CARD STYLING & PHYSICS --- */
+        .card {
+            width: calc(100% - 2px); 
+            aspect-ratio: 2.5 / 3.5; 
+            position: absolute; 
+            border-radius: 0.375rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+            transition: transform 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+            user-select: none;  
+            -webkit-user-drag: none;
+            cursor: pointer;
+            background-color: white;
+            border: 1px solid #cbd5e1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 2%;
+            overflow: hidden;
+            container-type: inline-size;
+            touch-action: none; 
+            z-index: 10;
+        }
+
+        .card.dragging {
+            z-index: 1000 !important;
+            pointer-events: none; 
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+            transition: none; 
+        }
+
+        .card-face-down {
+            background-color: #1e3a8a;
+            background-image: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(255,255,255,0.1) 5px, rgba(255,255,255,0.1) 10px);
+            border: 2px solid white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .card.selected {
+            transform: translateY(-8px);
+            box-shadow: 0 10px 15px -3px rgba(255, 215, 0, 0.6), 0 4px 6px -2px rgba(255, 215, 0, 0.3);
+            border-color: #fbbf24;
+            z-index: 50;
+        }
+
+        .card.red-suit { color: #dc2626; }
+        .card.black-suit { color: #171717; }
+
+        /* --- GAME BOARD LAYOUT --- */
+        .drop-zone {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 2.5 / 3.5;
+            background-color: rgba(0, 0, 0, 0.2);
+            border-radius: 0.375rem;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        @keyframes slideDown {
+            from { transform: translate(-50%, -100%); opacity: 0; }
+            to { transform: translate(-50%, 0); opacity: 1; }
+        }
+        .msg-animate { animation: slideDown 0.3s ease-out forwards; }
+    </style>
+</head>
+<body class="bg-black">
+
+    <div id="game-wrapper" class="flex-grow flex flex-col w-full relative h-[100dvh]">
+        
+        <header class="bg-black/40 p-3 md:p-4 shadow-lg backdrop-blur-sm z-20 sticky top-0 shrink-0 border-b border-white/10">
+            <div class="max-w-[1200px] mx-auto flex flex-col md:flex-row md:flex-wrap justify-between items-start md:items-center gap-3 md:gap-4">
+                
+                <div class="flex items-center gap-3 w-full md:w-auto">
+                    <div class="w-6 h-8 shrink-0 bg-white rounded shadow-sm flex items-center justify-center border border-gray-300 transform -rotate-6">
+                        <span class="text-black text-lg leading-none font-bold">♠</span>
+                    </div>
+                    <h1 class="font-bold tracking-wider whitespace-nowrap text-[clamp(1.1rem,4.5vw,1.875rem)] text-white drop-shadow">WENDY'S YUKON</h1>
+                </div>
+                
+                <div class="flex items-center justify-between w-full md:w-auto gap-4">
+                    <div class="flex items-center gap-4 md:gap-6 text-sm md:text-base font-semibold text-gray-200">
+                        <div>MOVES: <span id="moves-display" class="text-white">0</span></div>
+                    </div>
+                    <button id="new-game-btn" class="bg-green-600 hover:bg-green-500 text-white px-3 md:px-4 py-1.5 rounded transition-colors shadow-md select-none touch-none text-sm md:text-base whitespace-nowrap" title="Long press for new game">
+                        New Game
+                    </button>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2 md:gap-3 w-full md:w-auto">
+                    <button id="gear-btn" class="bg-gray-800 hover:bg-gray-700 border border-gray-600 text-white px-3 py-1.5 rounded transition-colors shadow-md select-none touch-none" title="Long press for Settings">
+                        ⚙️
+                    </button>
+                    <button id="undo-btn" class="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-1.5 rounded transition-colors shadow-md" disabled>
+                        Undo
+                    </button>
+                    <button id="redo-btn" class="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-1.5 rounded transition-colors shadow-md" disabled>
+                        Redo
+                    </button>
+                    <button id="replay-btn" class="bg-orange-600 hover:bg-orange-500 text-white px-4 py-1.5 rounded transition-colors shadow-md select-none touch-none" title="Long press to replay">
+                        Replay
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <div id="message-box" class="fixed top-20 left-1/2 hidden z-50 bg-red-600 text-white px-6 py-3 rounded shadow-2xl border border-red-400 text-center font-semibold transform -translate-x-1/2 whitespace-nowrap">
+            <span id="message-text"></span>
+        </div>
+
+        <div id="instructions-modal" class="fixed inset-0 bg-black/80 z-[9999] hidden flex items-center justify-center backdrop-blur-sm px-4">
+            <div class="bg-[#0f5a2b] border-2 border-blue-400 rounded-xl p-6 shadow-2xl max-w-lg w-full text-left max-h-[80vh] overflow-y-auto">
+                <h2 class="text-3xl font-bold text-white border-b border-gray-400 pb-2 mb-4 text-center">How to Play</h2>
+                
+                <div class="text-gray-100 space-y-4 text-sm leading-relaxed">
+                    <p><strong>The Goal:</strong> Yukon deals all 52 cards directly onto the tableau. There is no stock pile! Move all cards to the 4 Foundation piles (top right), building UP by exact suit.</p>
+                    
+                    <h3 class="text-lg font-bold text-[#fbbf24] mt-4 border-b border-[#fbbf24]/30 pb-1">The Golden Rule of Yukon</h3>
+                    <ul class="list-disc pl-5 space-y-2">
+                        <li>You can pick up and move <strong>ANY face-up card</strong>, regardless of what cards are stacked on top of it! The entire stack moves as a single unit.</li>
+                        <li>To drop a stack, the bottom-most card you are dragging must be placed on a card that is <strong>one rank higher and the opposite color</strong>.</li>
+                        <li><em>(Example: You can grab a 4♠ even if there are 10 random cards on top of it, as long as you drop the 4♠ onto a red 5).</em></li>
+                    </ul>
+
+                    <h3 class="text-lg font-bold text-[#fbbf24] mt-4 border-b border-[#fbbf24]/30 pb-1">Empty Spaces</h3>
+                    <ul class="list-disc pl-5 space-y-2">
+                        <li>By default, only a <strong>King</strong> (and any cards stacked on top of it) can be placed in an empty tableau column.</li>
+                    </ul>
+                    
+                    <div class="bg-black/30 p-3 rounded border border-[#fbbf24]/50 mt-4 text-xs">
+                        <p class="font-bold text-[#fbbf24] mb-1">⚙️ Variants Available in Settings!</p>
+                        <p>Change to <strong>Russian Solitaire</strong> to build down by EXACT SUIT instead of alternating colors. You can also relax the empty space rule to allow any card to fill a gap.</p>
+                    </div>
+                </div>
+
+                <div class="mt-6 text-center">
+                    <button id="close-instructions-btn" class="bg-gray-200 text-black font-bold py-2 px-8 rounded hover:bg-white transition-colors shadow-md w-full">
+                        Got it!
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="settings-modal" class="fixed inset-0 bg-black/80 z-[9999] hidden flex items-center justify-center backdrop-blur-sm px-4">
+            <div class="bg-[#0f5a2b] border-2 border-[#fbbf24] rounded-xl p-6 shadow-2xl max-w-sm w-full text-center">
+                <h2 class="text-2xl font-bold text-[#fbbf24] mb-4">Settings</h2>
+                
+                <div class="mb-4 text-left">
+                    <label class="block text-sm font-semibold mb-2 text-white">Rule Set:</label>
+                    <select id="rules-select" class="bg-gray-800 text-white border border-gray-600 rounded px-3 py-2 w-full focus:ring-2 focus:ring-[#fbbf24] outline-none cursor-pointer">
+                        <option value="yukon">Yukon (Alternate Colors)</option>
+                        <option value="russian">Russian Solitaire (Same Suit)</option>
+                    </select>
+                </div>
+
+                <div class="mb-5 text-left">
+                    <label class="block text-sm font-semibold mb-2 text-white">Empty Space Rule:</label>
+                    <select id="empty-select" class="bg-gray-800 text-white border border-gray-600 rounded px-3 py-2 w-full focus:ring-2 focus:ring-[#fbbf24] outline-none cursor-pointer">
+                        <option value="kings">Strict (Kings Only)</option>
+                        <option value="any">Relaxed (Any Card)</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <button id="help-btn" class="w-full bg-blue-800 hover:bg-blue-700 border border-blue-600 text-white px-4 py-2 rounded transition-colors shadow-md font-bold text-sm">
+                        ❓ Read Instructions
+                    </button>
+                </div>
+
+                <button id="close-settings-btn" class="bg-gray-200 text-black font-bold py-2 px-8 rounded hover:bg-white transition-colors shadow-md w-full mt-4">
+                    Done
+                </button>
+            </div>
+        </div>
+
+        <main class="flex-grow flex flex-col items-center relative pb-12 px-2 md:px-4 pt-4">
+            <div class="w-full max-w-[1000px] flex flex-col gap-4">
+                
+                <!-- TOP ROW: Just the Foundations -->
+                <div class="bg-black/20 p-3 rounded-xl border border-white/10 shadow-inner max-w-md mx-auto w-full">
+                    <h3 class="text-white/50 text-[10px] md:text-xs font-bold uppercase tracking-widest mb-2 text-center select-none">Foundations</h3>
+                    <div id="foundations-container" class="grid grid-cols-4 gap-2 md:gap-4 w-full">
+                        <!-- JS Inject 4 Foundations -->
+                    </div>
+                </div>
+
+                <!-- BOTTOM ROW: Tableaus -->
+                <div class="bg-black/20 p-2 md:p-4 rounded-xl border border-white/10 shadow-inner w-full">
+                    <div id="tableaus-container" class="grid grid-cols-7 gap-1 md:gap-2 w-full">
+                        <!-- JS Inject 7 Tableau columns -->
+                    </div>
+                </div>
+                
+            </div>
+        </main>
+    </div>
+
+    <script>
+        (function() {
+            // --- CONSTANTS ---
+            const SUITS = {
+                SPADES: { icon: '♠', color: 'black-suit' },
+                HEARTS: { icon: '♥', color: 'red-suit' },
+                CLUBS: { icon: '♣', color: 'black-suit' },
+                DIAMONDS: { icon: '♦', color: 'red-suit' }
+            };
+            const RANKS = [13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1];
+            const RANK_LABELS = { 13: 'K', 12: 'Q', 11: 'J', 1: 'A' };
+            const VERTICAL_OFFSET = 24; 
+
+            // --- STATE ---
+            let state = {
+                deck: [],
+                tableaus: Array.from({ length: 7 }, () => []),
+                foundations: Array.from({ length: 4 }, () => []),
+                moves: 0,
+                rules: 'yukon', // 'yukon', 'russian'
+                emptyRule: 'kings', // 'kings', 'any'
+                selectedType: null,
+                selectedIndex: null,
+                selectedCardIndex: null,
+            };
+
+            let history = [];
+            let redoHistory = [];
+            let initialGameState = null;
+            let saveTimeout = null;
+
+            // --- DRAG ENGINE ---
+            let drag = {
+                active: false,
+                isDragging: false,
+                startX: 0, startY: 0,
+                sourceType: null, 
+                sourceIndex: null, 
+                cardIndex: null,
+                elements: [],
+                cards: []
+            };
+
+            // --- DOM CACHE ---
+            const els = {
+                foundations: document.getElementById('foundations-container'),
+                tableaus: document.getElementById('tableaus-container'),
+                movesDisplay: document.getElementById('moves-display'),
+                newGameBtn: document.getElementById('new-game-btn'),
+                msgBox: document.getElementById('message-box'),
+                msgText: document.getElementById('message-text'),
+                undoBtn: document.getElementById('undo-btn'),
+                redoBtn: document.getElementById('redo-btn'),
+                replayBtn: document.getElementById('replay-btn'),
+                gearBtn: document.getElementById('gear-btn'),
+                settingsModal: document.getElementById('settings-modal'),
+                rulesSel: document.getElementById('rules-select'),
+                emptySel: document.getElementById('empty-select'),
+                closeSettingsBtn: document.getElementById('close-settings-btn'),
+                helpBtn: document.getElementById('help-btn'),
+                instructionsModal: document.getElementById('instructions-modal'),
+                closeInstructionsBtn: document.getElementById('close-instructions-btn'),
+            };
+
+            // --- STREAMING_CHUNK:Fireworks system... ---
+            let fireworksInterval = null; 
+            function launchFireworks() {
+                if (fireworksInterval) clearInterval(fireworksInterval);
+                const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 9999 };
+                function r(min, max) { return Math.random() * (max - min) + min; }
+                fireworksInterval = setInterval(() => {
+                    confetti(Object.assign({}, defaults, { particleCount: 50, origin: { x: r(0.1, 0.3), y: Math.random() - 0.2 } }));
+                    confetti(Object.assign({}, defaults, { particleCount: 50, origin: { x: r(0.7, 0.9), y: Math.random() - 0.2 } }));
+                }, 250);
+            }
+            function stopFireworks() {
+                if (fireworksInterval) { clearInterval(fireworksInterval); fireworksInterval = null; }
+                if (typeof confetti === "function") confetti.reset(); 
+            }
+
+            // --- STREAMING_CHUNK:Deck generation and Yukon dealing... ---
+            function isRed(suit) { return suit.icon === '♥' || suit.icon === '♦'; }
+
+            function initGame() {
+                state.tableaus = Array.from({ length: 7 }, () => []);
+                state.foundations = Array.from({ length: 4 }, () => []);
+                state.moves = 0;
+                
+                history = [];
+                redoHistory = [];
+                els.undoBtn.disabled = true;
+                els.redoBtn.disabled = true;
+                clearSelection();
+                stopFireworks();
+                hideMessage();
+                
+                buildDeck();
+                shuffleDeck();
+                dealInitialCards();
+                
+                initialGameState = JSON.parse(JSON.stringify(state));
+                updateUI();
+                autoSave();
+            }
+
+            function buildDeck() {
+                state.deck = [];
+                let cardId = 0;
+                const suits = [SUITS.SPADES, SUITS.HEARTS, SUITS.CLUBS, SUITS.DIAMONDS];
+                suits.forEach(suit => {
+                    RANKS.forEach(rank => {
+                        state.deck.push({ id: `card-${cardId++}`, suit: suit, rank: rank, faceUp: false }); 
+                    });
+                });
+            }
+
+            function shuffleDeck() {
+                for (let i = state.deck.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [state.deck[i], state.deck[j]] = [state.deck[j], state.deck[i]];
+                }
+            }
+
+            function dealInitialCards() {
+                // 1. Deal standard Klondike triangle (28 cards)
+                for (let i = 0; i < 7; i++) {
+                    for (let j = 0; j <= i; j++) {
+                        const card = state.deck.pop();
+                        card.faceUp = (j === i); // Only the top card is exposed initially
+                        state.tableaus[i].push(card);
+                    }
+                }
+                
+                // 2. Yukon specific: Deal the remaining 24 cards face up onto columns 1-6 (four cards each)
+                // Col 0 gets 0 extra. Col 1-6 get 4 extra each.
+                for (let i = 1; i < 7; i++) {
+                    for (let j = 0; j < 4; j++) {
+                        const card = state.deck.pop();
+                        card.faceUp = true;
+                        state.tableaus[i].push(card);
+                    }
+                }
+            }
+
+            // --- STREAMING_CHUNK:Yukon Logic and Drag Validators... ---
+            
+            function getSourceArray(type, index) {
+                if (type === 'tableau') return state.tableaus[index];
+                if (type === 'foundation') return state.foundations[index];
+                return null;
+            }
+
+            function getTargetArray(type, index) {
+                if (type === 'foundation') return state.foundations[index];
+                if (type === 'tableau') return state.tableaus[index];
+                return null; 
+            }
+
+            // UNIQUE YUKON MECHANIC: Any face up card can be dragged! No sequence checking needed!
+            function isValidSequence(sourceType, sourceIndex, cardIndex) {
+                const sourceArray = getSourceArray(sourceType, sourceIndex);
+                if (!sourceArray || sourceArray.length === 0) return false;
+                return sourceArray[cardIndex].faceUp;
+            }
+
+            function isTableauBuildValid(targetCard, dragCard) {
+                if (dragCard.rank !== targetCard.rank - 1) return false; 
+                
+                if (state.rules === 'yukon') {
+                    // Alternate Color
+                    return isRed(targetCard.suit) !== isRed(dragCard.suit);
+                } else if (state.rules === 'russian') {
+                    // Same Suit
+                    return targetCard.suit.icon === dragCard.suit.icon;
+                }
+                return false;
+            }
+
+            function canDrop(dragCards, targetType, targetIndex) {
+                const dragCard = dragCards[0];
+                
+                if (targetType === 'foundation') {
+                    if (dragCards.length > 1) return false; 
+                    const pile = state.foundations[targetIndex];
+                    
+                    if (pile.length === 0) return dragCard.rank === 1; // Ace
+                    
+                    const topTarget = pile[pile.length - 1];
+                    return dragCard.suit.icon === topTarget.suit.icon && dragCard.rank === topTarget.rank + 1;
+                }
+                
+                if (targetType === 'tableau') {
+                    const pile = state.tableaus[targetIndex];
+                    
+                    if (pile.length === 0) {
+                        if (state.emptyRule === 'any') return true;
+                        return dragCard.rank === 13; // King only
+                    }
+                    
+                    const topTarget = pile[pile.length - 1];
+                    return isTableauBuildValid(topTarget, dragCard);
+                }
+                
+                return false;
+            }
+
+            function moveCards(dragCards, sourceType, sourceIndex, targetType, targetIndex) {
+                const sourceArray = getSourceArray(sourceType, sourceIndex);
+                const targetArray = getTargetArray(targetType, targetIndex);
+                
+                const cards = sourceArray.splice(sourceArray.length - dragCards.length, dragCards.length);
+                targetArray.push(...cards);
+                
+                state.moves++;
+                
+                // Auto-flip newly exposed card
+                if (sourceArray.length > 0 && !sourceArray[sourceArray.length - 1].faceUp) {
+                    sourceArray[sourceArray.length - 1].faceUp = true;
+                }
+                
+                checkWinCondition();
+                clearSelection();
+                updateUI();
+                autoSave();
+            }
+
+            function tryAutoMoveToFoundation(sourceType, sourceIndex, cardIndex) {
+                if (!isValidSequence(sourceType, sourceIndex, cardIndex)) return false;
+                
+                let sourceArray = getSourceArray(sourceType, sourceIndex);
+                if (cardIndex !== sourceArray.length - 1) return false; // Must be bottom-most card
+                
+                const dragCard = sourceArray[cardIndex];
+                
+                for (let i = 0; i < 4; i++) {
+                    if (canDrop([dragCard], 'foundation', i)) {
+                        saveState();
+                        moveCards([dragCard], sourceType, sourceIndex, 'foundation', i);
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            function checkWinCondition() {
+                const won = state.foundations.every(f => f.length === 13);
+                if (won) {
+                    setTimeout(() => {
+                        showMessage("🎉 Incredible! You beat Yukon! 🎉", true);
+                        launchFireworks();
+                    }, 500);
+                }
+            }
+
+            // --- STREAMING_CHUNK:State Persistence (Undo/Redo)... ---
+            function abortDrag() {
+                if (!drag.active) return;
+                drag.active = false;
+                drag.isDragging = false;
+                drag.elements.forEach(el => {
+                    el.classList.remove('dragging');
+                    el.style.transform = '';
+                });
+                drag.elements = [];
+                drag.cards = [];
+                clearSelection();
+                updateUI();
+            }
+
+            function saveState() {
+                redoHistory = [];
+                els.redoBtn.disabled = true;
+                const snapshot = JSON.parse(JSON.stringify(state));
+                history.push(snapshot);
+                els.undoBtn.disabled = false;
+            }
+
+            function undo() {
+                abortDrag();
+                if (history.length === 0) return;
+                redoHistory.push(JSON.parse(JSON.stringify(state)));
+                state = history.pop();
+                els.undoBtn.disabled = history.length === 0;
+                els.redoBtn.disabled = false;
+                clearSelection(); updateUI(); autoSave();
+            }
+
+            function redo() {
+                abortDrag();
+                if (redoHistory.length === 0) return;
+                history.push(JSON.parse(JSON.stringify(state)));
+                state = redoHistory.pop();
+                els.undoBtn.disabled = false;
+                els.redoBtn.disabled = redoHistory.length === 0;
+                clearSelection(); updateUI(); autoSave();
+            }
+
+            function autoSave() {
+                if (saveTimeout) clearTimeout(saveTimeout);
+                saveTimeout = setTimeout(() => {
+                    const saveData = { state, history, redoHistory, initialGameState };
+                    try { localStorage.setItem('yukon_save', JSON.stringify(saveData)); } catch (e) {}
+                }, 500);
+            }
+
+            // --- STREAMING_CHUNK:Rendering Engine... ---
+            function getRankDisplay(rank) { return RANK_LABELS[rank] || rank.toString(); }
+
+            function createCardDOM(card, type, index, cardIndex) {
+                const cardEl = document.createElement('div');
+                
+                if (!card.faceUp) {
+                    cardEl.className = 'card card-face-down';
+                    cardEl.innerHTML = `<div style="font-size: clamp(1.2rem, 40cqi, 3rem); filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); line-height: 1;">🌴</div>`;
+                } else {
+                    cardEl.className = `card ${card.suit.color}`;
+                    cardEl.innerHTML = `
+                        <div class="font-bold tracking-tighter" style="font-size: clamp(0.6rem, 30cqi, 1.8rem); line-height: 0.8; margin-top: 2px;">${getRankDisplay(card.rank)}</div>
+                        <div class="leading-none text-center flex-grow flex items-center justify-center" style="font-size: clamp(1.2rem, 50cqi, 3.5rem);">${card.suit.icon}</div>
+                        <div class="font-bold tracking-tighter self-end rotate-180" style="font-size: clamp(0.6rem, 30cqi, 1.8rem); line-height: 0.8; margin-bottom: 2px;">${getRankDisplay(card.rank)}</div>
+                    `;
+                }
+
+                if (state.selectedType === type && state.selectedIndex === index && cardIndex >= state.selectedCardIndex) {
+                    cardEl.classList.add('selected');
+                }
+
+                cardEl.onpointerdown = (e) => {
+                    e.preventDefault(); e.stopPropagation();
+                    handlePointerDown(e, type, index, cardIndex);
+                };
+
+                return cardEl;
+            }
+
+            function updateUI() {
+                els.movesDisplay.innerText = state.moves;
+
+                const cardHeight = Math.max(60, (els.foundations.clientWidth / 4) * 1.4);
+
+                // 1. Foundations
+                els.foundations.innerHTML = '';
+                for (let i = 0; i < 4; i++) {
+                    const zone = document.createElement('div');
+                    zone.className = 'drop-zone';
+                    zone.dataset.type = 'foundation'; zone.dataset.index = i;
+                    
+                    const pile = state.foundations[i];
+                    if (pile.length > 0) {
+                        zone.appendChild(createCardDOM(pile[pile.length - 1], 'foundation', i, pile.length - 1));
+                    } else {
+                        zone.innerHTML = `<div class="absolute inset-0 flex items-center justify-center text-4xl font-black text-white/20 select-none">A</div>`;
+                    }
+                    zone.onpointerdown = (e) => { if(e.target === zone) handlePointerDown(e, 'foundation', i, -1); };
+                    els.foundations.appendChild(zone);
+                }
+
+                // 2. Tableaus
+                els.tableaus.innerHTML = '';
+                const boardTop = els.tableaus.getBoundingClientRect().top || 200; 
+                const maxAvailableHeight = window.innerHeight - boardTop - 20;
+
+                for (let i = 0; i < 7; i++) {
+                    const zone = document.createElement('div');
+                    zone.className = 'drop-zone';
+                    zone.dataset.type = 'tableau'; zone.dataset.index = i;
+                    
+                    const pile = state.tableaus[i];
+                    
+                    if (pile.length === 0) {
+                        zone.innerHTML = `<div class="absolute inset-0 flex items-center justify-center text-4xl font-black text-white/10 select-none">${state.emptyRule === 'kings' ? 'K' : '+'}</div>`;
+                    }
+
+                    let currentOffset = VERTICAL_OFFSET; 
+                    if (pile.length > 1) {
+                        const requiredHeight = cardHeight + (pile.length - 1) * VERTICAL_OFFSET;
+                        if (requiredHeight > maxAvailableHeight) {
+                            currentOffset = (maxAvailableHeight - cardHeight) / (pile.length - 1);
+                            currentOffset = Math.max(8, currentOffset); 
+                        }
+                    }
+
+                    pile.forEach((card, cardIndex) => {
+                        const cardEl = createCardDOM(card, 'tableau', i, cardIndex);
+                        cardEl.style.top = `${cardIndex * currentOffset}px`;
+                        zone.appendChild(cardEl);
+                    });
+                    
+                    if (pile.length > 0) {
+                        zone.style.height = `${cardHeight + ((pile.length - 1) * currentOffset)}px`;
+                    } else {
+                        zone.style.height = `${cardHeight}px`;
+                    }
+                    zone.onpointerdown = (e) => { if(e.target === zone) handlePointerDown(e, 'tableau', i, -1); };
+                    els.tableaus.appendChild(zone);
+                }
+            }
+
+            // --- STREAMING_CHUNK:Drag and Drop Interaction Handling... ---
+            function handlePointerDown(e, type, index, cardIndex) {
+                if (e.button !== 0 && e.pointerType === 'mouse') return;
+                
+                if (cardIndex === -1) {
+                    processClick(type, index, -1); 
+                    return;
+                }
+                
+                if (isValidSequence(type, index, cardIndex)) {
+                    drag.active = true;
+                    drag.isDragging = false;
+                    drag.startX = e.clientX;
+                    drag.startY = e.clientY;
+                    drag.sourceType = type;
+                    drag.sourceIndex = index;
+                    drag.cardIndex = cardIndex;
+                    
+                    let parentDom;
+                    if (type === 'foundation') parentDom = els.foundations.children[index];
+                    if (type === 'tableau') parentDom = els.tableaus.children[index];
+                    
+                    drag.elements = [];
+                    drag.cards = [];
+                    const sourceArray = getSourceArray(type, index);
+
+                    for (let i = cardIndex; i < sourceArray.length; i++) {
+                        drag.cards.push(sourceArray[i]);
+                        if (type === 'tableau') {
+                            drag.elements.push(parentDom.children[i]); 
+                        } else {
+                            drag.elements.push(parentDom.lastElementChild); 
+                        }
+                    }
+                    
+                    if (e.target.setPointerCapture) {
+                        try { e.target.setPointerCapture(e.pointerId); } catch(err) {}
+                    }
+                } else {
+                    e.currentTarget.classList.add('animate-pulse', 'border-red-500', 'border-2');
+                    setTimeout(() => updateUI(), 300);
+                }
+            }
+
+            window.addEventListener('pointermove', (e) => {
+                if (!drag.active) return;
+                const dx = e.clientX - drag.startX;
+                const dy = e.clientY - drag.startY;
+
+                if (!drag.isDragging && (Math.abs(dx) > 5 || Math.abs(dy) > 5)) {
+                    drag.isDragging = true;
+                    drag.elements.forEach(el => el.classList.add('dragging'));
+                    if (state.selectedType !== drag.sourceType || state.selectedIndex !== drag.sourceIndex || state.selectedCardIndex !== drag.cardIndex) {
+                         clearSelection();
+                         document.querySelectorAll('.card.selected').forEach(el => el.classList.remove('selected'));
+                    }
+                }
+
+                if (drag.isDragging) {
+                    drag.elements.forEach((el) => {
+                        el.style.transform = `translate(${dx}px, ${dy}px)`;
+                    });
+                }
+            });
+
+            window.addEventListener('pointerup', (e) => {
+                if (!drag.active) return;
+
+                if (!drag.isDragging) {
+                    // Tap / Click logic
+                    const autoMoved = tryAutoMoveToFoundation(drag.sourceType, drag.sourceIndex, drag.cardIndex);
+                    if (!autoMoved) {
+                        processClick(drag.sourceType, drag.sourceIndex, drag.cardIndex);
+                    } else {
+                        abortDrag(); 
+                    }
+                } else {
+                    // Physical drop logic
+                    const target = document.elementFromPoint(e.clientX, e.clientY);
+                    let targetZone = target ? target.closest('.drop-zone') : null;
+
+                    // Magnetic Tableaus
+                    if (!targetZone) {
+                        const boardRect = els.tableaus.getBoundingClientRect();
+                        if (e.clientX >= boardRect.left && e.clientX <= boardRect.right && e.clientY >= boardRect.top) {
+                            const columnWidth = boardRect.width / 7;
+                            const estCol = Math.floor((e.clientX - boardRect.left) / columnWidth);
+                            if (estCol >= 0 && estCol < 7) targetZone = els.tableaus.children[estCol];
+                        }
+                    }
+
+                    if (targetZone) {
+                        const targetType = targetZone.dataset.type;
+                        const targetIndex = parseInt(targetZone.dataset.index || 0);
+
+                        if (!(targetType === drag.sourceType && targetIndex === drag.sourceIndex)) {
+                            if (canDrop(drag.cards, targetType, targetIndex)) {
+                                saveState();
+                                moveCards(drag.cards, drag.sourceType, drag.sourceIndex, targetType, targetIndex);
+                            } else {
+                                updateUI(); 
+                            }
+                        } else {
+                             updateUI(); 
+                        }
+                    } else {
+                        updateUI(); 
+                    }
+                }
+
+                drag.active = false;
+                drag.isDragging = false;
+                drag.elements.forEach(el => {
+                    el.classList.remove('dragging');
+                    el.style.transform = '';
+                });
+                drag.elements = [];
+                drag.cards = [];
+            });
+
+            window.addEventListener('pointercancel', abortDrag);
+
+            // Legacy click-to-move fallback
+            function processClick(type, index, cardIndex) {
+                if (cardIndex === -1) {
+                    if (state.selectedType !== null) attemptDrop(type, index);
+                    return;
+                }
+
+                if (state.selectedType === null) {
+                    if (isValidSequence(type, index, cardIndex)) {
+                        const autoMoved = tryAutoMoveToFoundation(type, index, cardIndex);
+                        if (!autoMoved) {
+                            state.selectedType = type;
+                            state.selectedIndex = index;
+                            state.selectedCardIndex = cardIndex;
+                            updateUI();
+                        }
+                    }
+                } else {
+                    if (state.selectedType === type && state.selectedIndex === index && state.selectedCardIndex === cardIndex) {
+                        clearSelection(); updateUI();
+                    } else {
+                        attemptDrop(type, index);
+                    }
+                }
+            }
+
+            function attemptDrop(targetType, targetIndex) {
+                const sourceArray = getSourceArray(state.selectedType, state.selectedIndex);
+                const dragCards = sourceArray.slice(state.selectedCardIndex);
+                if (canDrop(dragCards, targetType, targetIndex)) {
+                    saveState();
+                    moveCards(dragCards, state.selectedType, state.selectedIndex, targetType, targetIndex);
+                } else {
+                    clearSelection();
+                    updateUI();
+                }
+            }
+
+            function clearSelection() {
+                state.selectedType = null;
+                state.selectedIndex = null;
+                state.selectedCardIndex = null;
+            }
+
+            // --- STREAMING_CHUNK:UI Buttons & Bindings... ---
+            function showMessage(text, permanent = false) {
+                els.msgText.innerText = text;
+                els.msgBox.classList.remove('hidden');
+                els.msgBox.classList.add('msg-animate');
+                if (!permanent) setTimeout(hideMessage, 3000);
+            }
+            function hideMessage() {
+                els.msgBox.classList.add('hidden');
+                els.msgBox.classList.remove('msg-animate');
+            }
+
+            // Instructions
+            els.helpBtn.addEventListener('click', (e) => {
+                e.preventDefault(); 
+                els.settingsModal.classList.add('hidden');
+                els.instructionsModal.classList.remove('hidden');
+            });
+            els.closeInstructionsBtn.addEventListener('click', () => { els.instructionsModal.classList.add('hidden'); });
+
+            // Settings
+            let gearTimer; let isGearLong = false;
+            els.gearBtn.addEventListener('pointerdown', (e) => {
+                e.preventDefault(); isGearLong = false;
+                gearTimer = setTimeout(() => {
+                    isGearLong = true;
+                    els.rulesSel.value = state.rules;
+                    els.emptySel.value = state.emptyRule;
+                    els.settingsModal.classList.remove('hidden');
+                }, 600);
+            });
+            const cancelGear = () => clearTimeout(gearTimer);
+            els.gearBtn.addEventListener('pointerleave', cancelGear);
+            els.gearBtn.addEventListener('pointercancel', cancelGear);
+            els.gearBtn.addEventListener('pointerup', () => {
+                clearTimeout(gearTimer);
+                if (!isGearLong) showMessage("Long press ⚙️ for settings!");
+            });
+            els.gearBtn.addEventListener('contextmenu', (e) => e.preventDefault());
+
+            els.rulesSel.addEventListener('change', (e) => { state.rules = e.target.value; autoSave(); });
+            els.emptySel.addEventListener('change', (e) => { state.emptyRule = e.target.value; autoSave(); updateUI(); });
+            els.closeSettingsBtn.addEventListener('click', () => els.settingsModal.classList.add('hidden'));
+
+            // New Game
+            let newGameTimer; let isNewGameLong = false;
+            els.newGameBtn.addEventListener('pointerdown', (e) => {
+                e.preventDefault(); abortDrag(); isNewGameLong = false;
+                newGameTimer = setTimeout(() => { isNewGameLong = true; initGame(); }, 600);
+            });
+            const cancelNew = () => clearTimeout(newGameTimer);
+            els.newGameBtn.addEventListener('pointerleave', cancelNew);
+            els.newGameBtn.addEventListener('pointercancel', cancelNew);
+            els.newGameBtn.addEventListener('pointerup', () => {
+                clearTimeout(newGameTimer);
+                if (!isNewGameLong) showMessage("Long press 'New Game' to restart!");
+            });
+            els.newGameBtn.addEventListener('contextmenu', (e) => e.preventDefault());
+
+            // Replay
+            let replayTimer; let isReplayLong = false;
+            els.replayBtn.addEventListener('pointerdown', (e) => {
+                e.preventDefault(); abortDrag();
+                if (!initialGameState) return; 
+                isReplayLong = false;
+                replayTimer = setTimeout(() => {
+                    isReplayLong = true;
+                    state = JSON.parse(JSON.stringify(initialGameState));
+                    history = []; redoHistory = [];
+                    els.undoBtn.disabled = true; els.redoBtn.disabled = true;
+                    stopFireworks(); hideMessage(); clearSelection(); updateUI(); autoSave();
+                }, 600);
+            });
+            const cancelReplay = () => clearTimeout(replayTimer);
+            els.replayBtn.addEventListener('pointerleave', cancelReplay);
+            els.replayBtn.addEventListener('pointercancel', cancelReplay);
+            els.replayBtn.addEventListener('pointerup', () => {
+                clearTimeout(replayTimer);
+                if (!isReplayLong && initialGameState) showMessage("Long press 'Replay' to restart this deal!");
+            });
+            els.replayBtn.addEventListener('contextmenu', (e) => e.preventDefault());
+
+            function throttle(func, limit) {
+                let inThrottle;
+                return function() {
+                    const args = arguments; const context = this;
+                    if (!inThrottle) {
+                        func.apply(context, args);
+                        inThrottle = true; setTimeout(() => inThrottle = false, limit);
+                    }
+                }
+            }
+
+            els.undoBtn.addEventListener('click', throttle(undo, 300));
+            els.redoBtn.addEventListener('click', throttle(redo, 300));
+
+            // BOOT
+            const savedString = localStorage.getItem('yukon_save');
+            if (savedString) {
+                try {
+                    const parsed = JSON.parse(savedString);
+                    state = parsed.state;
+                    if (!state.rules) state.rules = 'yukon'; 
+                    if (!state.emptyRule) state.emptyRule = 'kings';
+                    history = parsed.history || [];
+                    redoHistory = parsed.redoHistory || [];
+                    initialGameState = parsed.initialGameState;
+                    
+                    els.undoBtn.disabled = history.length === 0;
+                    els.redoBtn.disabled = redoHistory.length === 0;
+                    
+                    clearSelection();
+                    updateUI();
+                } catch (e) {
+                    initGame();
+                }
+            } else {
+                initGame(); 
+            }
+
+        })();
+    </script>
+</body>
+</html>
