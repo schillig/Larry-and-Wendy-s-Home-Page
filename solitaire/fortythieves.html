@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Wendy's Forty Thieves</title>
+    
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect x='20' y='15' width='60' height='70' rx='8' fill='white' stroke='%23d1d5db' stroke-width='4' transform='rotate(-6 50 50)'/%3E%3Ctext x='50' y='63' font-size='45' fill='%23dc2626' text-anchor='middle' font-family='sans-serif' transform='rotate(-6 50 50)'%3E%E2%99%A6%3C/text%3E%3C/svg%3E">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+    
+    <style>
+        /* --- GLOBAL & MOBILE FIXES --- */
+        html, body {
+            overscroll-behavior-y: none; 
+            overscroll-behavior-x: none; 
+            overflow: hidden;
+            touch-action: none; 
+            height: 100%;
+            width: 100%;
+        }
+
+        body {
+            background-color: #0f5a2b; 
+            background-image: radial-gradient(circle, #157338 0%, #0a3d1c 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: white;
+        }
+
+        @media screen and (max-width: 900px) and (orientation: landscape) {
+            #landscape-warning { display: flex !important; }
+            #game-wrapper { display: none !important; }
+        }
+
+        /* --- CARD STYLING & PHYSICS --- */
+        .card {
+            width: calc(100% - 2px); 
+            aspect-ratio: 2.5 / 3.5; 
+            position: absolute; 
+            border-radius: 0.375rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+            transition: transform 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+            user-select: none;  
+            -webkit-user-drag: none;
+            cursor: pointer;
+            background-color: white;
+            border: 1px solid #cbd5e1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 2%;
+            overflow: hidden;
+            container-type: inline-size;
+            touch-action: none; 
+        }
+
+        .card.dragging {
+            z-index: 1000 !important;
+            pointer-events: none; 
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+            transition: none; 
+        }
+
+        .card-face-down {
+            background-color: #1e3a8a;
+            background-image: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(255,255,255,0.1) 5px, rgba(255,255,255,0.1) 10px);
+            border: 2px solid white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .card.selected {
+            transform: translateY(-10px);
+            box-shadow: 0 10px 15px -3px rgba(255, 215, 0, 0.6), 0 4px 6px -2px rgba(255, 215, 0, 0.3);
+            border-color: #fbbf24;
+            z-index: 50;
+        }
+
+        .card.red-suit { color: #dc2626; }
+        .card.black-suit { color: #171717; }
+
+        /* --- GAME BOARD LAYOUT --- */
+        .drop-zone {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 2.5 / 3.5;
+            background-color: rgba(0, 0, 0, 0.2);
+            border-radius: 0.375rem;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        /* The 10-column universal grid */
+        .game-grid {
+            display: grid;
+            grid-template-columns: repeat(10, minmax(0, 1fr));
+            gap: 0.4rem; 
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        @keyframes slideDown {
+            from { transform: translate(-50%, -100%); opacity: 0; }
+            to { transform: translate(-50%, 0); opacity: 1; }
+        }
+        .msg-animate { animation: slideDown 0.3s ease-out forwards; }
+    </style>
+</head>
+<body class="bg-black">
+
+    <!-- LANDSCAPE BLOCKER -->
+    <div id="landscape-warning" class="fixed inset-0 z-[10000] hidden flex-col items-center justify-center text-center p-6 bg-[#0f5a2b] bg-[radial-gradient(circle,#157338_0%,#0a3d1c_100%)]">
+        <div class="text-7xl mb-6 animate-bounce">📱</div>
+        <h2 class="text-3xl font-bold text-[#fbbf24] mb-4 tracking-wider">Portrait Mode Required</h2>
+        <p class="text-white text-lg max-w-md leading-relaxed">
+            Forty Thieves needs vertical space for the massive 10-column board.<br><br>
+            Please rotate your phone back to <strong>portrait mode</strong> to continue!
+        </p>
+    </div>
+
+    <div id="game-wrapper" class="h-[100dvh] flex flex-col w-full relative">
+        
+        <header class="bg-black/40 p-3 md:p-4 shadow-lg backdrop-blur-sm z-20 relative shrink-0">
+            <div class="max-w-[1200px] mx-auto flex flex-col md:flex-row md:flex-wrap justify-between items-start md:items-center gap-3 md:gap-4">
+                
+                <div class="flex items-center gap-3 w-full md:w-auto">
+                    <div class="w-6 h-8 shrink-0 bg-white rounded shadow-sm flex items-center justify-center border border-gray-300 transform -rotate-6">
+                        <span class="text-red-600 text-lg leading-none">♦</span>
+                    </div>
+                    <h1 class="font-bold tracking-wider whitespace-nowrap text-[clamp(1.1rem,4.5vw,1.875rem)] text-white">WENDY'S FORTY THIEVES</h1>
+                </div>
+                
+                <div class="flex items-center justify-between w-full md:w-auto gap-4">
+                    <div class="flex items-center gap-4 md:gap-6 text-sm md:text-base font-semibold text-gray-200">
+                        <div>MOVES: <span id="moves-display" class="text-white">0</span></div>
+                    </div>
+                    <button id="new-game-btn" class="bg-green-600 hover:bg-green-500 text-white px-3 md:px-4 py-1.5 rounded transition-colors shadow-md select-none touch-none text-sm md:text-base whitespace-nowrap" title="Long press for new game">
+                        New Game
+                    </button>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2 md:gap-3 w-full md:w-auto">
+                    <button id="gear-btn" class="bg-gray-800 hover:bg-gray-700 border border-gray-600 text-white px-3 py-1.5 rounded transition-colors shadow-md select-none touch-none" title="Long press for Settings">
+                        ⚙️
+                    </button>
+                    <button id="undo-btn" class="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-1.5 rounded transition-colors shadow-md" disabled>
+                        Undo
+                    </button>
+                    <button id="redo-btn" class="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-1.5 rounded transition-colors shadow-md" disabled>
+                        Redo
+                    </button>
+                    <button id="replay-btn" class="bg-orange-600 hover:bg-orange-500 text-white px-4 py-1.5 rounded transition-colors shadow-md select-none touch-none" title="Long press to replay">
+                        Replay
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <div id="message-box" class="fixed top-20 left-1/2 hidden z-50 bg-red-600 text-white px-6 py-3 rounded shadow-2xl border border-red-400 text-center font-semibold transform -translate-x-1/2 whitespace-nowrap">
+            <span id="message-text"></span>
+        </div>
+
+        <!-- Instructions Modal -->
+        <div id="instructions-modal" class="fixed inset-0 bg-black/80 z-[9999] hidden flex items-center justify-center backdrop-blur-sm px-4">
+            <div class="bg-[#0f5a2b] border-2 border-blue-400 rounded-xl p-6 shadow-2xl max-w-lg w-full text-left max-h-[80vh] overflow-y-auto">
+                <h2 class="text-3xl font-bold text-white border-b border-gray-400 pb-2 mb-4 text-center">How to Play</h2>
+                
+                <div class="text-gray-100 space-y-4 text-sm leading-relaxed">
+                    <p><strong>The Goal:</strong> Forty Thieves uses <strong>TWO full decks (104 cards)</strong>. Move all cards to the 8 Foundation piles (top right). Foundations are built <strong>UP by exact suit</strong> from Ace to King.</p>
+                    
+                    <h3 class="text-lg font-bold text-[#fbbf24] mt-4 border-b border-[#fbbf24]/30 pb-1">General Rules</h3>
+                    <ul class="list-disc pl-5 space-y-2">
+                        <li>The Tableau (main board) is built <strong>DOWN by exact suit</strong>. (e.g., place a 9♥ on a 10♥).</li>
+                        <li>Empty tableau columns can be filled with <strong>any</strong> card.</li>
+                        <li>Tap a card without dragging to automatically fly it to a foundation if it fits!</li>
+                    </ul>
+
+                    <h3 class="text-lg font-bold text-[#fbbf24] mt-4 border-b border-[#fbbf24]/30 pb-1">Game Modes (Settings ⚙️)</h3>
+                    
+                    <div class="bg-black/30 p-3 rounded border border-[#fbbf24]/50">
+                        <p class="font-bold text-[#fbbf24] mb-1">👑 Wendy's Rules (Default)</p>
+                        <p>A fun, modern way to play! You can move properly ordered sequences as a group. If the Stock pile empties, tap it to redeal the Waste pile infinitely.</p>
+                    </div>
+
+                    <div class="bg-black/30 p-3 rounded border border-red-400/50">
+                        <p class="font-bold text-red-400 mb-1">⚖️ Original Rules (Brutal)</p>
+                        <p>The true "Napoleon at St. Helena" challenge. You may <strong>ONLY move one card at a time</strong>. You can only flip through the Stock pile <strong>ONCE</strong> (no redeals). Less than 5% of games are winnable!</p>
+                    </div>
+                </div>
+
+                <div class="mt-6 text-center">
+                    <button id="close-instructions-btn" class="bg-gray-200 text-black font-bold py-2 px-8 rounded hover:bg-white transition-colors shadow-md w-full">
+                        Got it!
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Modal -->
+        <div id="settings-modal" class="fixed inset-0 bg-black/80 z-[9999] hidden flex items-center justify-center backdrop-blur-sm px-4">
+            <div class="bg-[#0f5a2b] border-2 border-[#fbbf24] rounded-xl p-6 shadow-2xl max-w-sm w-full text-center">
+                <h2 class="text-2xl font-bold text-[#fbbf24] mb-4">Settings</h2>
+                
+                <div class="mb-5 text-left">
+                    <label class="block text-sm font-semibold mb-2 text-white">Rule Set:</label>
+                    <select id="rules-select" class="bg-gray-800 text-white border border-gray-600 rounded px-3 py-2 w-full focus:ring-2 focus:ring-[#fbbf24] outline-none cursor-pointer">
+                        <option value="wendy">Wendy's Rules (Relaxed)</option>
+                        <option value="original">Original Rules (Strict 1-Card & 1-Pass)</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <button id="help-btn" class="w-full bg-blue-800 hover:bg-blue-700 border border-blue-600 text-white px-4 py-2 rounded transition-colors shadow-md font-bold text-sm">
+                        ❓ Read Instructions
+                    </button>
+                </div>
+
+                <button id="close-settings-btn" class="bg-gray-200 text-black font-bold py-2 px-8 rounded hover:bg-white transition-colors shadow-md w-full mt-4">
+                    Done
+                </button>
+            </div>
+        </div>
+
+        <main class="flex-grow flex flex-col items-center relative overflow-hidden pb-4 px-2 md:px-4 pt-4">
+            
+            <!-- TOP ROW: Stock (1), Waste (1), Foundations (8) = 10 Columns total -->
+            <div id="top-row" class="game-grid mb-4">
+                <!-- Javascript will inject exactly 10 slots here -->
+            </div>
+
+            <!-- MAIN BOARD: 10 Tableau Columns -->
+            <div id="game-board" class="game-grid">
+                <!-- Javascript will inject 10 tableau drop-zones here -->
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        // Screen orientation lock failsafe
+        try {
+            if (screen.orientation && screen.orientation.lock) {
+                screen.orientation.lock('portrait').catch(() => {});
+            }
+        } catch (e) {}
+
+        (function() {
+            // --- CONSTANTS ---
+            const SUITS = {
+                SPADES: { icon: '♠', color: 'black-suit' },
+                HEARTS: { icon: '♥', color: 'red-suit' },
+                CLUBS: { icon: '♣', color: 'black-suit' },
+                DIAMONDS: { icon: '♦', color: 'red-suit' }
+            };
+            const RANKS = [13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1];
+            const RANK_LABELS = { 13: 'K', 12: 'Q', 11: 'J', 1: 'A' };
+            const VERTICAL_OFFSET = 28; // slightly larger offset looks good on Forty Thieves
+
+            // --- STATE ---
+            let state = {
+                deck: [],
+                tableaus: Array.from({ length: 10 }, () => []),
+                foundations: Array.from({ length: 8 }, () => []),
+                stock: [],
+                waste: [],
+                moves: 0,
+                rules: 'wendy',
+                selectedType: null,
+                selectedIndex: null,
+                selectedCardIndex: null,
+            };
+
+            let history = [];
+            let redoHistory = [];
+            let initialGameState = null;
+            let saveTimeout = null;
+
+            // --- DRAG ENGINE ---
+            let drag = {
+                active: false,
+                isDragging: false,
+                startX: 0, startY: 0,
+                sourceType: null, // 'tableau', 'waste', 'foundation'
+                sourceIndex: null, 
+                cardIndex: null,
+                elements: [],
+                cards: []
+            };
+
+            const els = {
+                topRow: document.getElementById('top-row'),
+                board: document.getElementById('game-board'),
+                movesDisplay: document.getElementById('moves-display'),
+                newGameBtn: document.getElementById('new-game-btn'),
+                msgBox: document.getElementById('message-box'),
+                msgText: document.getElementById('message-text'),
+                undoBtn: document.getElementById('undo-btn'),
+                redoBtn: document.getElementById('redo-btn'),
+                replayBtn: document.getElementById('replay-btn'),
+                gearBtn: document.getElementById('gear-btn'),
+                settingsModal: document.getElementById('settings-modal'),
+                rulesSel: document.getElementById('rules-select'),
+                closeSettingsBtn: document.getElementById('close-settings-btn'),
+                helpBtn: document.getElementById('help-btn'),
+                instructionsModal: document.getElementById('instructions-modal'),
+                closeInstructionsBtn: document.getElementById('close-instructions-btn'),
+            };
+
+            // --- FIREWORKS ---
+            let fireworksInterval = null; 
+            function launchFireworks() {
+                if (fireworksInterval) clearInterval(fireworksInterval);
+                const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 9999 };
+                function r(min, max) { return Math.random() * (max - min) + min; }
+                fireworksInterval = setInterval(() => {
+                    confetti(Object.assign({}, defaults, { particleCount: 50, origin: { x: r(0.1, 0.3), y: Math.random() - 0.2 } }));
+                    confetti(Object.assign({}, defaults, { particleCount: 50, origin: { x: r(0.7, 0.9), y: Math.random() - 0.2 } }));
+                }, 250);
+            }
+            function stopFireworks() {
+                if (fireworksInterval) { clearInterval(fireworksInterval); fireworksInterval = null; }
+                if (typeof confetti === "function") confetti.reset(); 
+            }
+
+            // --- INITIALIZATION ---
+            function initGame() {
+                state.tableaus = Array.from({ length: 10 }, () => []);
+                state.foundations = Array.from({ length: 8 }, () => []);
+                state.stock = [];
+                state.waste = [];
+                state.moves = 0;
+                
+                history = [];
+                redoHistory = [];
+                els.undoBtn.disabled = true;
+                els.redoBtn.disabled = true;
+                clearSelection();
+                
+                stopFireworks();
+                hideMessage();
+                
+                buildDeck();
+                shuffleDeck();
+                dealInitialCards();
+                
+                initialGameState = JSON.parse(JSON.stringify(state));
+                updateUI();
+                autoSave();
+            }
+
+            // MULTI-TOUCH FAILSAFE: Cancels dragging if user clicks a UI button
+            function abortDrag() {
+                if (!drag.active) return;
+                drag.active = false;
+                drag.isDragging = false;
+                drag.elements.forEach(el => {
+                    el.classList.remove('dragging');
+                    el.style.transform = '';
+                });
+                drag.elements = [];
+                drag.cards = [];
+                clearSelection();
+                updateUI();
+            }
+
+            // V1.1.17 ASYNC SAVING: Offloads JSON deep-copying to prevent UI lag on mobile
+            function saveState() {
+                redoHistory = [];
+                els.redoBtn.disabled = true;
+                
+                // Deep copy entire state (Forty Thieves state is small enough for full copies)
+                const snapshot = JSON.parse(JSON.stringify(state));
+                history.push(snapshot);
+                els.undoBtn.disabled = false;
+            }
+
+            function undo() {
+                abortDrag();
+                if (history.length === 0) return;
+                redoHistory.push(JSON.parse(JSON.stringify(state)));
+                state = history.pop();
+                
+                els.undoBtn.disabled = history.length === 0;
+                els.redoBtn.disabled = false;
+                
+                clearSelection();
+                updateUI();
+                autoSave();
+            }
+
+            function redo() {
+                abortDrag();
+                if (redoHistory.length === 0) return;
+                history.push(JSON.parse(JSON.stringify(state)));
+                state = redoHistory.pop();
+                
+                els.undoBtn.disabled = false;
+                els.redoBtn.disabled = redoHistory.length === 0;
+                
+                clearSelection();
+                updateUI();
+                autoSave();
+            }
+
+            function autoSave() {
+                if (saveTimeout) clearTimeout(saveTimeout);
+                saveTimeout = setTimeout(() => {
+                    const saveData = { state, history, redoHistory, initialGameState };
+                    try {
+                        localStorage.setItem('fortythieves_save', JSON.stringify(saveData));
+                    } catch (e) {
+                        console.warn("Storage full.");
+                    }
+                }, 500); // Wait 500ms before doing the background save
+            }
+
+            // --- DECK MANAGEMENT ---
+            function buildDeck() {
+                state.deck = [];
+                // 2 Decks = 2 of each suit
+                const suitDistribution = [
+                    SUITS.SPADES, SUITS.HEARTS, SUITS.CLUBS, SUITS.DIAMONDS, 
+                    SUITS.SPADES, SUITS.HEARTS, SUITS.CLUBS, SUITS.DIAMONDS
+                ];
+                let cardId = 0;
+                suitDistribution.forEach(suit => {
+                    RANKS.forEach(rank => {
+                        state.deck.push({ id: `card-${cardId++}`, suit: suit, rank: rank, faceUp: true }); // All dealt cards are face up
+                    });
+                });
+            }
+
+            function shuffleDeck() {
+                for (let i = state.deck.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [state.deck[i], state.deck[j]] = [state.deck[j], state.deck[i]];
+                }
+            }
+
+            // 40 Thieves: 10 columns x 4 face-up cards. Rest in stock face-down.
+            function dealInitialCards() {
+                for (let col = 0; col < 10; col++) {
+                    for (let i = 0; i < 4; i++) {
+                        state.tableaus[col].push(state.deck.pop());
+                    }
+                }
+                // Stock gets the remaining 64 cards, flipped face down
+                state.stock = state.deck;
+                state.stock.forEach(c => c.faceUp = false); 
+            }
+
+            
+            // Evaluates if a card or stack can be picked up
+            function isValidSequence(sourceType, sourceIndex, cardIndex) {
+                if (sourceType === 'waste') return cardIndex === state.waste.length - 1;
+                if (sourceType === 'foundation') return cardIndex === state.foundations[sourceIndex].length - 1;
+                
+                if (sourceType === 'tableau') {
+                    const pile = state.tableaus[sourceIndex];
+                    
+                    // Original Forty Thieves: Only move 1 card ever
+                    if (state.rules === 'original') {
+                        return cardIndex === pile.length - 1; 
+                    } 
+                    // Wendy's Rules: Allow moving ordered sequences (down by exact suit)
+                    else {
+                        for (let i = cardIndex; i < pile.length - 1; i++) {
+                            if (pile[i].suit.icon !== pile[i+1].suit.icon) return false;
+                            if (pile[i].rank !== pile[i+1].rank + 1) return false;
+                        }
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            // Evaluates if dragged cards can be dropped onto a target
+            function canDrop(dragCards, targetType, targetIndex) {
+                const dragCard = dragCards[0];
+                
+                if (targetType === 'foundation') {
+                    if (dragCards.length > 1) return false; // Foundations only accept 1 card at a time
+                    const foundPile = state.foundations[targetIndex];
+                    
+                    if (foundPile.length === 0) {
+                        return dragCard.rank === 1; // Must be Ace
+                    } else {
+                        const topTarget = foundPile[foundPile.length - 1];
+                        // Build UP by EXACT SUIT
+                        return dragCard.suit.icon === topTarget.suit.icon && dragCard.rank === topTarget.rank + 1;
+                    }
+                }
+                
+                if (targetType === 'tableau') {
+                    const tabPile = state.tableaus[targetIndex];
+                    if (tabPile.length === 0) return true; // Empty tableau accepts ANYTHING
+                    
+                    const topTarget = tabPile[tabPile.length - 1];
+                    // Build DOWN by EXACT SUIT
+                    return dragCard.suit.icon === topTarget.suit.icon && dragCard.rank === topTarget.rank - 1;
+                }
+                return false;
+            }
+
+            // Math execution
+            function moveCards(dragCards, sourceType, sourceIndex, targetType, targetIndex) {
+                // 1. Remove from source
+                let sourceArray;
+                if (sourceType === 'waste') sourceArray = state.waste;
+                else if (sourceType === 'foundation') sourceArray = state.foundations[sourceIndex];
+                else if (sourceType === 'tableau') sourceArray = state.tableaus[sourceIndex];
+                
+                const spliced = sourceArray.splice(sourceArray.length - dragCards.length, dragCards.length);
+                
+                // 2. Add to target
+                let targetArray;
+                if (targetType === 'foundation') targetArray = state.foundations[targetIndex];
+                else if (targetType === 'tableau') targetArray = state.tableaus[targetIndex];
+                
+                targetArray.push(...spliced);
+                
+                state.moves++;
+                checkWinCondition();
+                clearSelection();
+                updateUI();
+                autoSave();
+            }
+
+            // Checks if there's a valid foundation to auto-fly a card to
+            function tryAutoMoveToFoundation(sourceType, sourceIndex, cardIndex) {
+                if (!isValidSequence(sourceType, sourceIndex, cardIndex)) return false;
+                
+                let sourceArray;
+                if (sourceType === 'waste') sourceArray = state.waste;
+                else if (sourceType === 'foundation') sourceArray = state.foundations[sourceIndex];
+                else if (sourceType === 'tableau') sourceArray = state.tableaus[sourceIndex];
+                
+                // You can only auto-move the single top card
+                if (cardIndex !== sourceArray.length - 1) return false;
+                
+                const dragCard = sourceArray[cardIndex];
+                
+                // Scan all 8 foundations to see if it fits
+                for (let i = 0; i < 8; i++) {
+                    if (canDrop([dragCard], 'foundation', i)) {
+                        saveState();
+                        moveCards([dragCard], sourceType, sourceIndex, 'foundation', i);
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            function handleStockClick() {
+                abortDrag();
+                if (state.stock.length > 0) {
+                    saveState();
+                    const card = state.stock.pop();
+                    card.faceUp = true;
+                    state.waste.push(card);
+                    state.moves++;
+                    updateUI();
+                    autoSave();
+                } else if (state.rules === 'wendy' && state.waste.length > 0) {
+                    // Wendy's rules allows infinite redeals
+                    saveState();
+                    // Flip waste back to stock (reversed)
+                    while (state.waste.length > 0) {
+                        const c = state.waste.pop();
+                        c.faceUp = false;
+                        state.stock.push(c);
+                    }
+                    state.moves++;
+                    updateUI();
+                    autoSave();
+                } else if (state.rules === 'original') {
+                    showMessage("Original Rules: No redeals allowed!");
+                }
+            }
+
+            function checkWinCondition() {
+                // If all 8 foundations have 13 cards, you win
+                const isWin = state.foundations.every(f => f.length === 13);
+                if (isWin) {
+                    setTimeout(() => {
+                        showMessage("🎉 You beat the Forty Thieves! 🎉", true);
+                        launchFireworks();
+                    }, 500);
+                }
+            }
+
+            function getRankDisplay(rank) { return RANK_LABELS[rank] || rank.toString(); }
+
+            function updateUI() {
+                els.movesDisplay.innerText = state.moves;
+
+                const estimatedCardHeight = Math.max(60, (els.board.clientWidth / 10) * 1.4); 
+
+                // --- 1. RENDER TOP ROW (Stock, Waste, 8 Foundations) ---
+                els.topRow.innerHTML = '';
+                
+                // Stock (Col 0)
+                const stockCol = document.createElement('div');
+                stockCol.className = 'drop-zone';
+                if (state.stock.length > 0) {
+                    stockCol.innerHTML = `<div class="card card-face-down" style="top:0; left:0;"><div style="font-size: clamp(1.5rem, 40cqi, 4rem); filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); line-height: 1;">🌴</div></div>`;
+                } else if (state.rules === 'wendy') {
+                    stockCol.innerHTML = `<div class="absolute inset-0 flex items-center justify-center text-4xl text-white/50">↻</div>`;
+                }
+                stockCol.onclick = handleStockClick;
+                els.topRow.appendChild(stockCol);
+
+                // Waste (Col 1)
+                const wasteCol = document.createElement('div');
+                wasteCol.className = 'drop-zone';
+                wasteCol.dataset.type = 'waste';
+                if (state.waste.length > 0) {
+                    // Render top card of waste
+                    const card = state.waste[state.waste.length - 1];
+                    const cardEl = createCardDOM(card, 'waste', 0, state.waste.length - 1, true);
+                    wasteCol.appendChild(cardEl);
+                }
+                els.topRow.appendChild(wasteCol);
+
+                // Foundations (Cols 2-9)
+                state.foundations.forEach((pile, index) => {
+                    const fCol = document.createElement('div');
+                    fCol.className = 'drop-zone';
+                    fCol.dataset.type = 'foundation';
+                    fCol.dataset.index = index;
+                    
+                    if (pile.length === 0) {
+                        fCol.innerHTML = `<div class="absolute inset-0 flex items-center justify-center text-5xl font-bold text-white/20">A</div>`;
+                    } else {
+                        const card = pile[pile.length - 1];
+                        const cardEl = createCardDOM(card, 'foundation', index, pile.length - 1, true);
+                        fCol.appendChild(cardEl);
+                    }
+                    els.topRow.appendChild(fCol);
+                });
+
+
+                // --- 2. RENDER TABLEAU ---
+                const boardTop = els.board.getBoundingClientRect().top || 200; 
+                const maxAvailableHeight = window.innerHeight - boardTop - 20;
+
+                els.board.innerHTML = '';
+                state.tableaus.forEach((pile, pileIndex) => {
+                    const column = document.createElement('div');
+                    column.className = 'drop-zone';
+                    column.dataset.type = 'tableau';
+                    column.dataset.index = pileIndex;
+                    column.style.height = 'auto'; // Will set explicitly below
+
+                    // Empty column click handler
+                    column.onpointerdown = (e) => {
+                        if(e.target === column) handlePointerDown(e, 'tableau', pileIndex, -1);
+                    };
+
+                    let currentOffset = VERTICAL_OFFSET; 
+                    if (pile.length > 1) {
+                        const requiredHeight = estimatedCardHeight + (pile.length - 1) * VERTICAL_OFFSET;
+                        if (requiredHeight > maxAvailableHeight) {
+                            currentOffset = (maxAvailableHeight - estimatedCardHeight) / (pile.length - 1);
+                            currentOffset = Math.max(12, currentOffset); 
+                        }
+                    }
+
+                    pile.forEach((card, cardIndex) => {
+                        const cardEl = createCardDOM(card, 'tableau', pileIndex, cardIndex, false);
+                        cardEl.style.top = `${cardIndex * currentOffset}px`;
+                        column.appendChild(cardEl);
+                    });
+
+                    if (pile.length > 0) {
+                        column.style.height = `${estimatedCardHeight + ((pile.length - 1) * currentOffset)}px`;
+                    }
+                    els.board.appendChild(column);
+                });
+            }
+
+            // Factory to build DOM cards
+            function createCardDOM(card, sourceType, sourceIndex, cardIndex, isTopRow) {
+                const cardEl = document.createElement('div');
+                cardEl.className = `card ${card.suit.color}`;
+                
+                // CQI scales font size relative to the container width, making cards perfectly responsive
+                cardEl.innerHTML = `
+                    <div class="font-bold tracking-tighter" style="font-size: clamp(0.7rem, 30cqi, 2rem); line-height: 0.8; margin-top: 2px;">${getRankDisplay(card.rank)}</div>
+                    <div class="leading-none text-center flex-grow flex items-center justify-center" style="font-size: clamp(1.5rem, 50cqi, 4rem);">${card.suit.icon}</div>
+                    <div class="font-bold tracking-tighter self-end rotate-180" style="font-size: clamp(0.7rem, 30cqi, 2rem); line-height: 0.8; margin-bottom: 2px;">${getRankDisplay(card.rank)}</div>
+                `;
+
+                // Highlight if selected
+                if (state.selectedType === sourceType && state.selectedIndex === sourceIndex && cardIndex >= state.selectedCardIndex) {
+                    cardEl.classList.add('selected');
+                }
+
+                cardEl.onpointerdown = (e) => {
+                    e.preventDefault(); e.stopPropagation();
+                    handlePointerDown(e, sourceType, sourceIndex, cardIndex);
+                };
+
+                return cardEl;
+            }
+
+            function handlePointerDown(e, type, index, cardIndex) {
+                if (e.button !== 0 && e.pointerType === 'mouse') return; // Ignore right click
+                
+                // If clicked an empty slot
+                if (cardIndex === -1) {
+                    processClick(type, index, -1);
+                    return;
+                }
+
+                if (isValidSequence(type, index, cardIndex)) {
+                    drag.active = true;
+                    drag.isDragging = false;
+                    drag.startX = e.clientX;
+                    drag.startY = e.clientY;
+                    drag.sourceType = type;
+                    drag.sourceIndex = index;
+                    drag.cardIndex = cardIndex;
+                    
+                    drag.elements = [];
+                    drag.cards = [];
+
+                    // Bundle physics payload
+                    let sourceArray;
+                    let parentDom;
+                    if (type === 'waste') { sourceArray = state.waste; parentDom = els.topRow.children[1]; }
+                    else if (type === 'foundation') { sourceArray = state.foundations[index]; parentDom = els.topRow.children[index + 2]; }
+                    else if (type === 'tableau') { sourceArray = state.tableaus[index]; parentDom = els.board.children[index]; }
+
+                    for (let i = cardIndex; i < sourceArray.length; i++) {
+                        drag.cards.push(sourceArray[i]);
+                        // Only tableau has stacked children we need to select cleanly by index
+                        if (type === 'tableau') {
+                            drag.elements.push(parentDom.children[i]);
+                        } else {
+                            drag.elements.push(parentDom.lastElementChild); // Waste and foundation only show 1 card DOM element
+                        }
+                    }
+
+                    if (e.target.setPointerCapture) {
+                        try { e.target.setPointerCapture(e.pointerId); } catch(err) {}
+                    }
+                } else {
+                    e.currentTarget.classList.add('animate-pulse', 'border-red-500', 'border-2');
+                    setTimeout(() => updateUI(), 300);
+                }
+            }
+
+            window.addEventListener('pointermove', (e) => {
+                if (!drag.active) return;
+                const dx = e.clientX - drag.startX;
+                const dy = e.clientY - drag.startY;
+
+                if (!drag.isDragging && (Math.abs(dx) > 5 || Math.abs(dy) > 5)) {
+                    drag.isDragging = true;
+                    drag.elements.forEach(el => el.classList.add('dragging'));
+                    
+                    if (state.selectedType !== drag.sourceType || state.selectedIndex !== drag.sourceIndex || state.selectedCardIndex !== drag.cardIndex) {
+                         clearSelection();
+                         document.querySelectorAll('.card.selected').forEach(el => el.classList.remove('selected'));
+                    }
+                }
+
+                if (drag.isDragging) {
+                    drag.elements.forEach((el) => {
+                        el.style.transform = `translate(${dx}px, ${dy}px)`;
+                    });
+                }
+            });
+
+            window.addEventListener('pointerup', (e) => {
+                if (!drag.active) return;
+
+                if (!drag.isDragging) {
+                    // Pure Click - Auto-move to foundation if possible
+                    const autoMoved = tryAutoMoveToFoundation(drag.sourceType, drag.sourceIndex, drag.cardIndex);
+                    if (!autoMoved) {
+                        processClick(drag.sourceType, drag.sourceIndex, drag.cardIndex);
+                    } else {
+                        abortDrag(); // Cleanup state since autoMoved handled it
+                    }
+                } else {
+                    // It was dragged, evaluate drop
+                    const target = document.elementFromPoint(e.clientX, e.clientY);
+                    let targetZone = target ? target.closest('.drop-zone') : null;
+
+                    // Magnetic snapping for tableaus
+                    if (!targetZone) {
+                        const boardRect = els.board.getBoundingClientRect();
+                        if (e.clientX >= boardRect.left && e.clientX <= boardRect.right && e.clientY >= boardRect.top) {
+                            const columnWidth = boardRect.width / 10;
+                            const estimatedColumnIndex = Math.floor((e.clientX - boardRect.left) / columnWidth);
+                            if (estimatedColumnIndex >= 0 && estimatedColumnIndex < 10) {
+                                targetZone = els.board.children[estimatedColumnIndex];
+                            }
+                        }
+                    }
+
+                    if (targetZone) {
+                        const targetType = targetZone.dataset.type;
+                        const targetIndex = parseInt(targetZone.dataset.index || 0);
+
+                        // Don't drop on self
+                        if (!(targetType === drag.sourceType && targetIndex === drag.sourceIndex)) {
+                            if (canDrop(drag.cards, targetType, targetIndex)) {
+                                saveState();
+                                moveCards(drag.cards, drag.sourceType, drag.sourceIndex, targetType, targetIndex);
+                            } else {
+                                updateUI(); // Invalid drop
+                            }
+                        } else {
+                             updateUI(); 
+                        }
+                    } else {
+                        updateUI(); // Dropped offboard
+                    }
+                }
+
+                // Flush drag engine
+                drag.active = false;
+                drag.isDragging = false;
+                drag.elements.forEach(el => {
+                    el.classList.remove('dragging');
+                    el.style.transform = '';
+                });
+                drag.elements = [];
+                drag.cards = [];
+            });
+
+            window.addEventListener('pointercancel', abortDrag);
+
+            // Click-to-Move fallback logic
+            function processClick(type, index, cardIndex) {
+                // Pick up
+                if (state.selectedType === null) {
+                    if (cardIndex === -1) return; 
+                    if (isValidSequence(type, index, cardIndex)) {
+                        state.selectedType = type;
+                        state.selectedIndex = index;
+                        state.selectedCardIndex = cardIndex;
+                        updateUI();
+                    }
+                } 
+                // Drop
+                else {
+                    if (state.selectedType === type && state.selectedIndex === index && state.selectedCardIndex === cardIndex) {
+                        clearSelection(); updateUI(); return;
+                    }
+
+                    let dragCards = [];
+                    if (state.selectedType === 'waste') dragCards = [state.waste[state.waste.length - 1]];
+                    else if (state.selectedType === 'foundation') dragCards = [state.foundations[state.selectedIndex][state.foundations[state.selectedIndex].length - 1]];
+                    else if (state.selectedType === 'tableau') dragCards = state.tableaus[state.selectedIndex].slice(state.selectedCardIndex);
+
+                    if (canDrop(dragCards, type, index)) {
+                        saveState(); 
+                        moveCards(dragCards, state.selectedType, state.selectedIndex, type, index);
+                    } else {
+                        if (cardIndex >= 0 && isValidSequence(type, index, cardIndex)) {
+                            state.selectedType = type;
+                            state.selectedIndex = index;
+                            state.selectedCardIndex = cardIndex;
+                            updateUI();
+                        } else {
+                            clearSelection(); updateUI();
+                        }
+                    }
+                }
+            }
+
+            function clearSelection() {
+                state.selectedType = null;
+                state.selectedIndex = null;
+                state.selectedCardIndex = null;
+            }
+
+            // --- NOTIFICATIONS & MENUS ---
+            function showMessage(text, permanent = false) {
+                els.msgText.innerText = text;
+                els.msgBox.classList.remove('hidden');
+                els.msgBox.classList.add('msg-animate');
+                if (!permanent) setTimeout(hideMessage, 3000);
+            }
+            function hideMessage() {
+                els.msgBox.classList.add('hidden');
+                els.msgBox.classList.remove('msg-animate');
+            }
+
+            els.helpBtn.addEventListener('click', (e) => {
+                e.preventDefault(); 
+                els.settingsModal.classList.add('hidden');
+                els.instructionsModal.classList.remove('hidden');
+            });
+            els.closeInstructionsBtn.addEventListener('click', () => { els.instructionsModal.classList.add('hidden'); });
+
+            // Settings Long Press
+            let gearTimer; let isGearLong = false;
+            els.gearBtn.addEventListener('pointerdown', (e) => {
+                e.preventDefault(); isGearLong = false;
+                gearTimer = setTimeout(() => {
+                    isGearLong = true;
+                    els.rulesSel.value = state.rules;
+                    els.settingsModal.classList.remove('hidden');
+                }, 600);
+            });
+            const cancelGear = () => clearTimeout(gearTimer);
+            els.gearBtn.addEventListener('pointerleave', cancelGear);
+            els.gearBtn.addEventListener('pointercancel', cancelGear);
+            els.gearBtn.addEventListener('pointerup', () => {
+                clearTimeout(gearTimer);
+                if (!isGearLong) showMessage("Long press ⚙️ for settings!");
+            });
+            els.gearBtn.addEventListener('contextmenu', (e) => e.preventDefault());
+
+            els.rulesSel.addEventListener('change', (e) => {
+                state.rules = e.target.value;
+                autoSave();
+            });
+            els.closeSettingsBtn.addEventListener('click', () => els.settingsModal.classList.add('hidden'));
+
+            // New Game Long Press
+            let newGameTimer; let isNewGameLong = false;
+            els.newGameBtn.addEventListener('pointerdown', (e) => {
+                e.preventDefault(); abortDrag(); isNewGameLong = false;
+                newGameTimer = setTimeout(() => { isNewGameLong = true; initGame(); }, 600);
+            });
+            const cancelNew = () => clearTimeout(newGameTimer);
+            els.newGameBtn.addEventListener('pointerleave', cancelNew);
+            els.newGameBtn.addEventListener('pointercancel', cancelNew);
+            els.newGameBtn.addEventListener('pointerup', () => {
+                clearTimeout(newGameTimer);
+                if (!isNewGameLong) showMessage("Long press 'New Game' to restart!");
+            });
+            els.newGameBtn.addEventListener('contextmenu', (e) => e.preventDefault());
+
+            // Replay Long Press
+            let replayTimer; let isReplayLong = false;
+            els.replayBtn.addEventListener('pointerdown', (e) => {
+                e.preventDefault(); abortDrag();
+                if (!initialGameState) return; 
+                isReplayLong = false;
+                replayTimer = setTimeout(() => {
+                    isReplayLong = true;
+                    state = JSON.parse(JSON.stringify(initialGameState));
+                    history = []; redoHistory = [];
+                    els.undoBtn.disabled = true; els.redoBtn.disabled = true;
+                    stopFireworks(); hideMessage(); clearSelection(); updateUI(); autoSave();
+                }, 600);
+            });
+            const cancelReplay = () => clearTimeout(replayTimer);
+            els.replayBtn.addEventListener('pointerleave', cancelReplay);
+            els.replayBtn.addEventListener('pointercancel', cancelReplay);
+            els.replayBtn.addEventListener('pointerup', () => {
+                clearTimeout(replayTimer);
+                if (!isReplayLong && initialGameState) showMessage("Long press 'Replay' to restart this board!");
+            });
+            els.replayBtn.addEventListener('contextmenu', (e) => e.preventDefault());
+
+            function throttle(func, limit) {
+                let inThrottle;
+                return function() {
+                    const args = arguments;
+                    const context = this;
+                    if (!inThrottle) {
+                        func.apply(context, args);
+                        inThrottle = true;
+                        setTimeout(() => inThrottle = false, limit);
+                    }
+                }
+            }
+
+            els.undoBtn.addEventListener('click', throttle(undo, 300));
+            els.redoBtn.addEventListener('click', throttle(redo, 300));
+
+            // --- BOOT SEQUENCE ---
+            const savedString = localStorage.getItem('fortythieves_save');
+            if (savedString) {
+                try {
+                    const parsed = JSON.parse(savedString);
+                    state = parsed.state;
+                    if (!state.rules) state.rules = 'wendy'; 
+                    history = parsed.history || [];
+                    redoHistory = parsed.redoHistory || [];
+                    initialGameState = parsed.initialGameState;
+                    
+                    els.undoBtn.disabled = history.length === 0;
+                    els.redoBtn.disabled = redoHistory.length === 0;
+                    
+                    clearSelection();
+                    updateUI();
+                } catch (e) {
+                    console.error("Failed to load save data", e);
+                    initGame();
+                }
+            } else {
+                initGame(); 
+            }
+
+        })();
+    </script>
+</body>
+</html>
