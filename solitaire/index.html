@@ -5,29 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Wendy's Solitaire Collection</title>
     
-    <!-- Favicon matching the theme -->
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect x='20' y='15' width='60' height='70' rx='8' fill='white' stroke='%23d1d5db' stroke-width='4' transform='rotate(-6 50 50)'/%3E%3Ctext x='50' y='63' font-size='45' fill='%23171717' text-anchor='middle' font-family='sans-serif' transform='rotate(-6 50 50)'%3E%E2%99%A0%3C/text%3E%3C/svg%3E">
     
     <script src="https://cdn.tailwindcss.com"></script>
     
     <style>
-        /* --- GLOBAL & MOBILE FIXES --- */
         html, body {
             min-height: 100%;
             width: 100%;
         }
 
         body {
-            /* Classic casino felt green background */
             background-color: #0f5a2b; 
             background-image: radial-gradient(circle, #157338 0%, #0a3d1c 100%);
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             color: white;
             display: flex;
             flex-direction: column;
+            scroll-behavior: smooth;
         }
 
-        /* --- INTERACTIVE CARD STYLING --- */
         .game-card {
             background-color: white;
             border-radius: 0.75rem;
@@ -40,10 +37,9 @@
             text-decoration: none;
             display: flex;
             flex-direction: column;
-            color: #171717; /* Dark gray for text readability */
+            color: #171717; 
         }
 
-        /* The golden hover lift effect, identical to selecting a card in-game */
         .game-card:hover {
             transform: translateY(-8px);
             box-shadow: 0 20px 25px -5px rgba(255, 215, 0, 0.3), 0 10px 10px -5px rgba(255, 215, 0, 0.2);
@@ -55,18 +51,15 @@
             box-shadow: 0 10px 15px -3px rgba(255, 215, 0, 0.4);
         }
 
-        /* Decorative repeating card back pattern for the "Coming Soon" card */
-        .card-back-pattern {
-            background-color: #1e3a8a;
-            background-image: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(255,255,255,0.1) 5px, rgba(255,255,255,0.1) 10px);
+        .letter-header {
+            font-family: 'Georgia', serif;
         }
     </style>
 </head>
 <body>
 
-    <!-- HEADER -->
     <header class="bg-black/40 p-4 md:p-6 shadow-lg backdrop-blur-sm z-20 sticky top-0 border-b border-white/10">
-        <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
             <div class="flex items-center gap-4">
                 <div class="w-10 h-14 shrink-0 bg-white rounded-md shadow-md flex items-center justify-center border border-gray-300 transform -rotate-6">
                     <span class="text-red-600 text-3xl leading-none">♥</span>
@@ -77,106 +70,261 @@
                 </div>
             </div>
             
-            <a href="mailto:larryschillig@gmail.com" class="bg-gray-800 hover:bg-gray-700 border border-gray-600 text-white px-5 py-2 rounded-full transition-colors shadow-md text-sm font-semibold flex items-center gap-2">
-                ✉️ Report a Bug
+            <a href="mailto:larryschillig@gmail.com?subject=Wendy's Solitaire Bug Report" class="bg-red-800 hover:bg-red-700 border border-red-500 text-white px-5 py-2 rounded-full transition-colors shadow-md text-sm font-bold flex items-center gap-2 animate-pulse hover:animate-none">
+                🐞 Report Bugs
             </a>
         </div>
     </header>
 
-    <!-- MAIN CONTENT -->
-    <main class="flex-grow flex flex-col items-center p-6 md:p-12 relative">
-        
-        <div class="max-w-6xl w-full">
-            <h2 class="text-3xl font-bold text-[#fbbf24] mb-8 tracking-wider text-center drop-shadow-lg">Select a Game</h2>
+    <main class="flex-grow flex flex-col items-center p-4 md:p-8 relative">
+        <div class="max-w-7xl w-full">
             
-            <!-- GAME GRID -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-                
-                <!-- SPIDER SOLITAIRE -->
-                <a href="spider.html" class="game-card group">
-                    <div class="h-40 bg-gray-100 flex items-center justify-center border-b border-gray-200 relative overflow-hidden">
-                        <div class="absolute inset-0 opacity-10 text-9xl -rotate-12 flex items-center justify-center font-bold text-red-600">♥</div>
-                        <span class="text-7xl drop-shadow-lg z-10 transition-transform duration-300 group-hover:scale-110">🕷️</span>
-                    </div>
-                    <div class="p-6">
-                        <h3 class="text-2xl font-bold mb-2 text-black">Spider Solitaire</h3>
-                        <p class="text-gray-600 text-sm leading-relaxed font-medium">Build complete suits from King to Ace. Choose between 1, 2, or 4 suits with Wendy's relaxed rules!</p>
-                        <div class="mt-4 inline-flex items-center text-blue-600 font-bold text-sm uppercase tracking-wider group-hover:text-[#d97706] transition-colors">
-                            Play Now →
-                        </div>
-                    </div>
-                </a>
-
-                <!-- KLONDIKE SOLITAIRE -->
-                <a href="klondike.html" class="game-card group">
-                    <div class="h-40 bg-gray-100 flex items-center justify-center border-b border-gray-200 relative overflow-hidden">
-                        <div class="absolute inset-0 opacity-10 text-9xl rotate-12 flex items-center justify-center font-bold text-black">♠</div>
-                        <span class="text-7xl drop-shadow-lg z-10 transition-transform duration-300 group-hover:scale-110">🃏</span>
-                    </div>
-                    <div class="p-6">
-                        <h3 class="text-2xl font-bold mb-2 text-black">Klondike Solitaire</h3>
-                        <p class="text-gray-600 text-sm leading-relaxed font-medium">The timeless classic. Alternate colors and build your foundations. Includes Draw 1 and Draw 3 modes.</p>
-                        <div class="mt-4 inline-flex items-center text-blue-600 font-bold text-sm uppercase tracking-wider group-hover:text-[#d97706] transition-colors">
-                            Play Now →
-                        </div>
-                    </div>
-                </a>
-
-                <!-- FREECELL SOLITAIRE -->
-                <a href="freecell.html" class="game-card group">
-                    <div class="h-40 bg-gray-100 flex items-center justify-center border-b border-gray-200 relative overflow-hidden">
-                        <div class="absolute inset-0 opacity-10 text-9xl -rotate-6 flex items-center justify-center font-bold text-black">♣</div>
-                        <span class="text-7xl drop-shadow-lg z-10 transition-transform duration-300 group-hover:scale-110">🧠</span>
-                    </div>
-                    <div class="p-6">
-                        <h3 class="text-2xl font-bold mb-2 text-black">FreeCell</h3>
-                        <p class="text-gray-600 text-sm leading-relaxed font-medium">A strategic challenge where every card is dealt face-up from the start. Use your four free cells wisely.</p>
-                        <div class="mt-4 inline-flex items-center text-blue-600 font-bold text-sm uppercase tracking-wider group-hover:text-[#d97706] transition-colors">
-                            Play Now →
-                        </div>
-                    </div>
-                </a>
-
-                <!-- FORTY THIEVES SOLITAIRE -->
-                <a href="fortythieves.html" class="game-card group">
-                    <div class="h-40 bg-gray-100 flex items-center justify-center border-b border-gray-200 relative overflow-hidden">
-                        <div class="absolute inset-0 opacity-10 text-9xl rotate-6 flex items-center justify-center font-bold text-red-600">♦</div>
-                        <span class="text-7xl drop-shadow-lg z-10 transition-transform duration-300 group-hover:scale-110">👑</span>
-                    </div>
-                    <div class="p-6">
-                        <h3 class="text-2xl font-bold mb-2 text-black">Forty Thieves</h3>
-                        <p class="text-gray-600 text-sm leading-relaxed font-medium">Napoleon's favorite game! A massive 104-card challenge where you must build downwards by exact suit.</p>
-                        <div class="mt-4 inline-flex items-center text-blue-600 font-bold text-sm uppercase tracking-wider group-hover:text-[#d97706] transition-colors">
-                            Play Now →
-                        </div>
-                    </div>
-                </a>
-
-                <!-- COMING SOON PLACEHOLDER -->
-                <div class="game-card card-back-pattern !border-white/20 !cursor-default opacity-80" style="pointer-events: none;">
-                    <div class="h-40 flex items-center justify-center border-b border-white/10">
-                        <span class="text-6xl drop-shadow-lg">🌴</span>
-                    </div>
-                    <div class="p-6 bg-black/40 flex-grow text-center flex flex-col justify-center">
-                        <h3 class="text-xl font-bold mb-1 text-white tracking-widest">MORE GAMES</h3>
-                        <p class="text-[#fbbf24] text-sm font-bold uppercase tracking-widest animate-pulse">Coming Soon</p>
-                    </div>
-                </div>
-
+            <!-- SECTION A -->
+            <div class="w-full mt-4 mb-6 flex items-center gap-4">
+                <h2 class="text-5xl font-black text-[#fbbf24] drop-shadow-lg letter-header">A</h2>
+                <div class="h-[2px] flex-grow bg-gradient-to-r from-[#fbbf24]/50 to-transparent"></div>
             </div>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
+                <!-- Accordion -->
+                <a href="accordion.html" class="game-card group">
+                    <div class="h-32 bg-gray-100 flex items-center justify-center border-b border-gray-200 relative overflow-hidden">
+                        <div class="absolute inset-0 opacity-10 text-9xl -rotate-12 flex items-center justify-center font-bold text-black">♣</div>
+                        <span class="text-6xl drop-shadow-lg z-10 transition-transform duration-300 group-hover:scale-110">🪗</span>
+                    </div>
+                    <div class="p-5 flex-grow flex flex-col">
+                        <h3 class="text-xl font-bold mb-2 text-black">Accordion</h3>
+                        <p class="text-gray-600 text-sm leading-relaxed font-medium flex-grow">Compress a 52-card layout into a single pile! Features fluid wrapping design and smart tap-to-move mechanics.</p>
+                        <div class="mt-4 text-blue-600 font-bold text-sm uppercase tracking-wider group-hover:text-[#d97706] transition-colors">Play Now →</div>
+                    </div>
+                </a>
+
+                <!-- Aces and Kings -->
+                <a href="aceskings.html" class="game-card group">
+                    <div class="h-32 bg-gray-100 flex items-center justify-center border-b border-gray-200 relative overflow-hidden">
+                        <div class="absolute inset-0 opacity-10 text-9xl rotate-12 flex items-center justify-center font-bold text-black">♠</div>
+                        <span class="text-6xl drop-shadow-lg z-10 transition-transform duration-300 group-hover:scale-110">👑</span>
+                    </div>
+                    <div class="p-5 flex-grow flex flex-col">
+                        <h3 class="text-xl font-bold mb-2 text-black">Aces and Kings</h3>
+                        <p class="text-gray-600 text-sm leading-relaxed font-medium flex-grow">A notoriously difficult 104-card challenge! Build up to Aces and down to Kings with zero building allowed on the tableau.</p>
+                        <div class="mt-4 text-blue-600 font-bold text-sm uppercase tracking-wider group-hover:text-[#d97706] transition-colors">Play Now →</div>
+                    </div>
+                </a>
+
+                <!-- Aces Up -->
+                <a href="acesup.html" class="game-card group">
+                    <div class="h-32 bg-gray-100 flex items-center justify-center border-b border-gray-200 relative overflow-hidden">
+                        <div class="absolute inset-0 opacity-10 text-9xl rotate-12 flex items-center justify-center font-bold text-black">♠</div>
+                        <span class="text-6xl drop-shadow-lg z-10 transition-transform duration-300 group-hover:scale-110">🔥</span>
+                    </div>
+                    <div class="p-5 flex-grow flex flex-col">
+                        <h3 class="text-xl font-bold mb-2 text-black">Aces Up</h3>
+                        <p class="text-gray-600 text-sm leading-relaxed font-medium flex-grow">Also known as Idiot's Delight! Discard lower cards of the same suit until only the 4 Aces remain.</p>
+                        <div class="mt-4 text-blue-600 font-bold text-sm uppercase tracking-wider group-hover:text-[#d97706] transition-colors">Play Now →</div>
+                    </div>
+                </a>
+
+                <!-- Acme -->
+                <a href="acme.html" class="game-card group">
+                    <div class="h-32 bg-gray-100 flex items-center justify-center border-b border-gray-200 relative overflow-hidden">
+                        <div class="absolute inset-0 opacity-10 text-9xl -rotate-6 flex items-center justify-center font-bold text-black">♣</div>
+                        <span class="text-6xl drop-shadow-lg z-10 transition-transform duration-300 group-hover:scale-110">🎯</span>
+                    </div>
+                    <div class="p-5 flex-grow flex flex-col">
+                        <h3 class="text-xl font-bold mb-2 text-black">Acme</h3>
+                        <p class="text-gray-600 text-sm leading-relaxed font-medium flex-grow">A difficult variation of Canfield. Empty spaces are auto-filled by the Reserve, and you only get one single redeal!</p>
+                        <div class="mt-4 text-blue-600 font-bold text-sm uppercase tracking-wider group-hover:text-[#d97706] transition-colors">Play Now →</div>
+                    </div>
+                </a>
+
+                <!-- Agnes -->
+                <a href="agnes.html" class="game-card group">
+                    <div class="h-32 bg-gray-100 flex items-center justify-center border-b border-gray-200 relative overflow-hidden">
+                        <div class="absolute inset-0 opacity-10 text-9xl -rotate-6 flex items-center justify-center font-bold text-red-600">♥</div>
+                        <span class="text-6xl drop-shadow-lg z-10 transition-transform duration-300 group-hover:scale-110">👸</span>
+                    </div>
+                    <div class="p-5 flex-grow flex flex-col">
+                        <h3 class="text-xl font-bold mb-2 text-black">Agnes</h3>
+                        <p class="text-gray-600 text-sm leading-relaxed font-medium flex-grow">A brilliantly challenging open-information game! Build around a randomly dealt Base Rank, managing 7 distinct Reserve piles.</p>
+                        <div class="mt-4 text-blue-600 font-bold text-sm uppercase tracking-wider group-hover:text-[#d97706] transition-colors">Play Now →</div>
+                    </div>
+                </a>
+
+                <!-- Algerian -->
+                <a href="algerian.html" class="game-card group">
+                    <div class="h-32 bg-gray-100 flex items-center justify-center border-b border-gray-200 relative overflow-hidden">
+                        <div class="absolute inset-0 opacity-10 text-9xl -rotate-12 flex items-center justify-center font-bold text-black">♠</div>
+                        <span class="text-6xl drop-shadow-lg z-10 transition-transform duration-300 group-hover:scale-110">🐪</span>
+                    </div>
+                    <div class="p-5 flex-grow flex flex-col">
+                        <h3 class="text-xl font-bold mb-2 text-black">Algerian</h3>
+                        <p class="text-gray-600 text-sm leading-relaxed font-medium flex-grow">A sprawling 2-deck masterpiece. Build up AND down in suit on the tableau while carefully managing 6 distinct reserve piles.</p>
+                        <div class="mt-4 text-blue-600 font-bold text-sm uppercase tracking-wider group-hover:text-[#d97706] transition-colors">Play Now →</div>
+                    </div>
+                </a>
+
+                <!-- Alhambra -->
+                <a href="alhambra.html" class="game-card group">
+                    <div class="h-32 bg-gray-100 flex items-center justify-center border-b border-gray-200 relative overflow-hidden">
+                        <div class="absolute inset-0 opacity-10 text-9xl -rotate-6 flex items-center justify-center font-bold text-red-600">♦</div>
+                        <span class="text-6xl drop-shadow-lg z-10 transition-transform duration-300 group-hover:scale-110">🏰</span>
+                    </div>
+                    <div class="p-5 flex-grow flex flex-col">
+                        <h3 class="text-xl font-bold mb-2 text-black">Alhambra</h3>
+                        <p class="text-gray-600 text-sm leading-relaxed font-medium flex-grow">A famously difficult 2-deck game! No building on the tableau; build up and down on the Waste pile to free your reserved cards.</p>
+                        <div class="mt-4 text-blue-600 font-bold text-sm uppercase tracking-wider group-hover:text-[#d97706] transition-colors">Play Now →</div>
+                    </div>
+                </a>
+            </div>
+
+            <div class="w-full mt-12 mb-6 flex items-center gap-4">
+                <h2 class="text-5xl font-black text-[#fbbf24] drop-shadow-lg letter-header">F</h2>
+                <div class="h-[2px] flex-grow bg-gradient-to-r from-[#fbbf24]/50 to-transparent"></div>
+            </div>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
+                <!-- Forty Thieves -->
+                <a href="fortythieves.html" class="game-card group">
+                    <div class="h-32 bg-gray-100 flex items-center justify-center border-b border-gray-200 relative overflow-hidden">
+                        <div class="absolute inset-0 opacity-10 text-9xl rotate-6 flex items-center justify-center font-bold text-red-600">♦</div>
+                        <span class="text-6xl drop-shadow-lg z-10 transition-transform duration-300 group-hover:scale-110">⚔️</span>
+                    </div>
+                    <div class="p-5 flex-grow flex flex-col">
+                        <h3 class="text-xl font-bold mb-2 text-black">Forty Thieves</h3>
+                        <p class="text-gray-600 text-sm leading-relaxed font-medium flex-grow">Napoleon's favorite game! A massive 104-card challenge where you must build downwards by exact suit.</p>
+                        <div class="mt-4 text-blue-600 font-bold text-sm uppercase tracking-wider group-hover:text-[#d97706] transition-colors">Play Now →</div>
+                    </div>
+                </a>
+
+                <!-- FreeCell -->
+                <a href="freecell.html" class="game-card group">
+                    <div class="h-32 bg-gray-100 flex items-center justify-center border-b border-gray-200 relative overflow-hidden">
+                        <div class="absolute inset-0 opacity-10 text-9xl -rotate-6 flex items-center justify-center font-bold text-black">♣</div>
+                        <span class="text-6xl drop-shadow-lg z-10 transition-transform duration-300 group-hover:scale-110">🧠</span>
+                    </div>
+                    <div class="p-5 flex-grow flex flex-col">
+                        <h3 class="text-xl font-bold mb-2 text-black">FreeCell</h3>
+                        <p class="text-gray-600 text-sm leading-relaxed font-medium flex-grow">A strategic challenge where every card is dealt face-up from the start. Use your four free cells wisely.</p>
+                        <div class="mt-4 text-blue-600 font-bold text-sm uppercase tracking-wider group-hover:text-[#d97706] transition-colors">Play Now →</div>
+                    </div>
+                </a>
+            </div>
+
+            <div class="w-full mt-12 mb-6 flex items-center gap-4">
+                <h2 class="text-5xl font-black text-[#fbbf24] drop-shadow-lg letter-header">G</h2>
+                <div class="h-[2px] flex-grow bg-gradient-to-r from-[#fbbf24]/50 to-transparent"></div>
+            </div>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
+                <!-- Gaps -->
+                <a href="gaps.html" class="game-card group">
+                    <div class="h-32 bg-gray-100 flex items-center justify-center border-b border-gray-200 relative overflow-hidden">
+                        <div class="absolute inset-0 opacity-10 text-9xl rotate-12 flex items-center justify-center font-bold text-black">♠</div>
+                        <span class="text-6xl drop-shadow-lg z-10 transition-transform duration-300 group-hover:scale-110">🧩</span>
+                    </div>
+                    <div class="p-5 flex-grow flex flex-col">
+                        <h3 class="text-xl font-bold mb-2 text-black">Gaps</h3>
+                        <p class="text-gray-600 text-sm leading-relaxed font-medium flex-grow">Also known as Montana or Addiction. Organize a massive 4x13 grid into perfect sequences by swapping cards into empty spaces!</p>
+                        <div class="mt-4 text-blue-600 font-bold text-sm uppercase tracking-wider group-hover:text-[#d97706] transition-colors">Play Now →</div>
+                    </div>
+                </a>
+            </div>
+
+            <div class="w-full mt-12 mb-6 flex items-center gap-4">
+                <h2 class="text-5xl font-black text-[#fbbf24] drop-shadow-lg letter-header">K</h2>
+                <div class="h-[2px] flex-grow bg-gradient-to-r from-[#fbbf24]/50 to-transparent"></div>
+            </div>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
+                <!-- Klondike -->
+                <a href="klondike.html" class="game-card group">
+                    <div class="h-32 bg-gray-100 flex items-center justify-center border-b border-gray-200 relative overflow-hidden">
+                        <div class="absolute inset-0 opacity-10 text-9xl rotate-12 flex items-center justify-center font-bold text-black">♠</div>
+                        <span class="text-6xl drop-shadow-lg z-10 transition-transform duration-300 group-hover:scale-110">🃏</span>
+                    </div>
+                    <div class="p-5 flex-grow flex flex-col">
+                        <h3 class="text-xl font-bold mb-2 text-black">Klondike</h3>
+                        <p class="text-gray-600 text-sm leading-relaxed font-medium flex-grow">The timeless classic. Alternate colors and build your foundations. Includes Draw 1 and Draw 3 modes.</p>
+                        <div class="mt-4 text-blue-600 font-bold text-sm uppercase tracking-wider group-hover:text-[#d97706] transition-colors">Play Now →</div>
+                    </div>
+                </a>
+            </div>
+
+            <div class="w-full mt-12 mb-6 flex items-center gap-4">
+                <h2 class="text-5xl font-black text-[#fbbf24] drop-shadow-lg letter-header">M</h2>
+                <div class="h-[2px] flex-grow bg-gradient-to-r from-[#fbbf24]/50 to-transparent"></div>
+            </div>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
+                <!-- Monte Carlo -->
+                <a href="montecarlo.html" class="game-card group">
+                    <div class="h-32 bg-gray-100 flex items-center justify-center border-b border-gray-200 relative overflow-hidden">
+                        <div class="absolute inset-0 opacity-10 text-9xl -rotate-6 flex items-center justify-center font-bold text-black">♣</div>
+                        <span class="text-6xl drop-shadow-lg z-10 transition-transform duration-300 group-hover:scale-110">🎲</span>
+                    </div>
+                    <div class="p-5 flex-grow flex flex-col">
+                        <h3 class="text-xl font-bold mb-2 text-black">Monte Carlo</h3>
+                        <p class="text-gray-600 text-sm leading-relaxed font-medium flex-grow">A fast-paced matching game! Tap adjacent pairs to remove them, then consolidate the 5x5 grid.</p>
+                        <div class="mt-4 text-blue-600 font-bold text-sm uppercase tracking-wider group-hover:text-[#d97706] transition-colors">Play Now →</div>
+                    </div>
+                </a>
+            </div>
+
+            <div class="w-full mt-12 mb-6 flex items-center gap-4">
+                <h2 class="text-5xl font-black text-[#fbbf24] drop-shadow-lg letter-header">S</h2>
+                <div class="h-[2px] flex-grow bg-gradient-to-r from-[#fbbf24]/50 to-transparent"></div>
+            </div>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
+                <!-- Spider -->
+                <a href="spider.html" class="game-card group">
+                    <div class="h-32 bg-gray-100 flex items-center justify-center border-b border-gray-200 relative overflow-hidden">
+                        <div class="absolute inset-0 opacity-10 text-9xl -rotate-12 flex items-center justify-center font-bold text-red-600">♥</div>
+                        <span class="text-6xl drop-shadow-lg z-10 transition-transform duration-300 group-hover:scale-110">🕷️</span>
+                    </div>
+                    <div class="p-5 flex-grow flex flex-col">
+                        <h3 class="text-xl font-bold mb-2 text-black">Spider Solitaire</h3>
+                        <p class="text-gray-600 text-sm leading-relaxed font-medium flex-grow">Build complete suits from King to Ace. Choose between 1, 2, or 4 suits with Wendy's relaxed rules!</p>
+                        <div class="mt-4 text-blue-600 font-bold text-sm uppercase tracking-wider group-hover:text-[#d97706] transition-colors">Play Now →</div>
+                    </div>
+                </a>
+            </div>
+
+            <div class="w-full mt-12 mb-6 flex items-center gap-4">
+                <h2 class="text-5xl font-black text-[#fbbf24] drop-shadow-lg letter-header">Y</h2>
+                <div class="h-[2px] flex-grow bg-gradient-to-r from-[#fbbf24]/50 to-transparent"></div>
+            </div>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
+                <!-- Yukon -->
+                <a href="yukon.html" class="game-card group">
+                    <div class="h-32 bg-gray-100 flex items-center justify-center border-b border-gray-200 relative overflow-hidden">
+                        <div class="absolute inset-0 opacity-10 text-9xl rotate-12 flex items-center justify-center font-bold text-black">♠</div>
+                        <span class="text-6xl drop-shadow-lg z-10 transition-transform duration-300 group-hover:scale-110">🏔️</span>
+                    </div>
+                    <div class="p-5 flex-grow flex flex-col">
+                        <h3 class="text-xl font-bold mb-2 text-black">Yukon</h3>
+                        <p class="text-gray-600 text-sm leading-relaxed font-medium flex-grow">No stock pile! Pick up and move any face-up card, regardless of what's stacked on top of it. Includes Russian Solitaire.</p>
+                        <div class="mt-4 text-blue-600 font-bold text-sm uppercase tracking-wider group-hover:text-[#d97706] transition-colors">Play Now →</div>
+                    </div>
+                </a>
+            </div>
+
         </div>
     </main>
 
-    <!-- FOOTER -->
-    <footer class="bg-black/60 backdrop-blur-md border-t border-white/10 py-8 mt-auto shrink-0">
+    <footer class="bg-black/60 backdrop-blur-md border-t border-white/10 py-10 mt-12 shrink-0">
         <div class="max-w-4xl mx-auto text-center px-4">
-            <h4 class="text-lg font-bold text-white mb-2">We value your feedback!</h4>
-            <p class="text-gray-300 text-sm mb-4">Have an idea for a new feature? Found a bug? Just want to say hi?</p>
-            <a href="mailto:larryschillig@gmail.com?subject=Wendy's Solitaire Feedback" class="inline-block bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded shadow-lg transition-transform hover:-translate-y-1">
-                Email larryschillig@gmail.com
+            <h4 class="text-xl font-bold text-white mb-2">Notice a Bug? We want to fix it!</h4>
+            <p class="text-gray-300 text-sm mb-6 max-w-xl mx-auto">Please report any gameplay issues, visual bugs, or feature suggestions directly to the developer.</p>
+            
+            <a href="mailto:larryschillig@gmail.com?subject=Wendy's Solitaire Bug Report" class="inline-flex items-center gap-2 bg-red-700 hover:bg-red-600 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-transform hover:-translate-y-1 border border-red-500">
+                <span>🐞</span> Email: larryschillig@gmail.com
             </a>
-            <div class="mt-6 text-gray-500 text-xs tracking-widest">
-                &copy; <script>document.write(new Date().getFullYear())</script> Wendy's Solitaire. All rights reserved.
+            
+            <div class="mt-8 text-gray-500 text-xs tracking-widest uppercase">
+                &copy; <script>document.write(new Date().getFullYear())</script> Wendy's Solitaire Collection. All rights reserved.
             </div>
         </div>
     </footer>
