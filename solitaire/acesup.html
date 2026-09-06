@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Wendy's Aces Up</title>
+    
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect x='20' y='15' width='60' height='70' rx='8' fill='white' stroke='%23d1d5db' stroke-width='4' transform='rotate(-6 50 50)'/%3E%3Ctext x='50' y='63' font-size='45' fill='%23171717' text-anchor='middle' font-family='sans-serif' transform='rotate(-6 50 50)'%3E%E2%99%A0%3C/text%3E%3C/svg%3E">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+    
+    <style>
+        /* --- GLOBAL & MOBILE FIXES --- */
+        html, body {
+            overscroll-behavior-y: none; 
+            overscroll-behavior-x: none; 
+            height: 100%;
+            width: 100%;
+        }
+
+        body {
+            background-color: #0f5a2b; 
+            background-image: radial-gradient(circle, #157338 0%, #0a3d1c 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; 
+        }
+
+        #game-wrapper {
+            overflow-y: auto;
+            overflow-x: hidden;
+            touch-action: pan-y;
+        }
+
+        /* --- CARD STYLING & PHYSICS --- */
+        .card {
+            width: calc(100% - 2px); 
+            aspect-ratio: 2.5 / 3.5; 
+            position: absolute; 
+            border-radius: 0.375rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+            transition: transform 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+            user-select: none;  
+            -webkit-user-drag: none;
+            cursor: pointer;
+            background-color: white;
+            border: 1px solid #cbd5e1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 2%;
+            overflow: hidden;
+            container-type: inline-size;
+            touch-action: none; 
+            z-index: 10;
+        }
+
+        .card.dragging {
+            z-index: 1000 !important;
+            pointer-events: none; 
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+            transition: none; 
+        }
+
+        .card-face-down {
+            background-color: #1e3a8a;
+            background-image: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(255,255,255,0.1) 5px, rgba(255,255,255,0.1) 10px);
+            border: 2px solid white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .card.selected {
+            transform: translateY(-10px);
+            box-shadow: 0 10px 15px -3px rgba(255, 215, 0, 0.6), 0 4px 6px -2px rgba(255, 215, 0, 0.3);
+            border-color: #fbbf24;
+            z-index: 50;
+        }
+
+        .card.red-suit { color: #dc2626; }
+        .card.black-suit { color: #171717; }
+
+        /* --- GAME BOARD LAYOUT --- */
+        .drop-zone {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 2.5 / 3.5;
+            background-color: rgba(0, 0, 0, 0.2);
+            border-radius: 0.375rem;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        /* Animations */
+        @keyframes slideDown {
+            from { transform: translate(-50%, -100%); opacity: 0; }
+            to { transform: translate(-50%, 0); opacity: 1; }
+        }
+        .msg-animate { animation: slideDown 0.3s ease-out forwards; }
+        
+        @keyframes dealIn {
+            from { opacity: 0; transform: translateY(-20px) scale(0.9); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .anim-deal { animation: dealIn 0.3s ease-out forwards; }
+    </style>
+</head>
+<body class="bg-black">
+
+    <div id="game-wrapper" class="flex-grow flex flex-col w-full relative h-[100dvh]">
+        
+        <header class="bg-black/40 p-3 md:p-4 shadow-lg backdrop-blur-sm z-20 sticky top-0 shrink-0 border-b border-white/10">
+            <div class="max-w-[1000px] mx-auto flex flex-col md:flex-row md:flex-wrap justify-between items-start md:items-center gap-3 md:gap-4">
+                
+                <div class="flex items-center gap-3 w-full md:w-auto">
+                    <div class="w-6 h-8 shrink-0 bg-white rounded shadow-sm flex items-center justify-center border border-gray-300 transform -rotate-6">
+                        <span class="text-black text-lg leading-none font-bold">A♠</span>
+                    </div>
+                    <h1 class="font-bold tracking-wider whitespace-nowrap text-[clamp(1.1rem,4.5vw,1.875rem)] text-white drop-shadow">WENDY'S ACES UP</h1>
+                </div>
+                
+                <div class="flex items-center justify-between w-full md:w-auto gap-4">
+                    <div class="flex items-center gap-4 md:gap-6 text-sm md:text-base font-semibold text-gray-200">
+                        <div>MOVES: <span id="moves-display" class="text-white">0</span></div>
+                    </div>
+                    <button id="new-game-btn" class="bg-green-600 hover:bg-green-500 text-white px-3 md:px-4 py-1.5 rounded transition-colors shadow-md select-none touch-none text-sm md:text-base whitespace-nowrap" title="Long press for new game">
+                        New Game
+                    </button>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2 md:gap-3 w-full md:w-auto">
+                    <button id="gear-btn" class="bg-gray-800 hover:bg-gray-700 border border-gray-600 text-white px-3 py-1.5 rounded transition-colors shadow-md select-none touch-none" title="Long press for Settings">
+                        ⚙️
+                    </button>
+                    <button id="undo-btn" class="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-1.5 rounded transition-colors shadow-md" disabled>
+                        Undo
+                    </button>
+                    <button id="redo-btn" class="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-1.5 rounded transition-colors shadow-md" disabled>
+                        Redo
+                    </button>
+                    <button id="replay-btn" class="bg-orange-600 hover:bg-orange-500 text-white px-4 py-1.5 rounded transition-colors shadow-md select-none touch-none" title="Long press to replay">
+                        Replay
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <div id="message-box" class="fixed top-20 left-1/2 hidden z-50 bg-red-600 text-white px-6 py-3 rounded shadow-2xl border border-red-400 text-center font-semibold transform -translate-x-1/2 whitespace-nowrap">
+            <span id="message-text"></span>
+        </div>
+
+        <!-- Instructions Modal -->
+        <div id="instructions-modal" class="fixed inset-0 bg-black/80 z-[9999] hidden flex items-center justify-center backdrop-blur-sm px-4">
+            <div class="bg-[#0f5a2b] border-2 border-blue-400 rounded-xl p-6 shadow-2xl max-w-lg w-full text-left max-h-[80vh] overflow-y-auto">
+                <h2 class="text-3xl font-bold text-white border-b border-gray-400 pb-2 mb-4 text-center">How to Play</h2>
+                
+                <div class="text-gray-100 space-y-4 text-sm leading-relaxed">
+                    <p><strong>The Goal:</strong> Discard all 48 cards into the discard pile until ONLY the 4 Aces remain on the board!</p>
+                    
+                    <h3 class="text-lg font-bold text-[#fbbf24] mt-4 border-b border-[#fbbf24]/30 pb-1">Rules of Discarding</h3>
+                    <ul class="list-disc pl-5 space-y-2">
+                        <li>Look at the <strong>top exposed card</strong> of all 4 columns.</li>
+                        <li>If two top cards are the <strong>SAME SUIT</strong>, you can tap the <strong>LOWER</strong> card to instantly discard it!</li>
+                        <li><em>(Remember: Aces are the HIGHEST card in this game, so you never want to discard them!)</em></li>
+                    </ul>
+
+                    <h3 class="text-lg font-bold text-[#fbbf24] mt-4 border-b border-[#fbbf24]/30 pb-1">Dealing & Empty Spaces</h3>
+                    <ul class="list-disc pl-5 space-y-2">
+                        <li>When you run out of discards, tap the <strong>Stock Pile</strong> (top left) to deal 4 new cards across the board.</li>
+                        <li>If you clear an entire column, you can drag the top card of any other pile into the empty space to free up cards underneath it!</li>
+                    </ul>
+                    
+                    <div class="bg-black/30 p-3 rounded border border-[#fbbf24]/50 mt-4 text-xs">
+                        <p class="font-bold text-[#fbbf24] mb-1">⚙️ Variants Available in Settings!</p>
+                        <p>Change what cards are allowed to move into Empty Spaces. Play the classic "Any Card" rules, or test your skills with "Kings Only" or the brutal "No Moving" rules!</p>
+                    </div>
+                </div>
+
+                <div class="mt-6 text-center">
+                    <button id="close-instructions-btn" class="bg-gray-200 text-black font-bold py-2 px-8 rounded hover:bg-white transition-colors shadow-md w-full">
+                        Got it!
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Modal -->
+        <div id="settings-modal" class="fixed inset-0 bg-black/80 z-[9999] hidden flex items-center justify-center backdrop-blur-sm px-4">
+            <div class="bg-[#0f5a2b] border-2 border-[#fbbf24] rounded-xl p-6 shadow-2xl max-w-sm w-full text-center">
+                <h2 class="text-2xl font-bold text-[#fbbf24] mb-4">Settings</h2>
+                
+                <div class="mb-5 text-left">
+                    <label class="block text-sm font-semibold mb-2 text-white">Empty Space Rule:</label>
+                    <select id="rules-select" class="bg-gray-800 text-white border border-gray-600 rounded px-3 py-2 w-full focus:ring-2 focus:ring-[#fbbf24] outline-none cursor-pointer">
+                        <option value="standard">Standard (Move Any Card)</option>
+                        <option value="kings">Strict (Move Kings Only)</option>
+                        <option value="nomove">Expert (No Moving Allowed)</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <button id="help-btn" class="w-full bg-blue-800 hover:bg-blue-700 border border-blue-600 text-white px-4 py-2 rounded transition-colors shadow-md font-bold text-sm">
+                        ❓ Read Instructions
+                    </button>
+                </div>
+
+                <button id="close-settings-btn" class="bg-gray-200 text-black font-bold py-2 px-8 rounded hover:bg-white transition-colors shadow-md w-full mt-4">
+                    Done
+                </button>
+            </div>
+        </div>
+
+        <main class="flex-grow flex flex-col items-center relative pb-12 px-4 pt-6">
+            
+            <div class="w-full max-w-[800px] flex flex-col gap-6">
+                
+                <!-- TOP HUD: Stock and Discard -->
+                <div class="bg-black/20 p-4 rounded-xl border border-white/10 shadow-inner flex justify-between items-center px-4 md:px-12">
+                    
+                    <!-- Stock Area -->
+                    <div class="flex flex-col items-center gap-2">
+                        <h3 class="text-white/50 text-xs font-bold uppercase tracking-widest select-none">Stock</h3>
+                        <div id="stock-pile" class="w-[clamp(60px,15vw,90px)] aspect-[2.5/3.5] bg-blue-800 rounded border-2 border-white shadow-md relative flex items-center justify-center overflow-hidden cursor-pointer hover:-translate-y-1 transition-transform" title="Deal 4 Cards">
+                            <div style="background-image: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(255,255,255,0.1) 5px, rgba(255,255,255,0.1) 10px);" class="absolute inset-0"></div>
+                            <span class="text-3xl md:text-5xl drop-shadow-md leading-none z-10">🌴</span>
+                            <!-- Cards left badge -->
+                            <div id="stock-count" class="absolute -top-3 -right-3 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded-full shadow border border-white z-20">48</div>
+                        </div>
+                    </div>
+
+                    <!-- Center Branding / Info -->
+                    <div class="hidden sm:flex flex-col items-center opacity-30 select-none pointer-events-none">
+                        <div class="text-6xl font-black tracking-tighter">A♠</div>
+                        <div class="text-sm font-bold tracking-widest">ACES UP</div>
+                    </div>
+
+                    <!-- Discard Area -->
+                    <div class="flex flex-col items-center gap-2">
+                        <h3 class="text-white/50 text-xs font-bold uppercase tracking-widest select-none">Discard</h3>
+                        <div id="discard-pile" class="drop-zone w-[clamp(60px,15vw,90px)] flex items-center justify-center overflow-visible" data-type="discard">
+                            <!-- JS injects discarded cards here -->
+                            <div class="absolute inset-0 flex items-center justify-center text-4xl text-white/10 select-none">🗑️</div>
+                        </div>
+                    </div>
+
+                </div>
+                
+                <!-- MAIN BOARD: 4 Columns -->
+                <div class="bg-black/20 p-3 md:p-6 rounded-xl border border-white/10 shadow-inner">
+                    <div id="game-board" class="grid grid-cols-4 gap-2 md:gap-4 w-full">
+                        <!-- JS Inject 4 Column Drop Zones -->
+                    </div>
+                </div>
+                
+            </div>
+        </main>
+    </div>
+
+    <script>
+        (function() {
+            // --- CONSTANTS ---
+            const SUITS = {
+                SPADES: { icon: '♠', color: 'black-suit' },
+                HEARTS: { icon: '♥', color: 'red-suit' },
+                CLUBS: { icon: '♣', color: 'black-suit' },
+                DIAMONDS: { icon: '♦', color: 'red-suit' }
+            };
+            // Ranks 2 through 14 (Ace is high in Aces Up)
+            const RANKS = [14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2];
+            const RANK_LABELS = { 14: 'A', 13: 'K', 12: 'Q', 11: 'J' };
+            const VERTICAL_OFFSET = 26; 
+
+            // --- STATE ---
+            let state = {
+                deck: [],
+                stock: [],
+                tableaus: [[], [], [], []],
+                discard: [], // Only visually need to show the top one, but good to store
+                moves: 0,
+                rules: 'standard', // 'standard', 'kings', 'nomove'
+                selectedIndex: null // Points to the column index (0-3) currently selected
+            };
+
+            let history = [];
+            let redoHistory = [];
+            let initialGameState = null;
+            let saveTimeout = null;
+
+            // --- DRAG ENGINE ---
+            let drag = {
+                active: false,
+                isDragging: false,
+                startX: 0, startY: 0,
+                sourceIndex: null, 
+                element: null,
+                card: null
+            };
+
+            const els = {
+                board: document.getElementById('game-board'),
+                stockPile: document.getElementById('stock-pile'),
+                stockCount: document.getElementById('stock-count'),
+                discardPile: document.getElementById('discard-pile'),
+                movesDisplay: document.getElementById('moves-display'),
+                newGameBtn: document.getElementById('new-game-btn'),
+                msgBox: document.getElementById('message-box'),
+                msgText: document.getElementById('message-text'),
+                undoBtn: document.getElementById('undo-btn'),
+                redoBtn: document.getElementById('redo-btn'),
+                replayBtn: document.getElementById('replay-btn'),
+                gearBtn: document.getElementById('gear-btn'),
+                settingsModal: document.getElementById('settings-modal'),
+                rulesSel: document.getElementById('rules-select'),
+                closeSettingsBtn: document.getElementById('close-settings-btn'),
+                helpBtn: document.getElementById('help-btn'),
+                instructionsModal: document.getElementById('instructions-modal'),
+                closeInstructionsBtn: document.getElementById('close-instructions-btn'),
+            };
+
+            // --- FIREWORKS ---
+            let fireworksInterval = null; 
+            function launchFireworks() {
+                if (fireworksInterval) clearInterval(fireworksInterval);
+                const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 9999 };
+                function r(min, max) { return Math.random() * (max - min) + min; }
+                fireworksInterval = setInterval(() => {
+                    confetti(Object.assign({}, defaults, { particleCount: 50, origin: { x: r(0.1, 0.3), y: Math.random() - 0.2 } }));
+                    confetti(Object.assign({}, defaults, { particleCount: 50, origin: { x: r(0.7, 0.9), y: Math.random() - 0.2 } }));
+                }, 250);
+            }
+            function stopFireworks() {
+                if (fireworksInterval) { clearInterval(fireworksInterval); fireworksInterval = null; }
+                if (typeof confetti === "function") confetti.reset(); 
+            }
+
+            // --- STREAMING_CHUNK:Core Game Logic and Dealing... ---
+            function initGame() {
+                state.tableaus = [[], [], [], []];
+                state.stock = [];
+                state.discard = [];
+                state.moves = 0;
+                
+                history = [];
+                redoHistory = [];
+                els.undoBtn.disabled = true;
+                els.redoBtn.disabled = true;
+                clearSelection();
+                
+                stopFireworks();
+                hideMessage();
+                
+                buildDeck();
+                shuffleDeck();
+                dealInitialCards();
+                
+                initialGameState = JSON.parse(JSON.stringify(state));
+                updateUI();
+                autoSave();
+            }
+
+            function buildDeck() {
+                state.deck = [];
+                let cardId = 0;
+                const suits = [SUITS.SPADES, SUITS.HEARTS, SUITS.CLUBS, SUITS.DIAMONDS];
+                suits.forEach(suit => {
+                    RANKS.forEach(rank => {
+                        state.deck.push({ id: `card-${cardId++}`, suit: suit, rank: rank });
+                    });
+                });
+            }
+
+            function shuffleDeck() {
+                for (let i = state.deck.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [state.deck[i], state.deck[j]] = [state.deck[j], state.deck[i]];
+                }
+            }
+
+            function dealInitialCards() {
+                // 1 card to each of the 4 columns
+                for (let i = 0; i < 4; i++) {
+                    state.tableaus[i].push(state.deck.pop());
+                }
+                state.stock = state.deck;
+            }
+
+            function handleStockClick() {
+                abortDrag();
+                if (state.stock.length === 0) return;
+                
+                saveState();
+                
+                // Deal 1 card to each column (or however many are left)
+                let dealt = false;
+                for (let i = 0; i < 4; i++) {
+                    if (state.stock.length > 0) {
+                        const card = state.stock.pop();
+                        card.isNewDeal = true; // Flag for animation
+                        state.tableaus[i].push(card);
+                        dealt = true;
+                    }
+                }
+                
+                if (dealt) {
+                    state.moves++;
+                    clearSelection();
+                    updateUI();
+                    autoSave();
+                    
+                    // Cleanup animation flags after render
+                    setTimeout(() => {
+                        state.tableaus.forEach(col => col.forEach(c => c.isNewDeal = false));
+                    }, 350);
+                }
+            }
+            
+            els.stockPile.addEventListener('click', handleStockClick);
+
+            // --- STREAMING_CHUNK:Validation and Rules... ---
+            
+            // Evaluates if the top card of column `colIndex` can be legally discarded
+            // (i.e., there is another top card of the SAME suit with a HIGHER rank)
+            function canDiscard(colIndex) {
+                const pile = state.tableaus[colIndex];
+                if (pile.length === 0) return false;
+                
+                const card = pile[pile.length - 1];
+                
+                for (let i = 0; i < 4; i++) {
+                    if (i === colIndex) continue;
+                    
+                    const otherPile = state.tableaus[i];
+                    if (otherPile.length === 0) continue;
+                    
+                    const otherCard = otherPile[otherPile.length - 1];
+                    if (card.suit.icon === otherCard.suit.icon && otherCard.rank > card.rank) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            // Checks if a card can be moved to an EMPTY column based on current settings
+            function canMoveToEmpty(card, targetColIndex) {
+                if (state.tableaus[targetColIndex].length !== 0) return false; // Must be empty
+                
+                if (state.rules === 'nomove') return false;
+                if (state.rules === 'kings') return card.rank === 13; // Kings only
+                return true; // Standard: any card
+            }
+
+            function executeDiscard(colIndex) {
+                saveState();
+                const card = state.tableaus[colIndex].pop();
+                state.discard.push(card);
+                state.moves++;
+                clearSelection();
+                updateUI();
+                autoSave();
+                checkWinCondition();
+            }
+
+            function executeMove(fromCol, toCol) {
+                saveState();
+                const card = state.tableaus[fromCol].pop();
+                state.tableaus[toCol].push(card);
+                state.moves++;
+                clearSelection();
+                updateUI();
+                autoSave();
+            }
+
+            function checkWinCondition() {
+                if (state.stock.length > 0) return;
+                
+                let win = true;
+                for (let i = 0; i < 4; i++) {
+                    // Winning means exactly 1 card per column, and it MUST be an Ace (14)
+                    if (state.tableaus[i].length !== 1 || state.tableaus[i][0].rank !== 14) {
+                        win = false;
+                        break;
+                    }
+                }
+                
+                if (win) {
+                    setTimeout(() => {
+                        showMessage("🎉 PERFECT RUN! Only the Aces remain! 🎉", true);
+                        launchFireworks();
+                    }, 500);
+                } else {
+                    // Check for game over (no stock, no valid discards, no valid moves)
+                    let movesLeft = false;
+                    for (let i=0; i<4; i++) {
+                        if (canDiscard(i)) { movesLeft = true; break; }
+                    }
+                    
+                    // If no discards, check if we can shift a card to an empty space to unlock a move
+                    if (!movesLeft && state.rules !== 'nomove') {
+                        const emptyCols = state.tableaus.filter(c => c.length === 0).length;
+                        if (emptyCols > 0) {
+                            for (let i=0; i<4; i++) {
+                                if (state.tableaus[i].length > 1) { // Only matters if moving exposes a card
+                                    const topCard = state.tableaus[i][state.tableaus[i].length - 1];
+                                    if (state.rules === 'standard' || (state.rules === 'kings' && topCard.rank === 13)) {
+                                        movesLeft = true; break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if (!movesLeft) {
+                        setTimeout(() => {
+                            showMessage(`Game Over. No more moves!`, true);
+                        }, 500);
+                    }
+                }
+            }
+
+            // --- STREAMING_CHUNK:Undo, Redo, Persistence... ---
+            function abortDrag() {
+                if (!drag.active) return;
+                drag.active = false;
+                drag.isDragging = false;
+                if (drag.element) {
+                    drag.element.classList.remove('dragging');
+                    drag.element.style.transform = '';
+                }
+                drag.element = null;
+                drag.card = null;
+                clearSelection();
+                updateUI();
+            }
+
+            function saveState() {
+                redoHistory = [];
+                els.redoBtn.disabled = true;
+                const snapshot = JSON.parse(JSON.stringify(state));
+                history.push(snapshot);
+                els.undoBtn.disabled = false;
+            }
+
+            function undo() {
+                abortDrag();
+                if (history.length === 0) return;
+                redoHistory.push(JSON.parse(JSON.stringify(state)));
+                state = history.pop();
+                els.undoBtn.disabled = history.length === 0;
+                els.redoBtn.disabled = false;
+                clearSelection(); updateUI(); autoSave();
+            }
+
+            function redo() {
+                abortDrag();
+                if (redoHistory.length === 0) return;
+                history.push(JSON.parse(JSON.stringify(state)));
+                state = redoHistory.pop();
+                els.undoBtn.disabled = false;
+                els.redoBtn.disabled = redoHistory.length === 0;
+                clearSelection(); updateUI(); autoSave();
+            }
+
+            function autoSave() {
+                if (saveTimeout) clearTimeout(saveTimeout);
+                saveTimeout = setTimeout(() => {
+                    const saveData = { state, history, redoHistory, initialGameState };
+                    try { localStorage.setItem('acesup_save', JSON.stringify(saveData)); } catch (e) {}
+                }, 500);
+            }
+
+            // --- STREAMING_CHUNK:Rendering Engine... ---
+            function getRankDisplay(rank) { return RANK_LABELS[rank] || rank.toString(); }
+
+            function createCardDOM(card, colIndex, isTopCard) {
+                const cardEl = document.createElement('div');
+                cardEl.className = `card ${card.suit.color}`;
+                if (card.isNewDeal) cardEl.classList.add('anim-deal');
+                
+                cardEl.innerHTML = `
+                    <div class="font-bold tracking-tighter" style="font-size: clamp(0.7rem, 30cqi, 2rem); line-height: 0.8; margin-top: 2px;">${getRankDisplay(card.rank)}</div>
+                    <div class="leading-none text-center flex-grow flex items-center justify-center" style="font-size: clamp(1.5rem, 50cqi, 4rem);">${card.suit.icon}</div>
+                    <div class="font-bold tracking-tighter self-end rotate-180" style="font-size: clamp(0.7rem, 30cqi, 2rem); line-height: 0.8; margin-bottom: 2px;">${getRankDisplay(card.rank)}</div>
+                `;
+
+                if (state.selectedIndex === colIndex && isTopCard) {
+                    cardEl.classList.add('selected');
+                }
+
+                // In Aces Up, you can ONLY ever interact with the top-most card of a column
+                if (isTopCard) {
+                    cardEl.onpointerdown = (e) => {
+                        e.preventDefault(); e.stopPropagation();
+                        handlePointerDown(e, colIndex, cardEl, card);
+                    };
+                }
+
+                return cardEl;
+            }
+
+            function updateUI() {
+                els.movesDisplay.innerText = state.moves;
+                
+                // Update Stock
+                if (state.stock.length > 0) {
+                    els.stockPile.innerHTML = `
+                        <div style="background-image: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(255,255,255,0.1) 5px, rgba(255,255,255,0.1) 10px);" class="absolute inset-0"></div>
+                        <span class="text-3xl md:text-5xl drop-shadow-md leading-none z-10">🌴</span>
+                    `;
+                    els.stockCount.innerText = state.stock.length;
+                    els.stockCount.classList.remove('hidden');
+                    els.stockPile.classList.remove('opacity-50', 'cursor-not-allowed');
+                } else {
+                    els.stockPile.innerHTML = `<div class="absolute inset-0 flex items-center justify-center text-4xl text-white/10 select-none">❌</div>`;
+                    els.stockCount.classList.add('hidden');
+                    els.stockPile.classList.add('opacity-50', 'cursor-not-allowed');
+                }
+
+                // Update Discard
+                els.discardPile.innerHTML = '';
+                if (state.discard.length > 0) {
+                    const topDiscard = state.discard[state.discard.length - 1];
+                    const discardCard = createCardDOM(topDiscard, -1, false);
+                    discardCard.style.top = '0px';
+                    // Rotate slightly for a messy pile effect
+                    const rot = (state.discard.length * 15) % 20 - 10; 
+                    discardCard.style.transform = `rotate(${rot}deg)`;
+                    els.discardPile.appendChild(discardCard);
+                } else {
+                    els.discardPile.innerHTML = `<div class="absolute inset-0 flex items-center justify-center text-4xl text-white/10 select-none">🗑️</div>`;
+                }
+
+                // Render Main Board 4 Columns
+                els.board.innerHTML = '';
+                // Dynamically calculate height available to compress long stacks if necessary
+                const boardTop = els.board.getBoundingClientRect().top || 200; 
+                const maxAvailableHeight = window.innerHeight - boardTop - 20;
+                const estimatedCardHeight = Math.max(60, (els.board.clientWidth / 4) * 1.4); 
+
+                state.tableaus.forEach((pile, colIndex) => {
+                    const column = document.createElement('div');
+                    column.className = 'drop-zone';
+                    column.dataset.col = colIndex;
+                    
+                    column.onpointerdown = (e) => {
+                        if(e.target === column) processClick(colIndex, true); // Clicked empty col
+                    };
+
+                    let currentOffset = VERTICAL_OFFSET; 
+                    if (pile.length > 1) {
+                        const requiredHeight = estimatedCardHeight + (pile.length - 1) * VERTICAL_OFFSET;
+                        if (requiredHeight > maxAvailableHeight) {
+                            currentOffset = (maxAvailableHeight - estimatedCardHeight) / (pile.length - 1);
+                            currentOffset = Math.max(10, currentOffset); 
+                        }
+                    }
+
+                    pile.forEach((card, cardIndex) => {
+                        const isTopCard = cardIndex === pile.length - 1;
+                        const cardEl = createCardDOM(card, colIndex, isTopCard);
+                        cardEl.style.top = `${cardIndex * currentOffset}px`;
+                        column.appendChild(cardEl);
+                    });
+
+                    if (pile.length > 0) {
+                        column.style.height = `${estimatedCardHeight + ((pile.length - 1) * currentOffset)}px`;
+                    } else {
+                        column.style.height = `${estimatedCardHeight}px`;
+                    }
+                    
+                    els.board.appendChild(column);
+                });
+            }
+
+            // --- STREAMING_CHUNK:Interaction Physics... ---
+            function handlePointerDown(e, colIndex, domElement, card) {
+                if (e.button !== 0 && e.pointerType === 'mouse') return;
+
+                drag.active = true;
+                drag.isDragging = false;
+                drag.startX = e.clientX;
+                drag.startY = e.clientY;
+                drag.sourceIndex = colIndex;
+                drag.element = domElement;
+                drag.card = card;
+
+                if (e.target.setPointerCapture) {
+                    try { e.target.setPointerCapture(e.pointerId); } catch(err) {}
+                }
+            }
+
+            window.addEventListener('pointermove', (e) => {
+                if (!drag.active) return;
+                const dx = e.clientX - drag.startX;
+                const dy = e.clientY - drag.startY;
+
+                if (!drag.isDragging && (Math.abs(dx) > 5 || Math.abs(dy) > 5)) {
+                    drag.isDragging = true;
+                    drag.element.classList.add('dragging');
+                    if (state.selectedIndex !== drag.sourceIndex) {
+                         clearSelection(); updateUI();
+                    }
+                }
+
+                if (drag.isDragging) {
+                    drag.element.style.transform = `translate(${dx}px, ${dy}px)`;
+                }
+            });
+
+            window.addEventListener('pointerup', (e) => {
+                if (!drag.active) return;
+
+                if (!drag.isDragging) {
+                    // Tap / Click logic
+                    processClick(drag.sourceIndex, false);
+                } else {
+                    // Drag logic
+                    const target = document.elementFromPoint(e.clientX, e.clientY);
+                    
+                    // Check if dropped on Discard pile
+                    const discardTarget = target ? target.closest('#discard-pile') : null;
+                    if (discardTarget) {
+                        if (canDiscard(drag.sourceIndex)) {
+                            executeDiscard(drag.sourceIndex);
+                        } else {
+                            updateUI(); // Invalid discard
+                        }
+                    } else {
+                        // Check if dropped on a column
+                        let targetZone = target ? target.closest('.drop-zone') : null;
+                        
+                        if (targetZone && targetZone.dataset.col !== undefined) {
+                            const targetCol = parseInt(targetZone.dataset.col);
+                            if (drag.sourceIndex !== targetCol && canMoveToEmpty(drag.card, targetCol)) {
+                                executeMove(drag.sourceIndex, targetCol);
+                            } else {
+                                updateUI();
+                            }
+                        } else {
+                            updateUI(); 
+                        }
+                    }
+                }
+
+                drag.active = false;
+                drag.isDragging = false;
+                if (drag.element) {
+                    drag.element.classList.remove('dragging');
+                    drag.element.style.transform = '';
+                }
+                drag.element = null;
+                drag.card = null;
+            });
+
+            window.addEventListener('pointercancel', abortDrag);
+
+            function processClick(colIndex, isEmptyCol) {
+                // If they tapped an empty column and something is selected, attempt to move
+                if (isEmptyCol) {
+                    if (state.selectedIndex !== null) {
+                        const card = state.tableaus[state.selectedIndex][state.tableaus[state.selectedIndex].length - 1];
+                        if (canMoveToEmpty(card, colIndex)) {
+                            executeMove(state.selectedIndex, colIndex);
+                        } else {
+                            clearSelection(); updateUI();
+                        }
+                    }
+                    return;
+                }
+
+                // If clicking the currently selected card, deselect
+                if (state.selectedIndex === colIndex) {
+                    clearSelection();
+                    updateUI();
+                    return;
+                }
+
+                // Smart Tap Logic: 
+                // 1. Can it be discarded? Auto-discard it!
+                if (canDiscard(colIndex)) {
+                    executeDiscard(colIndex);
+                    return;
+                }
+
+                // 2. Can't be discarded. Select it in case user wants to move it to an empty slot.
+                state.selectedIndex = colIndex;
+                updateUI();
+            }
+
+            function clearSelection() { state.selectedIndex = null; }
+
+            // --- STREAMING_CHUNK:UI Buttons & Bindings... ---
+            function showMessage(text, permanent = false) {
+                els.msgText.innerText = text;
+                els.msgBox.classList.remove('hidden');
+                els.msgBox.classList.add('msg-animate');
+                if (!permanent) setTimeout(hideMessage, 3000);
+            }
+            function hideMessage() {
+                els.msgBox.classList.add('hidden');
+                els.msgBox.classList.remove('msg-animate');
+            }
+
+            // Instructions
+            els.helpBtn.addEventListener('click', (e) => {
+                e.preventDefault(); 
+                els.settingsModal.classList.add('hidden');
+                els.instructionsModal.classList.remove('hidden');
+            });
+            els.closeInstructionsBtn.addEventListener('click', () => { els.instructionsModal.classList.add('hidden'); });
+
+            // Settings
+            let gearTimer; let isGearLong = false;
+            els.gearBtn.addEventListener('pointerdown', (e) => {
+                e.preventDefault(); isGearLong = false;
+                gearTimer = setTimeout(() => {
+                    isGearLong = true;
+                    els.rulesSel.value = state.rules;
+                    els.settingsModal.classList.remove('hidden');
+                }, 600);
+            });
+            const cancelGear = () => clearTimeout(gearTimer);
+            els.gearBtn.addEventListener('pointerleave', cancelGear);
+            els.gearBtn.addEventListener('pointercancel', cancelGear);
+            els.gearBtn.addEventListener('pointerup', () => {
+                clearTimeout(gearTimer);
+                if (!isGearLong) showMessage("Long press ⚙️ for settings!");
+            });
+            els.gearBtn.addEventListener('contextmenu', (e) => e.preventDefault());
+
+            els.rulesSel.addEventListener('change', (e) => {
+                state.rules = e.target.value;
+                autoSave();
+            });
+            els.closeSettingsBtn.addEventListener('click', () => els.settingsModal.classList.add('hidden'));
+
+            // New Game
+            let newGameTimer; let isNewGameLong = false;
+            els.newGameBtn.addEventListener('pointerdown', (e) => {
+                e.preventDefault(); abortDrag(); isNewGameLong = false;
+                newGameTimer = setTimeout(() => { isNewGameLong = true; initGame(); }, 600);
+            });
+            const cancelNew = () => clearTimeout(newGameTimer);
+            els.newGameBtn.addEventListener('pointerleave', cancelNew);
+            els.newGameBtn.addEventListener('pointercancel', cancelNew);
+            els.newGameBtn.addEventListener('pointerup', () => {
+                clearTimeout(newGameTimer);
+                if (!isNewGameLong) showMessage("Long press 'New Game' to restart!");
+            });
+            els.newGameBtn.addEventListener('contextmenu', (e) => e.preventDefault());
+
+            // Replay
+            let replayTimer; let isReplayLong = false;
+            els.replayBtn.addEventListener('pointerdown', (e) => {
+                e.preventDefault(); abortDrag();
+                if (!initialGameState) return; 
+                isReplayLong = false;
+                replayTimer = setTimeout(() => {
+                    isReplayLong = true;
+                    state = JSON.parse(JSON.stringify(initialGameState));
+                    history = []; redoHistory = [];
+                    els.undoBtn.disabled = true; els.redoBtn.disabled = true;
+                    stopFireworks(); hideMessage(); clearSelection(); updateUI(); autoSave();
+                }, 600);
+            });
+            const cancelReplay = () => clearTimeout(replayTimer);
+            els.replayBtn.addEventListener('pointerleave', cancelReplay);
+            els.replayBtn.addEventListener('pointercancel', cancelReplay);
+            els.replayBtn.addEventListener('pointerup', () => {
+                clearTimeout(replayTimer);
+                if (!isReplayLong && initialGameState) showMessage("Long press 'Replay' to restart this deal!");
+            });
+            els.replayBtn.addEventListener('contextmenu', (e) => e.preventDefault());
+
+            function throttle(func, limit) {
+                let inThrottle;
+                return function() {
+                    const args = arguments; const context = this;
+                    if (!inThrottle) {
+                        func.apply(context, args);
+                        inThrottle = true; setTimeout(() => inThrottle = false, limit);
+                    }
+                }
+            }
+
+            els.undoBtn.addEventListener('click', throttle(undo, 300));
+            els.redoBtn.addEventListener('click', throttle(redo, 300));
+
+            // BOOT
+            const savedString = localStorage.getItem('acesup_save');
+            if (savedString) {
+                try {
+                    const parsed = JSON.parse(savedString);
+                    state = parsed.state;
+                    if (!state.rules) state.rules = 'standard'; 
+                    history = parsed.history || [];
+                    redoHistory = parsed.redoHistory || [];
+                    initialGameState = parsed.initialGameState;
+                    
+                    els.undoBtn.disabled = history.length === 0;
+                    els.redoBtn.disabled = redoHistory.length === 0;
+                    
+                    clearSelection();
+                    updateUI();
+                } catch (e) {
+                    initGame();
+                }
+            } else {
+                initGame(); 
+            }
+
+        })();
+    </script>
+</body>
+</html>
