@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Wendy's Accordion Solitaire</title>
+    
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect x='20' y='15' width='60' height='70' rx='8' fill='white' stroke='%23d1d5db' stroke-width='4' transform='rotate(-6 50 50)'/%3E%3Ctext x='50' y='63' font-size='45' fill='%23171717' text-anchor='middle' font-family='sans-serif' transform='rotate(-6 50 50)'%3E%E2%99%A3%3C/text%3E%3C/svg%3E">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+    
+    <style>
+        /* --- GLOBAL & MOBILE FIXES --- */
+        html, body {
+            overscroll-behavior-y: none; 
+            overscroll-behavior-x: none; 
+            touch-action: pan-y; /* Allow vertical scrolling, but handle horizontal drags */
+            min-height: 100%;
+            width: 100%;
+        }
+
+        body {
+            background-color: #0f5a2b; 
+            background-image: radial-gradient(circle, #157338 0%, #0a3d1c 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: white;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- ACCORDION LAYOUT & PHYSICS --- */
+        /* Fluid layout allows cards to wrap nicely on ANY screen size or orientation */
+        #game-board {
+            display: flex;
+            flex-wrap: wrap;
+            gap: clamp(0.25rem, 1.5vw, 0.75rem);
+            padding: clamp(0.5rem, 2vw, 1.5rem);
+            justify-content: flex-start;
+            align-content: flex-start;
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* The container for a stack of cards */
+        .accordion-pile {
+            position: relative;
+            /* Responsive sizing: 7 cards wide on mobile, up to 12 wide on desktop */
+            width: clamp(40px, 13vw, 85px);
+            aspect-ratio: 2.5 / 3.5;
+            cursor: pointer;
+            user-select: none;
+            touch-action: none;
+        }
+
+        /* The actual playing card styling */
+        .card {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            border-radius: 0.375rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+            transition: transform 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+            background-color: white;
+            border: 1px solid #cbd5e1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 4%;
+            overflow: hidden;
+            container-type: inline-size;
+            z-index: 10;
+        }
+
+        /* Drag physics */
+        .accordion-pile.dragging {
+            z-index: 1000 !important;
+            pointer-events: none; 
+        }
+        
+        .accordion-pile.dragging .card {
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+            transition: none; 
+        }
+
+        /* Stack Visual Underlays */
+        .stack-underlay-1, .stack-underlay-2, .stack-underlay-3 {
+            position: absolute;
+            inset: 0;
+            background-color: white;
+            border: 1px solid #94a3b8;
+            border-radius: 0.375rem;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            z-index: 0;
+        }
+        /* Offset to create depth */
+        .stack-underlay-1 { transform: translate(3px, -3px); }
+        .stack-underlay-2 { transform: translate(6px, -6px); }
+        .stack-underlay-3 { transform: translate(9px, -9px); }
+
+        /* Highlight selected card */
+        .accordion-pile.selected .card {
+            transform: translateY(-8px);
+            box-shadow: 0 10px 15px -3px rgba(255, 215, 0, 0.6), 0 4px 6px -2px rgba(255, 215, 0, 0.3);
+            border-color: #fbbf24;
+        }
+        .accordion-pile.selected .stack-underlay-1 { transform: translate(3px, -11px); border-color: #fbbf24; }
+        .accordion-pile.selected .stack-underlay-2 { transform: translate(6px, -14px); border-color: #fbbf24; }
+        .accordion-pile.selected .stack-underlay-3 { transform: translate(9px, -17px); border-color: #fbbf24; }
+
+        .card.red-suit { color: #dc2626; }
+        .card.black-suit { color: #171717; }
+
+        @keyframes slideDown {
+            from { transform: translate(-50%, -100%); opacity: 0; }
+            to { transform: translate(-50%, 0); opacity: 1; }
+        }
+        .msg-animate { animation: slideDown 0.3s ease-out forwards; }
+    </style>
+</head>
+<body class="bg-black">
+
+    <div id="game-wrapper" class="flex-grow flex flex-col w-full relative h-[100dvh] overflow-y-auto overflow-x-hidden">
+        
+        <!-- HEADER -->
+        <header class="bg-black/40 p-3 md:p-4 shadow-lg backdrop-blur-sm z-20 sticky top-0 shrink-0">
+            <div class="max-w-7xl mx-auto flex flex-col md:flex-row md:flex-wrap justify-between items-start md:items-center gap-3 md:gap-4">
+                
+                <div class="flex items-center gap-3 w-full md:w-auto">
+                    <div class="w-6 h-8 shrink-0 bg-white rounded shadow-sm flex items-center justify-center border border-gray-300 transform -rotate-6">
+                        <span class="text-black text-lg leading-none">♣</span>
+                    </div>
+                    <h1 class="font-bold tracking-wider whitespace-nowrap text-[clamp(1.1rem,4.5vw,1.875rem)] text-white">WENDY'S ACCORDION</h1>
+                </div>
+                
+                <div class="flex items-center justify-between w-full md:w-auto gap-4">
+                    <div class="flex items-center gap-4 md:gap-6 text-sm md:text-base font-semibold text-gray-200">
+                        <!-- Score represents PILES LEFT. 52 -> 1 -->
+                        <div>PILES LEFT: <span id="piles-display" class="text-[#fbbf24] text-lg font-bold">52</span></div>
+                    </div>
+                    <button id="new-game-btn" class="bg-green-600 hover:bg-green-500 text-white px-3 md:px-4 py-1.5 rounded transition-colors shadow-md select-none touch-none text-sm md:text-base whitespace-nowrap" title="Long press for new game">
+                        New Game
+                    </button>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2 md:gap-3 w-full md:w-auto">
+                    <button id="help-btn" class="bg-blue-600 hover:bg-blue-500 border border-blue-600 text-white px-3 py-1.5 rounded transition-colors shadow-md select-none touch-none text-sm">
+                        ❓ Help
+                    </button>
+                    <button id="undo-btn" class="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-1.5 rounded transition-colors shadow-md" disabled>
+                        Undo
+                    </button>
+                    <button id="redo-btn" class="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-1.5 rounded transition-colors shadow-md" disabled>
+                        Redo
+                    </button>
+                    <button id="replay-btn" class="bg-orange-600 hover:bg-orange-500 text-white px-4 py-1.5 rounded transition-colors shadow-md select-none touch-none" title="Long press to replay">
+                        Replay
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- NOTIFICATION BANNER -->
+        <div id="message-box" class="fixed top-20 left-1/2 hidden z-50 bg-red-600 text-white px-6 py-3 rounded shadow-2xl border border-red-400 text-center font-semibold transform -translate-x-1/2 whitespace-nowrap">
+            <span id="message-text"></span>
+        </div>
+
+        <!-- INSTRUCTIONS MODAL -->
+        <div id="instructions-modal" class="fixed inset-0 bg-black/80 z-[9999] hidden flex items-center justify-center backdrop-blur-sm px-4">
+            <div class="bg-[#0f5a2b] border-2 border-blue-400 rounded-xl p-6 shadow-2xl max-w-lg w-full text-left max-h-[80vh] overflow-y-auto">
+                <h2 class="text-3xl font-bold text-white border-b border-gray-400 pb-2 mb-4 text-center">How to Play Accordion</h2>
+                
+                <div class="text-gray-100 space-y-4 text-sm leading-relaxed">
+                    <p><strong>The Goal:</strong> Compress all 52 cards into a single pile! This game is notoriously difficult to beat perfectly. Finishing with <strong>5 or fewer piles</strong> is considered a major victory.</p>
+                    
+                    <h3 class="text-lg font-bold text-[#fbbf24] mt-4 border-b border-[#fbbf24]/30 pb-1">Rules of Movement</h3>
+                    <ul class="list-disc pl-5 space-y-2">
+                        <li>You may drag and drop a pile onto the pile <strong>exactly 1 space to its left</strong> OR <strong>exactly 3 spaces to its left</strong>.</li>
+                        <li>To make a move, the top card of both piles must match in either <strong>SUIT</strong> (e.g. ♠ on ♠) or <strong>RANK</strong> (e.g. 7 on 7).</li>
+                        <li>When you move a pile, the entire stack underneath goes with it.</li>
+                        <li>Any gaps left behind automatically close up (like an accordion!), shifting all cards left.</li>
+                    </ul>
+
+                    <h3 class="text-lg font-bold text-[#fbbf24] mt-4 border-b border-[#fbbf24]/30 pb-1">Wendy's Controls</h3>
+                    <ul class="list-disc pl-5 space-y-2">
+                        <li><strong>Smart Tap:</strong> Just tap a card! If it only has 1 legal move, it flies there automatically. If it has 2 choices, it highlights in gold so you can tap your destination!</li>
+                        <li><strong>Pro Tip:</strong> Always prefer jumping 3 spaces over 1 space when given the choice!</li>
+                    </ul>
+                </div>
+
+                <div class="mt-6 text-center">
+                    <button id="close-instructions-btn" class="bg-gray-200 text-black font-bold py-2 px-8 rounded hover:bg-white transition-colors shadow-md w-full">
+                        Got it!
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MAIN GAME BOARD -->
+        <main id="game-board">
+            <!-- JS will inject the 52 piles here -->
+        </main>
+        
+        <!-- PADDING FOR SCROLLING -->
+        <div class="h-24 shrink-0 w-full"></div>
+    </div>
+
+    <script>
+        (function() {
+            const SUITS = {
+                SPADES: { icon: '♠', color: 'black-suit' },
+                HEARTS: { icon: '♥', color: 'red-suit' },
+                CLUBS: { icon: '♣', color: 'black-suit' },
+                DIAMONDS: { icon: '♦', color: 'red-suit' }
+            };
+            const RANKS = [13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1];
+            const RANK_LABELS = { 13: 'K', 12: 'Q', 11: 'J', 1: 'A' };
+
+            // Accordion State is a simple 1D array of piles
+            let state = {
+                piles: [],
+                moves: 0,
+                selectedIndex: null
+            };
+
+            let history = [];
+            let redoHistory = [];
+            let initialGameState = null;
+            let saveTimeout = null;
+
+            // Drag physics variables
+            let drag = {
+                active: false,
+                isDragging: false,
+                startX: 0, startY: 0,
+                sourceIndex: null,
+                element: null // The single visual pile DOM node
+            };
+
+            const els = {
+                board: document.getElementById('game-board'),
+                pilesDisplay: document.getElementById('piles-display'),
+                newGameBtn: document.getElementById('new-game-btn'),
+                msgBox: document.getElementById('message-box'),
+                msgText: document.getElementById('message-text'),
+                undoBtn: document.getElementById('undo-btn'),
+                redoBtn: document.getElementById('redo-btn'),
+                replayBtn: document.getElementById('replay-btn'),
+                helpBtn: document.getElementById('help-btn'),
+                instructionsModal: document.getElementById('instructions-modal'),
+                closeInstructionsBtn: document.getElementById('close-instructions-btn'),
+            };
+
+            let fireworksInterval = null; 
+            function launchFireworks() {
+                if (fireworksInterval) clearInterval(fireworksInterval);
+                const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 9999 };
+                function r(min, max) { return Math.random() * (max - min) + min; }
+                fireworksInterval = setInterval(() => {
+                    confetti(Object.assign({}, defaults, { particleCount: 50, origin: { x: r(0.1, 0.3), y: Math.random() - 0.2 } }));
+                    confetti(Object.assign({}, defaults, { particleCount: 50, origin: { x: r(0.7, 0.9), y: Math.random() - 0.2 } }));
+                }, 250);
+            }
+            function stopFireworks() {
+                if (fireworksInterval) { clearInterval(fireworksInterval); fireworksInterval = null; }
+                if (typeof confetti === "function") confetti.reset(); 
+            }
+
+            function initGame() {
+                state.piles = [];
+                state.moves = 0;
+                
+                history = [];
+                redoHistory = [];
+                els.undoBtn.disabled = true;
+                els.redoBtn.disabled = true;
+                clearSelection();
+                
+                stopFireworks();
+                hideMessage();
+                
+                buildAndDealDeck();
+                
+                // Snapshot for Replay
+                initialGameState = JSON.parse(JSON.stringify(state));
+                
+                updateUI();
+                autoSave();
+            }
+
+            function buildAndDealDeck() {
+                let deck = [];
+                const suits = [SUITS.SPADES, SUITS.HEARTS, SUITS.CLUBS, SUITS.DIAMONDS];
+                let id = 0;
+                suits.forEach(suit => {
+                    RANKS.forEach(rank => {
+                        deck.push({ id: `card-${id++}`, suit: suit, rank: rank });
+                    });
+                });
+
+                // Shuffle
+                for (let i = deck.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [deck[i], deck[j]] = [deck[j], deck[i]];
+                }
+
+                // Accordion layout: 52 separate piles of 1 card each
+                deck.forEach(card => {
+                    state.piles.push([card]);
+                });
+            }
+
+            function isValidMove(fromIdx, toIdx) {
+                // Must move strictly 1 or 3 positions to the left
+                if (fromIdx - toIdx !== 1 && fromIdx - toIdx !== 3) return false;
+                if (toIdx < 0 || fromIdx >= state.piles.length) return false;
+                
+                // Matching rule: Top card suit OR Top card rank
+                const cardFrom = state.piles[fromIdx][state.piles[fromIdx].length - 1];
+                const cardTo = state.piles[toIdx][state.piles[toIdx].length - 1];
+                
+                return cardFrom.suit.icon === cardTo.suit.icon || cardFrom.rank === cardTo.rank;
+            }
+
+            function executeMove(fromIdx, toIdx) {
+                saveState();
+                
+                // Move entire stack from source onto target
+                state.piles[toIdx].push(...state.piles[fromIdx]);
+                // Remove source stack, automatically shifting array left
+                state.piles.splice(fromIdx, 1);
+                
+                state.moves++;
+                clearSelection();
+                updateUI();
+                autoSave();
+                
+                checkWinCondition();
+            }
+
+            function checkWinCondition() {
+                if (state.piles.length === 1) {
+                    setTimeout(() => {
+                        showMessage("🎉 PERFECT ACCORDION! You are a master! 🎉", true);
+                        launchFireworks();
+                    }, 500);
+                    return;
+                }
+
+                // Scan to see if ANY moves remain
+                let hasMoves = false;
+                for (let i = 1; i < state.piles.length; i++) {
+                    if (isValidMove(i, i - 1) || isValidMove(i, i - 3)) {
+                        hasMoves = true;
+                        break;
+                    }
+                }
+
+                if (!hasMoves) {
+                    setTimeout(() => {
+                        if (state.piles.length <= 5) {
+                            showMessage(`🌟 Great Job! Only ${state.piles.length} piles left! 🌟`, true);
+                            launchFireworks();
+                        } else {
+                            showMessage(`Game Over! No more moves. ${state.piles.length} piles remaining.`, true);
+                        }
+                    }, 500);
+                }
+            }
+
+            function abortDrag() {
+                if (!drag.active) return;
+                drag.active = false;
+                drag.isDragging = false;
+                if (drag.element) {
+                    drag.element.classList.remove('dragging');
+                    drag.element.style.transform = '';
+                }
+                drag.element = null;
+                clearSelection();
+                updateUI();
+            }
+
+            // Accordion's state is incredibly small (52 sub-arrays), full deep copy is fast & bug-free
+            function saveState() {
+                redoHistory = [];
+                els.redoBtn.disabled = true;
+                const snapshot = JSON.parse(JSON.stringify(state));
+                history.push(snapshot);
+                els.undoBtn.disabled = false;
+            }
+
+            function undo() {
+                abortDrag();
+                if (history.length === 0) return;
+                redoHistory.push(JSON.parse(JSON.stringify(state)));
+                state = history.pop();
+                els.undoBtn.disabled = history.length === 0;
+                els.redoBtn.disabled = false;
+                clearSelection(); updateUI(); autoSave();
+            }
+
+            function redo() {
+                abortDrag();
+                if (redoHistory.length === 0) return;
+                history.push(JSON.parse(JSON.stringify(state)));
+                state = redoHistory.pop();
+                els.undoBtn.disabled = false;
+                els.redoBtn.disabled = redoHistory.length === 0;
+                clearSelection(); updateUI(); autoSave();
+            }
+
+            function autoSave() {
+                if (saveTimeout) clearTimeout(saveTimeout);
+                saveTimeout = setTimeout(() => {
+                    const saveData = { state, history, redoHistory, initialGameState };
+                    try { localStorage.setItem('accordion_save', JSON.stringify(saveData)); } catch (e) {}
+                }, 500);
+            }
+
+            function getRankDisplay(rank) { return RANK_LABELS[rank] || rank.toString(); }
+
+            function updateUI() {
+                els.pilesDisplay.innerText = state.piles.length;
+                els.board.innerHTML = '';
+
+                state.piles.forEach((pile, index) => {
+                    const pileDiv = document.createElement('div');
+                    pileDiv.className = 'accordion-pile';
+                    pileDiv.dataset.index = index;
+
+                    if (state.selectedIndex === index) pileDiv.classList.add('selected');
+
+                    // Stack depth visuals
+                    if (pile.length > 1) {
+                        const bg1 = document.createElement('div');
+                        bg1.className = 'stack-underlay-1';
+                        pileDiv.appendChild(bg1);
+                    }
+                    if (pile.length > 5) { // Adds a third layer if pile gets huge
+                        const bg2 = document.createElement('div');
+                        bg2.className = 'stack-underlay-2';
+                        pileDiv.appendChild(bg2);
+                    }
+                    if (pile.length > 15) { 
+                        const bg3 = document.createElement('div');
+                        bg3.className = 'stack-underlay-3';
+                        pileDiv.appendChild(bg3);
+                    }
+
+                    // Top Card Rendering
+                    const card = pile[pile.length - 1];
+                    const cardEl = document.createElement('div');
+                    cardEl.className = `card ${card.suit.color}`;
+                    cardEl.innerHTML = `
+                        <div class="font-bold tracking-tighter" style="font-size: clamp(0.7rem, 25cqi, 1.5rem); line-height: 0.8; margin-top: 2px;">${getRankDisplay(card.rank)}</div>
+                        <div class="leading-none text-center flex-grow flex items-center justify-center" style="font-size: clamp(1.5rem, 50cqi, 3.5rem);">${card.suit.icon}</div>
+                        <div class="font-bold tracking-tighter self-end rotate-180" style="font-size: clamp(0.7rem, 25cqi, 1.5rem); line-height: 0.8; margin-bottom: 2px;">${getRankDisplay(card.rank)}</div>
+                    `;
+                    
+                    pileDiv.appendChild(cardEl);
+
+                    // Unified Interaction Binding
+                    pileDiv.onpointerdown = (e) => {
+                        e.preventDefault(); e.stopPropagation();
+                        handlePointerDown(e, index, pileDiv);
+                    };
+
+                    els.board.appendChild(pileDiv);
+                });
+            }
+
+            function handlePointerDown(e, index, domElement) {
+                if (e.button !== 0 && e.pointerType === 'mouse') return;
+
+                // Setup physics drag payload
+                drag.active = true;
+                drag.isDragging = false;
+                drag.startX = e.clientX;
+                drag.startY = e.clientY;
+                drag.sourceIndex = index;
+                drag.element = domElement;
+
+                if (e.target.setPointerCapture) {
+                    try { e.target.setPointerCapture(e.pointerId); } catch(err) {}
+                }
+            }
+
+            window.addEventListener('pointermove', (e) => {
+                if (!drag.active) return;
+                const dx = e.clientX - drag.startX;
+                const dy = e.clientY - drag.startY;
+
+                if (!drag.isDragging && (Math.abs(dx) > 5 || Math.abs(dy) > 5)) {
+                    drag.isDragging = true;
+                    drag.element.classList.add('dragging');
+                    if (state.selectedIndex !== drag.sourceIndex) {
+                         clearSelection(); updateUI();
+                    }
+                }
+
+                if (drag.isDragging) {
+                    drag.element.style.transform = `translate(${dx}px, ${dy}px)`;
+                }
+            });
+
+            window.addEventListener('pointerup', (e) => {
+                if (!drag.active) return;
+
+                if (!drag.isDragging) {
+                    // It was a tap/click! Trigger smart processing.
+                    processClick(drag.sourceIndex);
+                } else {
+                    // It was a drag, resolve target
+                    const target = document.elementFromPoint(e.clientX, e.clientY);
+                    const targetZone = target ? target.closest('.accordion-pile') : null;
+
+                    if (targetZone) {
+                        const targetIdx = parseInt(targetZone.dataset.index);
+                        if (isValidMove(drag.sourceIndex, targetIdx)) {
+                            executeMove(drag.sourceIndex, targetIdx);
+                        } else {
+                            updateUI(); // Snaps back
+                        }
+                    } else {
+                        updateUI(); // Dropped outside
+                    }
+                }
+
+                // Cleanup drag state
+                drag.active = false;
+                drag.isDragging = false;
+                if (drag.element) {
+                    drag.element.classList.remove('dragging');
+                    drag.element.style.transform = '';
+                }
+                drag.element = null;
+            });
+
+            window.addEventListener('pointercancel', abortDrag);
+
+            function processClick(index) {
+                // Scenario 1: User tapped an already selected gold pile -> deselect
+                if (state.selectedIndex === index) {
+                    clearSelection();
+                    updateUI();
+                    return;
+                }
+
+                // Scenario 2: User has a pile selected, and tapped a DIFFERENT pile -> try to drop
+                if (state.selectedIndex !== null) {
+                    if (isValidMove(state.selectedIndex, index)) {
+                        executeMove(state.selectedIndex, index);
+                        return;
+                    }
+                }
+
+                // Scenario 3: Clicking a fresh pile (Smart Tap Logic)
+                const canMove1 = isValidMove(index, index - 1);
+                const canMove3 = isValidMove(index, index - 3);
+
+                if (canMove1 && !canMove3) {
+                    executeMove(index, index - 1); // Only 1 valid choice, automate it
+                } else if (!canMove1 && canMove3) {
+                    executeMove(index, index - 3); // Only 1 valid choice, automate it
+                } else if (canMove1 && canMove3) {
+                    state.selectedIndex = index; // 2 choices exist, highlight and wait for user
+                    updateUI();
+                } else {
+                    // 0 choices, pulse error
+                    const pileDom = els.board.children[index];
+                    pileDom.classList.add('animate-pulse');
+                    setTimeout(() => updateUI(), 300);
+                }
+            }
+
+            function clearSelection() { state.selectedIndex = null; }
+
+            function showMessage(text, permanent = false) {
+                els.msgText.innerText = text;
+                els.msgBox.classList.remove('hidden');
+                els.msgBox.classList.add('msg-animate');
+                if (!permanent) setTimeout(hideMessage, 3000);
+            }
+            function hideMessage() {
+                els.msgBox.classList.add('hidden');
+                els.msgBox.classList.remove('msg-animate');
+            }
+
+            // Instructions
+            els.helpBtn.addEventListener('click', (e) => {
+                e.preventDefault(); els.instructionsModal.classList.remove('hidden');
+            });
+            els.closeInstructionsBtn.addEventListener('click', () => {
+                els.instructionsModal.classList.add('hidden');
+            });
+
+            // New Game
+            let newGameTimer; let isNewGameLong = false;
+            els.newGameBtn.addEventListener('pointerdown', (e) => {
+                e.preventDefault(); abortDrag(); isNewGameLong = false;
+                newGameTimer = setTimeout(() => { isNewGameLong = true; initGame(); }, 600);
+            });
+            const cancelNew = () => clearTimeout(newGameTimer);
+            els.newGameBtn.addEventListener('pointerleave', cancelNew);
+            els.newGameBtn.addEventListener('pointercancel', cancelNew);
+            els.newGameBtn.addEventListener('pointerup', () => {
+                clearTimeout(newGameTimer);
+                if (!isNewGameLong) showMessage("Long press 'New Game' to restart!");
+            });
+            els.newGameBtn.addEventListener('contextmenu', (e) => e.preventDefault());
+
+            // Replay
+            let replayTimer; let isReplayLong = false;
+            els.replayBtn.addEventListener('pointerdown', (e) => {
+                e.preventDefault(); abortDrag();
+                if (!initialGameState) return; 
+                isReplayLong = false;
+                replayTimer = setTimeout(() => {
+                    isReplayLong = true;
+                    state = JSON.parse(JSON.stringify(initialGameState));
+                    history = []; redoHistory = [];
+                    els.undoBtn.disabled = true; els.redoBtn.disabled = true;
+                    stopFireworks(); hideMessage(); clearSelection(); updateUI(); autoSave();
+                }, 600);
+            });
+            const cancelReplay = () => clearTimeout(replayTimer);
+            els.replayBtn.addEventListener('pointerleave', cancelReplay);
+            els.replayBtn.addEventListener('pointercancel', cancelReplay);
+            els.replayBtn.addEventListener('pointerup', () => {
+                clearTimeout(replayTimer);
+                if (!isReplayLong && initialGameState) showMessage("Long press 'Replay' to restart this deal!");
+            });
+            els.replayBtn.addEventListener('contextmenu', (e) => e.preventDefault());
+
+            function throttle(func, limit) {
+                let inThrottle;
+                return function() {
+                    const args = arguments; const context = this;
+                    if (!inThrottle) {
+                        func.apply(context, args);
+                        inThrottle = true; setTimeout(() => inThrottle = false, limit);
+                    }
+                }
+            }
+
+            els.undoBtn.addEventListener('click', throttle(undo, 300));
+            els.redoBtn.addEventListener('click', throttle(redo, 300));
+
+            const savedString = localStorage.getItem('accordion_save');
+            if (savedString) {
+                try {
+                    const parsed = JSON.parse(savedString);
+                    state = parsed.state;
+                    history = parsed.history || [];
+                    redoHistory = parsed.redoHistory || [];
+                    initialGameState = parsed.initialGameState;
+                    
+                    els.undoBtn.disabled = history.length === 0;
+                    els.redoBtn.disabled = redoHistory.length === 0;
+                    
+                    clearSelection();
+                    updateUI();
+                } catch (e) {
+                    initGame();
+                }
+            } else {
+                initGame(); 
+            }
+
+        })();
+    </script>
+</body>
+</html>
