@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Wendy's Pyramid Solitaire</title>
+    
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect x='20' y='15' width='60' height='70' rx='8' fill='white' stroke='%23d1d5db' stroke-width='4' transform='rotate(-6 50 50)'/%3E%3Ctext x='50' y='63' font-size='45' fill='%23171717' text-anchor='middle' font-family='sans-serif' transform='rotate(-6 50 50)'%3E%E2%99%A0%3C/text%3E%3C/svg%3E">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/dist/confetti.browser.min.js"></script>
+    
+    <style>
+        /* --- GLOBAL & MOBILE FIXES --- */
+        html, body {
+            overscroll-behavior-y: none; 
+            overscroll-behavior-x: none; 
+            height: 100%;
+            width: 100%;
+        }
+
+        body {
+            background-color: #0f5a2b; 
+            background-image: radial-gradient(circle, #157338 0%, #0a3d1c 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; 
+        }
+
+        #game-wrapper {
+            overflow-y: auto;
+            overflow-x: hidden;
+            touch-action: pan-y;
+        }
+
+        /* --- CARD STYLING & PHYSICS --- */
+        .card {
+            /* CRITICAL FIX: Removed aspect-ratio and flexbox. Strict absolute sizing prevents layout explosions */
+            position: absolute; 
+            border-radius: 0.375rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+            transition: transform 0.15s ease-in-out, box-shadow 0.15s ease-in-out, filter 0.3s;
+            user-select: none;  
+            -webkit-user-drag: none;
+            cursor: pointer;
+            background-color: white;
+            border: 1px solid #cbd5e1;
+            overflow: hidden;
+            touch-action: none; 
+            z-index: 10;
+        }
+
+        .card.dragging {
+            z-index: 1000 !important;
+            pointer-events: none; 
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+            transition: none; 
+        }
+
+        .card-face-down {
+            background-color: #1e3a8a;
+            background-image: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(255,255,255,0.1) 5px, rgba(255,255,255,0.1) 10px);
+            border: 2px solid white;
+        }
+
+        .card.selected {
+            transform: translateY(-8px);
+            box-shadow: 0 10px 15px -3px rgba(255, 215, 0, 0.6), 0 4px 6px -2px rgba(255, 215, 0, 0.3);
+            border-color: #fbbf24;
+            border-width: 2px;
+            z-index: 50;
+        }
+
+        .card.red-suit { color: #dc2626; }
+        .card.black-suit { color: #171717; }
+
+        @keyframes slideDown {
+            from { transform: translate(-50%, -100%); opacity: 0; }
+            to { transform: translate(-50%, 0); opacity: 1; }
+        }
+        .msg-animate { animation: slideDown 0.3s ease-out forwards; }
+
+        @keyframes popOut {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.15) rotate(5deg); opacity: 0.8; box-shadow: 0 0 20px rgba(255,215,0,0.8); }
+            100% { transform: scale(0); opacity: 0; }
+        }
+        .anim-match { animation: popOut 0.25s ease-in forwards; pointer-events: none; }
+    </style>
+</head>
+<body class="bg-black">
+
+    <div id="game-wrapper" class="flex-grow flex flex-col w-full relative h-[100dvh]">
+        
+        <header class="bg-black/40 p-3 md:p-4 shadow-lg backdrop-blur-sm z-20 sticky top-0 shrink-0 border-b border-white/10">
+            <div class="max-w-[1000px] mx-auto flex flex-col md:flex-row md:flex-wrap justify-between items-start md:items-center gap-3 md:gap-4">
+                
+                <div class="flex items-center gap-3 w-full md:w-auto">
+                    <div class="w-6 h-8 shrink-0 bg-white rounded shadow-sm flex items-center justify-center border border-gray-300 transform -rotate-6">
+                        <span class="text-black text-lg leading-none font-bold">♠</span>
+                    </div>
+                    <h1 class="font-bold tracking-wider whitespace-nowrap text-[clamp(1.1rem,4.5vw,1.875rem)] text-white drop-shadow">WENDY'S PYRAMID</h1>
+                </div>
+                
+                <div class="flex items-center justify-between w-full md:w-auto gap-4">
+                    <div class="flex items-center gap-4 md:gap-6 text-sm md:text-base font-semibold text-gray-200">
+                        <div>SCORE: <span id="score-display" class="text-white">0</span></div>
+                        <div>MOVES: <span id="moves-display" class="text-white">0</span></div>
+                        <div class="text-[#fbbf24]">REDEALS: <span id="redeals-display" class="text-white">∞</span></div>
+                    </div>
+                    <button id="new-game-btn" class="bg-green-600 hover:bg-green-500 text-white px-3 md:px-4 py-1.5 rounded transition-colors shadow-md select-none touch-none text-sm md:text-base whitespace-nowrap" title="Long press for new game">
+                        New Game
+                    </button>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2 md:gap-3 w-full md:w-auto">
+                    <button id="help-btn" class="bg-blue-600 hover:bg-blue-500 border border-blue-600 text-white px-3 py-1.5 rounded transition-colors shadow-md select-none touch-none text-sm">
+                        ❓ Help
+                    </button>
+                    <button id="gear-btn" class="bg-gray-800 hover:bg-gray-700 border border-gray-600 text-white px-3 py-1.5 rounded transition-colors shadow-md select-none touch-none" title="Long press for Settings">
+                        ⚙️
+                    </button>
+                    <button id="undo-btn" class="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-1.5 rounded transition-colors shadow-md" disabled>
+                        Undo
+                    </button>
+                    <button id="redo-btn" class="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-1.5 rounded transition-colors shadow-md" disabled>
+                        Redo
+                    </button>
+                    <button id="replay-btn" class="bg-orange-600 hover:bg-orange-500 text-white px-4 py-1.5 rounded transition-colors shadow-md select-none touch-none" title="Long press to replay">
+                        Replay
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <div id="message-box" class="fixed top-20 left-1/2 hidden z-50 bg-red-600 text-white px-6 py-3 rounded shadow-2xl border border-red-400 text-center font-semibold transform -translate-x-1/2 whitespace-nowrap">
+            <span id="message-text"></span>
+        </div>
+
+        <div id="instructions-modal" class="fixed inset-0 bg-black/80 z-[9999] hidden flex items-center justify-center backdrop-blur-sm px-4">
+            <div class="bg-[#0f5a2b] border-2 border-blue-400 rounded-xl p-6 shadow-2xl max-w-lg w-full text-left max-h-[80vh] overflow-y-auto">
+                <h2 class="text-3xl font-bold text-white border-b border-gray-400 pb-2 mb-4 text-center">How to Play Pyramid</h2>
+                
+                <div class="text-gray-100 space-y-4 text-sm leading-relaxed">
+                    <p><strong>The Goal:</strong> Remove all 28 cards from the pyramid by finding pairs that add up exactly to <strong>13</strong>.</p>
+                    
+                    <h3 class="text-lg font-bold text-[#fbbf24] mt-4 border-b border-[#fbbf24]/30 pb-1">Card Values & Matching</h3>
+                    <ul class="list-disc pl-5 space-y-2">
+                        <li><strong>Numbered cards</strong> equal their face value (e.g., 6 + 7 = 13).</li>
+                        <li><strong>Aces</strong> = 1, <strong>Jacks</strong> = 11, <strong>Queens</strong> = 12.</li>
+                        <li><strong>Kings</strong> = 13. Since they equal 13 by themselves, you can simply tap a King to remove it instantly!</li>
+                        <li>You can match any two <strong>exposed</strong> cards in the pyramid, or match an exposed pyramid card with the top card of the Waste pile.</li>
+                    </ul>
+
+                    <h3 class="text-lg font-bold text-[#fbbf24] mt-4 border-b border-[#fbbf24]/30 pb-1">Rules of the Pyramid</h3>
+                    <ul class="list-disc pl-5 space-y-2">
+                        <li>A card in the pyramid is only "exposed" and playable if it has <strong>no cards overlapping it</strong> from the row below. Buried cards will appear darkened until freed.</li>
+                        <li>Tap the Stock (top left) to deal new cards to the Waste pile.</li>
+                        <li><strong>Wendy's Dual Controls:</strong> You can either tap one card, then tap a second to match them—OR you can literally drag one card and drop it onto its partner!</li>
+                    </ul>
+                    
+                    <div class="bg-black/30 p-3 rounded border border-[#fbbf24]/50 mt-4 text-xs">
+                        <p class="font-bold text-[#fbbf24] mb-1">⚙️ Variants Available in Settings!</p>
+                        <p>Customize your game by choosing to draw 1 card or 3 cards at a time. You can also restrict the number of Redeals to increase the challenge.</p>
+                    </div>
+                </div>
+
+                <div class="mt-6 text-center">
+                    <button id="close-instructions-btn" class="bg-gray-200 text-black font-bold py-2 px-8 rounded hover:bg-white transition-colors shadow-md w-full">
+                        Got it!
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="settings-modal" class="fixed inset-0 bg-black/80 z-[9999] hidden flex items-center justify-center backdrop-blur-sm px-4">
+            <div class="bg-[#0f5a2b] border-2 border-[#fbbf24] rounded-xl p-6 shadow-2xl max-w-sm w-full text-center">
+                <h2 class="text-2xl font-bold text-[#fbbf24] mb-4">Settings</h2>
+                
+                <div class="mb-4 text-left">
+                    <label class="block text-sm font-semibold mb-2 text-white">Stock Draw Mode:</label>
+                    <select id="draw-select" class="bg-gray-800 text-white border border-gray-600 rounded px-3 py-2 w-full focus:ring-2 focus:ring-[#fbbf24] outline-none cursor-pointer">
+                        <option value="1">Draw 1 Card</option>
+                        <option value="3">Draw 3 Cards</option>
+                    </select>
+                </div>
+
+                <div class="mb-5 text-left">
+                    <label class="block text-sm font-semibold mb-2 text-white">Redeal Rules:</label>
+                    <select id="redeal-select" class="bg-gray-800 text-white border border-gray-600 rounded px-3 py-2 w-full focus:ring-2 focus:ring-[#fbbf24] outline-none cursor-pointer">
+                        <option value="wendy">Wendy's Rules (Infinite Redeals)</option>
+                        <option value="three">Classic (3 Redeals)</option>
+                        <option value="none">Vegas (0 Redeals)</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <button id="help-btn-settings" class="w-full bg-blue-800 hover:bg-blue-700 border border-blue-600 text-white px-4 py-2 rounded transition-colors shadow-md font-bold text-sm">
+                        ❓ Read Instructions
+                    </button>
+                </div>
+
+                <button id="close-settings-btn" class="bg-gray-200 text-black font-bold py-2 px-8 rounded hover:bg-white transition-colors shadow-md w-full mt-4">
+                    Done
+                </button>
+            </div>
+        </div>
+
+        <main class="flex-grow flex flex-col items-center relative pb-12 px-2 md:px-4 pt-4 md:pt-8 w-full">
+            
+            <div class="w-full max-w-[800px] flex flex-col gap-6">
+                
+                <!-- TOP HUD: Stock & Waste -->
+                <div class="bg-black/20 p-4 rounded-xl border border-white/10 shadow-inner flex justify-center gap-6 md:gap-12">
+                    <div class="flex flex-col items-center">
+                        <h3 class="text-white/50 text-xs font-bold uppercase tracking-widest mb-2 select-none">Stock</h3>
+                        <div id="stock-container" class="relative cursor-pointer hover:-translate-y-1 transition-transform" title="Deal Cards"></div>
+                    </div>
+                    <div class="flex flex-col items-center">
+                        <h3 class="text-white/50 text-xs font-bold uppercase tracking-widest mb-2 select-none">Waste</h3>
+                        <div id="waste-container" class="relative" data-type="waste" data-index="0"></div>
+                    </div>
+                </div>
+
+                <!-- MAIN PYRAMID -->
+                <div id="pyramid-container" class="relative w-full mx-auto mt-2">
+                    <!-- JS Injects 28 Absolutely Positioned Cards Here -->
+                </div>
+                
+            </div>
+        </main>
+    </div>
+
+    <script>
+        (function() {
+            // --- CONSTANTS ---
+            const SUITS = {
+                SPADES: { icon: '♠', color: 'black-suit' },
+                HEARTS: { icon: '♥', color: 'red-suit' },
+                CLUBS: { icon: '♣', color: 'black-suit' },
+                DIAMONDS: { icon: '♦', color: 'red-suit' }
+            };
+            const RANKS = [13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1];
+            const RANK_LABELS = { 13: 'K', 12: 'Q', 11: 'J', 1: 'A' };
+
+            // Math lookup to instantly find which row (0-6) a given index (0-27) belongs to
+            const ROW_LOOKUP = [
+                0, 
+                1, 1, 
+                2, 2, 2, 
+                3, 3, 3, 3, 
+                4, 4, 4, 4, 4, 
+                5, 5, 5, 5, 5, 5, 
+                6, 6, 6, 6, 6, 6, 6
+            ];
+
+            // --- STATE ---
+            let state = {
+                deck: [],
+                stock: [],
+                waste: [],
+                pyramid: Array(28).fill(null),
+                moves: 0,
+                score: 0,
+                redealsLeft: '∞', 
+                drawMode: '1',   // '1' or '3'
+                redealMode: 'wendy', // 'wendy', 'three', 'none'
+                selectedType: null, // 'pyramid' or 'waste'
+                selectedIndex: null,
+                isAnimating: false // Blocks inputs while matches explode
+            };
+
+            let history = [];
+            let redoHistory = [];
+            let initialGameState = null;
+            let saveTimeout = null;
+
+            // --- DRAG ENGINE ---
+            let drag = {
+                active: false,
+                isDragging: false,
+                startX: 0, startY: 0,
+                sourceType: null, 
+                sourceIndex: null, 
+                elements: [],
+                cards: []
+            };
+
+            // --- STREAMING_CHUNK:DOM Cache... ---
+            const els = {
+                stock: document.getElementById('stock-container'),
+                waste: document.getElementById('waste-container'),
+                pyramid: document.getElementById('pyramid-container'),
+                movesDisplay: document.getElementById('moves-display'),
+                scoreDisplay: document.getElementById('score-display'),
+                redealsDisplay: document.getElementById('redeals-display'),
+                newGameBtn: document.getElementById('new-game-btn'),
+                msgBox: document.getElementById('message-box'),
+                msgText: document.getElementById('message-text'),
+                undoBtn: document.getElementById('undo-btn'),
+                redoBtn: document.getElementById('redo-btn'),
+                replayBtn: document.getElementById('replay-btn'),
+                gearBtn: document.getElementById('gear-btn'),
+                settingsModal: document.getElementById('settings-modal'),
+                drawSel: document.getElementById('draw-select'),
+                redealSel: document.getElementById('redeal-select'),
+                closeSettingsBtn: document.getElementById('close-settings-btn'),
+                helpBtn: document.getElementById('help-btn'),
+                helpBtnSettings: document.getElementById('help-btn-settings'),
+                instructionsModal: document.getElementById('instructions-modal'),
+                closeInstructionsBtn: document.getElementById('close-instructions-btn'),
+            };
+
+            // --- FIREWORKS ---
+            let fireworksInterval = null; 
+            function launchFireworks() {
+                if (fireworksInterval) clearInterval(fireworksInterval);
+                const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 9999 };
+                function r(min, max) { return Math.random() * (max - min) + min; }
+                fireworksInterval = setInterval(() => {
+                    confetti(Object.assign({}, defaults, { particleCount: 50, origin: { x: r(0.1, 0.3), y: Math.random() - 0.2 } }));
+                    confetti(Object.assign({}, defaults, { particleCount: 50, origin: { x: r(0.7, 0.9), y: Math.random() - 0.2 } }));
+                }, 250);
+            }
+            function stopFireworks() {
+                if (fireworksInterval) { clearInterval(fireworksInterval); fireworksInterval = null; }
+                if (typeof confetti === "function") confetti.reset(); 
+            }
+
+            // --- STREAMING_CHUNK:Math Helpers and Dealing... ---
+            function getRow(index) { return ROW_LOOKUP[index]; }
+
+            function isExposed(index) {
+                if (index >= 21) return true; // Bottom row (6) is always exposed
+                const r = getRow(index);
+                const leftChild = index + r + 1;
+                const rightChild = index + r + 2;
+                return state.pyramid[leftChild] === null && state.pyramid[rightChild] === null;
+            }
+
+            function getCard(type, index) {
+                if (type === 'pyramid') return state.pyramid[index];
+                if (type === 'waste') return state.waste[index];
+                return null;
+            }
+
+            function initGame() {
+                state.drawMode = els.drawSel.value;
+                state.redealMode = els.redealSel.value;
+                if (state.redealMode === 'wendy') state.redealsLeft = '∞';
+                else if (state.redealMode === 'three') state.redealsLeft = 3;
+                else state.redealsLeft = 0;
+
+                state.pyramid = Array(28).fill(null);
+                state.stock = [];
+                state.waste = [];
+                state.moves = 0;
+                state.score = 0;
+                state.isAnimating = false;
+                
+                history = [];
+                redoHistory = [];
+                els.undoBtn.disabled = true;
+                els.redoBtn.disabled = true;
+                clearSelection();
+                stopFireworks();
+                hideMessage();
+                
+                buildDeck();
+                shuffleDeck();
+                dealInitialCards();
+                
+                initialGameState = JSON.parse(JSON.stringify(state));
+                updateUI();
+                autoSave();
+            }
+
+            function buildDeck() {
+                state.deck = [];
+                let cardId = 0;
+                const suits = [SUITS.SPADES, SUITS.HEARTS, SUITS.CLUBS, SUITS.DIAMONDS];
+                suits.forEach(suit => {
+                    RANKS.forEach(rank => {
+                        state.deck.push({ id: `card-${cardId++}`, suit: suit, rank: rank, faceUp: true }); 
+                    });
+                });
+            }
+
+            function shuffleDeck() {
+                for (let i = state.deck.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [state.deck[i], state.deck[j]] = [state.deck[j], state.deck[i]];
+                }
+            }
+
+            function dealInitialCards() {
+                for (let i = 0; i < 28; i++) {
+                    state.pyramid[i] = state.deck.pop();
+                }
+                state.stock = state.deck;
+                state.stock.forEach(c => c.faceUp = false);
+            }
+
+            // --- STREAMING_CHUNK:Match Execution and Validation... ---
+            
+            function handleStockClick() {
+                if (state.isAnimating) return;
+                abortDrag();
+                
+                if (state.stock.length > 0) {
+                    saveState();
+                    const drawCount = state.drawMode === '3' ? Math.min(3, state.stock.length) : 1;
+                    for (let i = 0; i < drawCount; i++) {
+                        const c = state.stock.pop();
+                        c.faceUp = true;
+                        state.waste.push(c);
+                    }
+                    state.moves++;
+                    updateUI();
+                    autoSave();
+                } else if (state.waste.length > 0) {
+                    if (state.redealMode === 'none') {
+                        showMessage("No redeals allowed in Vegas mode!");
+                        return;
+                    }
+                    if (state.redealMode === 'three' && state.redealsLeft <= 0) {
+                        showMessage("No more redeals remaining!");
+                        return;
+                    }
+                    
+                    saveState();
+                    // Flip waste back to stock
+                    while(state.waste.length > 0) {
+                        const c = state.waste.pop();
+                        c.faceUp = false;
+                        state.stock.push(c);
+                    }
+                    if (state.redealMode === 'three') state.redealsLeft--;
+                    state.moves++;
+                    updateUI();
+                    autoSave();
+                }
+            }
+
+            function executeMatch(typeA, indexA, typeB, indexB) {
+                saveState();
+                state.isAnimating = true;
+
+                // Find DOM elements to apply explosion physics
+                let elA = null; let elB = null;
+                if (typeA === 'pyramid') elA = document.querySelector(`.card[data-type="pyramid"][data-index="${indexA}"]`);
+                else if (typeA === 'waste') elA = els.waste.lastElementChild;
+                
+                if (typeB !== null) {
+                    if (typeB === 'pyramid') elB = document.querySelector(`.card[data-type="pyramid"][data-index="${indexB}"]`);
+                    else if (typeB === 'waste') elB = els.waste.lastElementChild;
+                }
+
+                if (elA) elA.classList.add('anim-match');
+                if (elB) elB.classList.add('anim-match');
+
+                // Wait 250ms for the animation to complete before removing from state memory
+                setTimeout(() => {
+                    if (typeA === 'pyramid') state.pyramid[indexA] = null;
+                    else if (typeA === 'waste') state.waste.pop();
+                    
+                    if (typeB !== null) {
+                        if (typeB === 'pyramid') state.pyramid[indexB] = null;
+                        else if (typeB === 'waste') state.waste.pop();
+                    }
+
+                    state.moves++;
+                    state.score += 13; // 13 pts per match
+                    state.isAnimating = false;
+                    
+                    clearSelection();
+                    updateUI();
+                    autoSave();
+                    checkWinCondition();
+                }, 250);
+            }
+
+            function checkWinCondition() {
+                const won = state.pyramid.every(c => c === null);
+                if (won) {
+                    setTimeout(() => {
+                        showMessage("🎉 Incredible! You cleared the Pyramid! 🎉", true);
+                        launchFireworks();
+                    }, 500);
+                }
+            }
+
+            // --- STREAMING_CHUNK:State Persistence (Undo/Redo)... ---
+            function abortDrag() {
+                if (!drag.active) return;
+                drag.active = false;
+                drag.isDragging = false;
+                drag.elements.forEach(el => {
+                    el.classList.remove('dragging');
+                    el.style.transform = '';
+                });
+                drag.elements = [];
+                drag.cards = [];
+                clearSelection();
+                updateUI();
+            }
+
+            function saveState() {
+                redoHistory = [];
+                els.redoBtn.disabled = true;
+                const snapshot = JSON.parse(JSON.stringify(state));
+                history.push(snapshot);
+                els.undoBtn.disabled = false;
+            }
+
+            function undo() {
+                if (state.isAnimating) return;
+                abortDrag();
+                if (history.length === 0) return;
+                redoHistory.push(JSON.parse(JSON.stringify(state)));
+                state = history.pop();
+                els.undoBtn.disabled = history.length === 0;
+                els.redoBtn.disabled = false;
+                clearSelection(); updateUI(); autoSave();
+            }
+
+            function redo() {
+                if (state.isAnimating) return;
+                abortDrag();
+                if (redoHistory.length === 0) return;
+                history.push(JSON.parse(JSON.stringify(state)));
+                state = redoHistory.pop();
+                els.undoBtn.disabled = false;
+                els.redoBtn.disabled = redoHistory.length === 0;
+                clearSelection(); updateUI(); autoSave();
+            }
+
+            function autoSave() {
+                if (saveTimeout) clearTimeout(saveTimeout);
+                saveTimeout = setTimeout(() => {
+                    const saveData = { state, history, redoHistory, initialGameState };
+                    try { localStorage.setItem('pyramid_save', JSON.stringify(saveData)); } catch (e) {}
+                }, 500);
+            }
+
+            // --- STREAMING_CHUNK:Rendering Engine... ---
+            function getRankDisplay(rank) { return RANK_LABELS[rank] || rank.toString(); }
+
+            function createCardDOM(card, type, index) {
+                const cardEl = document.createElement('div');
+                cardEl.className = `card ${card.suit.color}`;
+                cardEl.dataset.type = type;
+                cardEl.dataset.index = index;
+                
+                // Bulletproof Absolute Corner UI: Eliminates aspect-ratio and flexbox stretching bugs!
+                cardEl.innerHTML = `
+                    <div class="absolute top-[3%] left-[5%] flex flex-col items-center">
+                        <span class="font-bold tracking-tighter leading-none" style="font-size: 0.28em;">${getRankDisplay(card.rank)}</span>
+                        <span class="leading-none" style="font-size: 0.22em; margin-top: -1px;">${card.suit.icon}</span>
+                    </div>
+                    <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <span class="leading-none" style="font-size: 0.65em;">${card.suit.icon}</span>
+                    </div>
+                    <div class="absolute bottom-[3%] right-[5%] flex flex-col items-center rotate-180">
+                        <span class="font-bold tracking-tighter leading-none" style="font-size: 0.28em;">${getRankDisplay(card.rank)}</span>
+                        <span class="leading-none" style="font-size: 0.22em; margin-top: -1px;">${card.suit.icon}</span>
+                    </div>
+                `;
+
+                if (state.selectedType === type && state.selectedIndex === index) {
+                    cardEl.classList.add('selected');
+                }
+
+                cardEl.onpointerdown = (e) => {
+                    e.preventDefault(); e.stopPropagation();
+                    handlePointerDown(e, type, index);
+                };
+
+                return cardEl;
+            }
+
+            function updateUI() {
+                els.movesDisplay.innerText = state.moves;
+                els.scoreDisplay.innerText = state.score;
+                els.redealsDisplay.innerText = state.redealsLeft;
+
+                // 1. DYNAMIC MATH CALCULATION
+                // Extract container width safely, subtracting minimal padding
+                const containerWidth = Math.min(els.pyramid.clientWidth || window.innerWidth - 32, 800);
+                
+                // 8.5 guarantees the 7-card bottom row fits flawlessly
+                const cardWidth = Math.floor(containerWidth / 8.5); 
+                const cardHeight = Math.floor(cardWidth * 1.4); // Standard poker ratio
+                const hGap = cardWidth * 1.15; 
+                const vGap = cardHeight * 0.45; // 45% overlap vertically
+                
+                // Set explicitly on container so it expands perfectly
+                els.pyramid.style.height = `${cardHeight + 6 * vGap}px`;
+
+                // 2. HUD RENDERING (Stock & Waste)
+                // Force HUD containers to match pyramid card sizes explicitly!
+                els.stock.style.width = `${cardWidth}px`;
+                els.stock.style.height = `${cardHeight}px`;
+                els.stock.style.fontSize = `${cardWidth}px`; // Drives the internal 'em' units
+                
+                els.stock.innerHTML = '';
+                if (state.stock.length > 0) {
+                    const bgEl = document.createElement('div');
+                    bgEl.className = 'card card-face-down';
+                    bgEl.style.width = '100%'; bgEl.style.height = '100%';
+                    bgEl.innerHTML = `<div style="font-size: 0.6em; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); line-height: 1;" class="absolute inset-0 flex items-center justify-center">🌴</div>`;
+                    els.stock.appendChild(bgEl);
+                } else if (state.redealMode === 'wendy' || (state.redealMode === 'three' && state.redealsLeft > 0)) {
+                    els.stock.innerHTML = `<div class="absolute inset-0 flex items-center justify-center text-[0.6em] text-white/50">↻</div>`;
+                } else {
+                    els.stock.innerHTML = `<div class="absolute inset-0 flex items-center justify-center text-[0.6em] text-white/10">❌</div>`;
+                }
+                els.stock.onclick = handleStockClick;
+
+                els.waste.style.width = `${cardWidth}px`;
+                els.waste.style.height = `${cardHeight}px`;
+                els.waste.style.fontSize = `${cardWidth}px`;
+                
+                els.waste.innerHTML = '';
+                if (state.waste.length > 0) {
+                    const start = Math.max(0, state.waste.length - (state.drawMode === '3' ? 3 : 1));
+                    for (let i = start; i < state.waste.length; i++) {
+                        const cardEl = createCardDOM(state.waste[i], 'waste', i);
+                        cardEl.style.width = '100%';
+                        cardEl.style.height = '100%';
+                        // Fan horizontally 25% of card width
+                        cardEl.style.left = `${(i - start) * (cardWidth * 0.25)}px`; 
+                        els.waste.appendChild(cardEl);
+                    }
+                }
+
+                // 3. PYRAMID RENDERING (Absolute Positioning)
+                els.pyramid.innerHTML = '';
+                
+                for (let r = 0; r < 7; r++) {
+                    for (let c = 0; c <= r; c++) {
+                        const index = (r * (r + 1)) / 2 + c;
+                        const card = state.pyramid[index];
+                        
+                        if (card) {
+                            const el = createCardDOM(card, 'pyramid', index);
+                            
+                            // Find horizontal center, step left/right based on column and row
+                            const centerX = els.pyramid.clientWidth / 2;
+                            const x = centerX + (c - r / 2) * hGap - (cardWidth / 2);
+                            const y = r * vGap;
+                            
+                            el.style.left = `${x}px`;
+                            el.style.top = `${y}px`;
+                            el.style.width = `${cardWidth}px`;
+                            el.style.height = `${cardHeight}px`;
+                            el.style.fontSize = `${cardWidth}px`; // 1em = EXACTLY card width!
+                            
+                            // Dim and disable if buried
+                            if (!isExposed(index)) {
+                                el.classList.add('brightness-[0.4]', 'pointer-events-none');
+                            }
+                            
+                            els.pyramid.appendChild(el);
+                        }
+                    }
+                }
+            }
+
+            // Window resize handler ensures pyramid recalcs layout if user rotates phone
+            let resizeTimeout;
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeTimeout);
+                resizeTimeout = setTimeout(updateUI, 100);
+            });
+
+            // --- STREAMING_CHUNK:Drag and Drop Interaction Handling... ---
+            function handlePointerDown(e, type, index) {
+                if (e.button !== 0 && e.pointerType === 'mouse') return;
+                if (state.isAnimating) return;
+
+                // Validate pick up (Only exposed pyramid cards, or the TOP waste card)
+                if (type === 'pyramid' && !isExposed(index)) return;
+                if (type === 'waste' && index !== state.waste.length - 1) return;
+
+                drag.active = true;
+                drag.isDragging = false;
+                drag.startX = e.clientX;
+                drag.startY = e.clientY;
+                drag.sourceType = type;
+                drag.sourceIndex = index;
+                
+                let domCard = e.currentTarget;
+                drag.elements = [domCard];
+                drag.cards = [getCard(type, index)];
+                
+                if (e.target.setPointerCapture) {
+                    try { e.target.setPointerCapture(e.pointerId); } catch(err) {}
+                }
+            }
+
+            window.addEventListener('pointermove', (e) => {
+                if (!drag.active) return;
+                const dx = e.clientX - drag.startX;
+                const dy = e.clientY - drag.startY;
+
+                if (!drag.isDragging && (Math.abs(dx) > 5 || Math.abs(dy) > 5)) {
+                    drag.isDragging = true;
+                    drag.elements.forEach(el => el.classList.add('dragging'));
+                    if (state.selectedType !== drag.sourceType || state.selectedIndex !== drag.sourceIndex) {
+                         clearSelection();
+                         document.querySelectorAll('.card.selected').forEach(el => el.classList.remove('selected'));
+                    }
+                }
+
+                if (drag.isDragging) {
+                    drag.elements.forEach((el) => {
+                        el.style.transform = `translate(${dx}px, ${dy}px)`;
+                    });
+                }
+            });
+
+            window.addEventListener('pointerup', (e) => {
+                if (!drag.active) return;
+
+                if (!drag.isDragging) {
+                    // Tap / Click logic
+                    processClick(drag.sourceType, drag.sourceIndex);
+                } else {
+                    // Physical drop logic
+                    const target = document.elementFromPoint(e.clientX, e.clientY);
+                    let targetCard = target ? target.closest('.card') : null;
+
+                    if (targetCard && targetCard.dataset.type && !targetCard.classList.contains('dragging')) {
+                        const targetType = targetCard.dataset.type;
+                        const targetIndex = parseInt(targetCard.dataset.index);
+
+                        // Prevent dropping on buried pyramid cards or buried waste cards
+                        let isValidTarget = true;
+                        if (targetType === 'pyramid' && !isExposed(targetIndex)) isValidTarget = false;
+                        if (targetType === 'waste' && targetIndex !== state.waste.length - 1) isValidTarget = false;
+
+                        if (isValidTarget && (targetType !== drag.sourceType || targetIndex !== drag.sourceIndex)) {
+                            let cardA = getCard(drag.sourceType, drag.sourceIndex);
+                            let cardB = getCard(targetType, targetIndex);
+                            
+                            if (cardA.rank + cardB.rank === 13) {
+                                executeMatch(drag.sourceType, drag.sourceIndex, targetType, targetIndex);
+                            } else {
+                                updateUI(); // Invalid match, snap back
+                            }
+                        } else {
+                            // If they drug a King and dropped it anywhere (even empty space), just remove it!
+                            if (drag.cards[0].rank === 13) {
+                                executeMatch(drag.sourceType, drag.sourceIndex, null, null);
+                            } else {
+                                updateUI(); 
+                            }
+                        }
+                    } else {
+                         // Dropped in the void. Was it a King?
+                         if (drag.cards[0].rank === 13) {
+                            executeMatch(drag.sourceType, drag.sourceIndex, null, null);
+                        } else {
+                            updateUI(); 
+                        }
+                    }
+                }
+
+                drag.active = false;
+                drag.isDragging = false;
+                drag.elements.forEach(el => {
+                    el.classList.remove('dragging');
+                    el.style.transform = '';
+                });
+                drag.elements = [];
+                drag.cards = [];
+            });
+
+            window.addEventListener('pointercancel', abortDrag);
+
+            // Legacy click-to-match fallback
+            function processClick(type, index) {
+                if (state.isAnimating) return;
+                let clickedCard = getCard(type, index);
+                
+                // 1. King clicked -> Auto remove instantly
+                if (clickedCard.rank === 13) {
+                    executeMatch(type, index, null, null);
+                    return;
+                }
+                
+                // 2. No selection -> Select this
+                if (state.selectedType === null) {
+                    state.selectedType = type;
+                    state.selectedIndex = index;
+                    updateUI();
+                    return;
+                }
+                
+                // 3. Clicked self -> Deselect
+                if (state.selectedType === type && state.selectedIndex === index) {
+                    clearSelection();
+                    updateUI();
+                    return;
+                }
+                
+                // 4. Clicked another -> Check match
+                let selectedCard = getCard(state.selectedType, state.selectedIndex);
+                if (selectedCard.rank + clickedCard.rank === 13) {
+                    executeMatch(state.selectedType, state.selectedIndex, type, index);
+                } else {
+                    // Match failed. Swap selection gracefully.
+                    const domCard = document.querySelector(`.card[data-type="${type}"][data-index="${index}"]`);
+                    if(domCard) domCard.classList.add('border-red-500', 'border-2', 'animate-pulse');
+                    setTimeout(() => {
+                        state.selectedType = type;
+                        state.selectedIndex = index;
+                        updateUI();
+                    }, 300);
+                }
+            }
+
+            function clearSelection() {
+                state.selectedType = null;
+                state.selectedIndex = null;
+            }
+
+            // --- STREAMING_CHUNK:UI Buttons & Bindings... ---
+            function showMessage(text, permanent = false) {
+                els.msgText.innerText = text;
+                els.msgBox.classList.remove('hidden');
+                els.msgBox.classList.add('msg-animate');
+                if (!permanent) setTimeout(hideMessage, 3000);
+            }
+            function hideMessage() {
+                els.msgBox.classList.add('hidden');
+                els.msgBox.classList.remove('msg-animate');
+            }
+
+            els.helpBtn.addEventListener('click', (e) => {
+                e.preventDefault(); 
+                els.settingsModal.classList.add('hidden');
+                els.instructionsModal.classList.remove('hidden');
+            });
+            els.helpBtnSettings.addEventListener('click', (e) => {
+                e.preventDefault(); 
+                els.settingsModal.classList.add('hidden');
+                els.instructionsModal.classList.remove('hidden');
+            });
+            els.closeInstructionsBtn.addEventListener('click', () => { els.instructionsModal.classList.add('hidden'); });
+
+            let gearTimer; let isGearLong = false;
+            els.gearBtn.addEventListener('pointerdown', (e) => {
+                e.preventDefault(); isGearLong = false;
+                gearTimer = setTimeout(() => {
+                    isGearLong = true;
+                    els.drawSel.value = state.drawMode;
+                    els.redealSel.value = state.redealMode;
+                    els.settingsModal.classList.remove('hidden');
+                }, 600);
+            });
+            const cancelGear = () => clearTimeout(gearTimer);
+            els.gearBtn.addEventListener('pointerleave', cancelGear);
+            els.gearBtn.addEventListener('pointercancel', cancelGear);
+            els.gearBtn.addEventListener('pointerup', () => {
+                clearTimeout(gearTimer);
+                if (!isGearLong) showMessage("Long press ⚙️ for settings!");
+            });
+            els.gearBtn.addEventListener('contextmenu', (e) => e.preventDefault());
+
+            els.drawSel.addEventListener('change', (e) => { state.drawMode = e.target.value; autoSave(); });
+            els.redealSel.addEventListener('change', (e) => {
+                state.redealMode = e.target.value;
+                if (state.redealMode === 'wendy') state.redealsLeft = '∞';
+                else if (state.redealMode === 'three') state.redealsLeft = 3;
+                else state.redealsLeft = 0;
+                autoSave(); updateUI();
+            });
+            els.closeSettingsBtn.addEventListener('click', () => els.settingsModal.classList.add('hidden'));
+
+            let newGameTimer; let isNewGameLong = false;
+            els.newGameBtn.addEventListener('pointerdown', (e) => {
+                e.preventDefault(); abortDrag(); isNewGameLong = false;
+                newGameTimer = setTimeout(() => { isNewGameLong = true; initGame(); }, 600);
+            });
+            const cancelNew = () => clearTimeout(newGameTimer);
+            els.newGameBtn.addEventListener('pointerleave', cancelNew);
+            els.newGameBtn.addEventListener('pointercancel', cancelNew);
+            els.newGameBtn.addEventListener('pointerup', () => {
+                clearTimeout(newGameTimer);
+                if (!isNewGameLong) showMessage("Long press 'New Game' to restart!");
+            });
+            els.newGameBtn.addEventListener('contextmenu', (e) => e.preventDefault());
+
+            let replayTimer; let isReplayLong = false;
+            els.replayBtn.addEventListener('pointerdown', (e) => {
+                e.preventDefault(); abortDrag();
+                if (!initialGameState) return; 
+                isReplayLong = false;
+                replayTimer = setTimeout(() => {
+                    isReplayLong = true;
+                    state = JSON.parse(JSON.stringify(initialGameState));
+                    history = []; redoHistory = [];
+                    els.undoBtn.disabled = true; els.redoBtn.disabled = true;
+                    stopFireworks(); hideMessage(); clearSelection(); updateUI(); autoSave();
+                }, 600);
+            });
+            const cancelReplay = () => clearTimeout(replayTimer);
+            els.replayBtn.addEventListener('pointerleave', cancelReplay);
+            els.replayBtn.addEventListener('pointercancel', cancelReplay);
+            els.replayBtn.addEventListener('pointerup', () => {
+                clearTimeout(replayTimer);
+                if (!isReplayLong && initialGameState) showMessage("Long press 'Replay' to restart this deal!");
+            });
+            els.replayBtn.addEventListener('contextmenu', (e) => e.preventDefault());
+
+            function throttle(func, limit) {
+                let inThrottle;
+                return function() {
+                    const args = arguments; const context = this;
+                    if (!inThrottle) {
+                        func.apply(context, args);
+                        inThrottle = true; setTimeout(() => inThrottle = false, limit);
+                    }
+                }
+            }
+
+            els.undoBtn.addEventListener('click', throttle(undo, 300));
+            els.redoBtn.addEventListener('click', throttle(redo, 300));
+
+            // BOOT
+            const savedString = localStorage.getItem('pyramid_save');
+            if (savedString) {
+                try {
+                    const parsed = JSON.parse(savedString);
+                    state = parsed.state;
+                    if (!state.drawMode) state.drawMode = '1'; 
+                    if (!state.redealMode) state.redealMode = 'wendy'; 
+                    history = parsed.history || [];
+                    redoHistory = parsed.redoHistory || [];
+                    initialGameState = parsed.initialGameState;
+                    
+                    els.undoBtn.disabled = history.length === 0;
+                    els.redoBtn.disabled = redoHistory.length === 0;
+                    
+                    clearSelection();
+                    updateUI();
+                } catch (e) {
+                    initGame();
+                }
+            } else {
+                initGame(); 
+            }
+
+        })();
+    </script>
+</body>
+</html>
